@@ -1,0 +1,8 @@
+# Godot 4+ specific ignores
+.godot/
+
+# Blender backups
+*.blend1
+
+# Baked lightmaps
+*.lmbake
