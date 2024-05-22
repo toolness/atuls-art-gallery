@@ -1,0 +1,20 @@
+[gd_scene load_steps=5 format=3 uid="uid://dss65i31egqc3"]
+
+[ext_resource type="Script" path="res://infinite_gallery.gd" id="1_drnpr"]
+[ext_resource type="PackedScene" uid="uid://vwr8ajoufse8" path="res://Controller/Player.tscn" id="2_4hb5h"]
+[ext_resource type="PackedScene" uid="uid://mv0032qsc6tk" path="res://moma.tscn" id="3_3c1uq"]
+
+[sub_resource type="Environment" id="Environment_ckp8a"]
+ssao_enabled = true
+
+[node name="InfiniteGallery" type="Node3D"]
+script = ExtResource("1_drnpr")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_ckp8a")
+
+[node name="Player" parent="." instance=ExtResource("2_4hb5h")]
+transform = Transform3D(-7.39508e-06, 0, -1, 0, 1, 0, 1, 0, -7.39508e-06, -5, 2, 3)
+jump_height = 0.5
+
+[node name="Moma" parent="." instance=ExtResource("3_3c1uq")]

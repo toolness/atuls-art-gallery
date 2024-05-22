@@ -1,20 +1,12 @@
-[gd_scene load_steps=4 format=3 uid="uid://mv0032qsc6tk"]
+[gd_scene load_steps=3 format=3 uid="uid://mv0032qsc6tk"]
 
 [ext_resource type="PackedScene" uid="uid://dhfypcdkkupf" path="res://Levels/moma-gallery.blend" id="1_h12cm"]
-[ext_resource type="PackedScene" uid="uid://vwr8ajoufse8" path="res://Controller/Player.tscn" id="2_bdbin"]
-
-[sub_resource type="Environment" id="Environment_vncu0"]
-ssao_enabled = true
-ssil_enabled = true
+[ext_resource type="Script" path="res://moma.gd" id="1_s8k87"]
 
 [node name="Moma" type="Node3D"]
+script = ExtResource("1_s8k87")
 
-[node name="moma-gallery" parent="." instance=ExtResource("1_h12cm")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 1)
-
-[node name="Player" parent="." instance=ExtResource("2_bdbin")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 3, 6)
-jump_height = 0.5
+[node name="Gallery" parent="." instance=ExtResource("1_h12cm")]
 
 [node name="OmniLight3D" type="OmniLight3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11, 2, 5)
@@ -23,9 +15,6 @@ light_energy = 4.627
 [node name="OmniLight3D2" type="OmniLight3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 2, -4)
 light_energy = 4.627
-
-[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
-environment = SubResource("Environment_vncu0")
 
 [node name="OmniLight3D3" type="OmniLight3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 1, -5)
