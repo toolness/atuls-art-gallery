@@ -18,3 +18,4 @@ transform = Transform3D(-7.39508e-06, 0, -1, 0, 1, 0, 1, 0, -7.39508e-06, -5, 2,
 jump_height = 0.5
 
 [node name="Moma" parent="." instance=ExtResource("3_3c1uq")]
+visible = false
