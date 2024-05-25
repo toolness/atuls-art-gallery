@@ -5,9 +5,9 @@ extends Node3D
 
 @export var gallery_chunk_scene: PackedScene
 
-@onready var player: Node3D = $Player
+@onready var player: Player = $Player
 
-@onready var gallery_chunks: Array[Node3D] = []
+@onready var gallery_chunks: Array[Moma] = []
 
 var GALLERY_CHUNK_WIDTH = 28
 
@@ -22,7 +22,7 @@ func sync_galleries():
 	var max_gallery_id = middle_gallery_id + 1
 
 	# Get rid of galleries that are far from the player.
-	var new_gallery_chunks: Array[Node3D] = []
+	var new_gallery_chunks: Array[Moma] = []
 	for gallery_chunk in gallery_chunks:
 		var gallery_id = get_gallery_id(gallery_chunk.position.x)
 		if gallery_id < min_gallery_id or gallery_id > max_gallery_id:
