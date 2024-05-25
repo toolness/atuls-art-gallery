@@ -40,7 +40,7 @@ func sync_galleries():
 				found = true
 				break
 		if not found:
-			var instance: Node3D = gallery_chunk_scene.instantiate()
+			var instance: Moma = gallery_chunk_scene.instantiate()
 			instance.position.x = gallery_id * GALLERY_CHUNK_WIDTH
 			print("Spawning new gallery with id ", gallery_id, " at ", instance.position.x)
 			add_child(instance)
