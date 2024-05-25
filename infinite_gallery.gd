@@ -1,7 +1,9 @@
+class_name InfiniteGallery
+
 extends Node3D
 
 
-@onready var gallery_chunk_scene = preload("res://moma.tscn")
+@export var gallery_chunk_scene: PackedScene
 
 @onready var player: Node3D = $Player
 
@@ -43,6 +45,7 @@ func sync_galleries():
 			print("Spawning new gallery with id ", gallery_id, " at ", instance.position.x)
 			add_child(instance)
 			gallery_chunks.push_front(instance)
+			instance.boop()
 
 
 # Called when the node enters the scene tree for the first time.

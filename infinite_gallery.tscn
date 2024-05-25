@@ -9,6 +9,7 @@ ssao_enabled = true
 
 [node name="InfiniteGallery" type="Node3D"]
 script = ExtResource("1_drnpr")
+gallery_chunk_scene = ExtResource("3_3c1uq")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_ckp8a")
