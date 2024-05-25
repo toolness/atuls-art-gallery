@@ -24,7 +24,7 @@ func sync_galleries():
 	# Get rid of galleries that are far from the player.
 	var new_gallery_chunks: Array[Moma] = []
 	for gallery_chunk in gallery_chunks:
-		var gallery_id = get_gallery_id(gallery_chunk.position.x)
+		var gallery_id = gallery_chunk.gallery_id
 		if gallery_id < min_gallery_id or gallery_id > max_gallery_id:
 			print("Despawning gallery with id ", gallery_id, " at ", gallery_chunk.position.x)
 			remove_child(gallery_chunk)
@@ -36,7 +36,7 @@ func sync_galleries():
 	for gallery_id in [min_gallery_id, middle_gallery_id, max_gallery_id]:
 		var found = false
 		for gallery_chunk in gallery_chunks:
-			if get_gallery_id(gallery_chunk.position.x) == gallery_id:
+			if gallery_chunk.gallery_id == gallery_id:
 				found = true
 				break
 		if not found:
@@ -45,7 +45,7 @@ func sync_galleries():
 			print("Spawning new gallery with id ", gallery_id, " at ", instance.position.x)
 			add_child(instance)
 			gallery_chunks.push_front(instance)
-			instance.boop()
+			instance.init(gallery_id)
 
 
 # Called when the node enters the scene tree for the first time.

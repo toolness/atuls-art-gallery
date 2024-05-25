@@ -4,6 +4,8 @@ extends Node3D
 
 @onready var gallery: Node3D = $gallery
 
+var gallery_id: int
+
 # Called when the node enters the scene tree for the first time.
 func _ready():
 	for child in gallery.get_children():
@@ -14,8 +16,9 @@ func _ready():
 				pass
 	print("CALLED _ready")
 
-func boop():
-	print("BOOP")
+func init(new_gallery_id: int):
+	gallery_id = new_gallery_id
+	print("Initializing gallery ", gallery_id)
 
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
