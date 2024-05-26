@@ -15,8 +15,9 @@ func _ready() -> void:
 			var mesh_instance: MeshInstance3D = child
 			var aabb: AABB = mesh_instance.get_aabb()
 			var height = aabb.size.y
-			if height < 0.1:
-				# This is a floor or ceiling, it has no height.
+			if height < MIN_WALL_MOUNT_SIZE:
+				# This is either a floor or ceiling, or it's just a wall
+				# that isn't tall enough for our needs.
 				continue
 			var faces = mesh_instance.mesh.get_faces()
 			if faces.size() != 6:
