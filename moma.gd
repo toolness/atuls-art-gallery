@@ -12,19 +12,30 @@ var gallery_id: int
 func _ready() -> void:
 	for child in gallery.get_children():
 		if is_instance_of(child, MeshInstance3D):
-			var mesh: MeshInstance3D = child
-			var aabb: AABB = mesh.get_aabb()
-			if aabb.size.y < 0.1:
+			var mesh_instance: MeshInstance3D = child
+			var aabb: AABB = mesh_instance.get_aabb()
+			var height = aabb.size.y
+			if height < 0.1:
 				# This is a floor or ceiling, it has no height.
 				continue
+			var faces = mesh_instance.mesh.get_faces()
+			if faces.size() != 6:
+				# This isn't a plane.
+				continue
+			var first: Vector3 = faces[1] - faces[0]
+			var second: Vector3 = faces[2] - faces[0]
+			var normal = second.cross(first).normalized()
+			var width: float
 			if aabb.size.x > MIN_WALL_MOUNT_SIZE:
 				# We can mount art along the x-axis.
-				pass
+				width = aabb.size.x
 			elif aabb.size.y > MIN_WALL_MOUNT_SIZE:
 				# We can mount art along the y-axis.
-				pass
+				width = aabb.size.y
 			else:
-				pass
+				# This isn't a big enough wall to mount anything on.
+				continue
+			print("COOL ", child.name, " ", normal, " ", width)
 
 
 func init(new_gallery_id: int) -> void:
