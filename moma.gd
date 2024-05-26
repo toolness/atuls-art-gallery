@@ -36,6 +36,10 @@ func _ready() -> void:
 			else:
 				# This isn't a big enough wall to mount anything on.
 				continue
+			# TODO: Load images dynamically with:
+			# https://docs.godotengine.org/en/stable/tutorials/io/runtime_file_loading_and_saving.html
+			# TODO: Generate surfaces dynamically with:
+			# https://docs.godotengine.org/en/stable/tutorials/3d/procedural_geometry/index.html
 			print("COOL ", child.name, " ", normal, " ", width)
 
 
