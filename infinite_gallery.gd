@@ -51,3 +51,7 @@ func sync_galleries() -> void:
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
 	sync_galleries()
+
+
+func _process(_delta) -> void:
+	sync_galleries()
