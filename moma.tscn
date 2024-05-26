@@ -2,10 +2,11 @@
 
 [ext_resource type="Script" path="res://moma.gd" id="1_k8oh2"]
 [ext_resource type="PackedScene" uid="uid://blnio8022b1fn" path="res://Levels/moma-gallery.glb" id="1_kk2r5"]
-[ext_resource type="PackedScene" uid="uid://d34mwxnh7jtgj" path="res://Levels/painting.glb" id="3_mkxqb"]
+[ext_resource type="PackedScene" uid="uid://dfs7nhm0sjhah" path="res://painting.tscn" id="2_4p8tv"]
 
 [node name="Moma" type="Node3D"]
 script = ExtResource("1_k8oh2")
+painting_scene = ExtResource("2_4p8tv")
 
 [node name="OmniLight3D" type="OmniLight3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 2, 5)
@@ -24,6 +25,3 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 2, 6)
 light_energy = 4.627
 
 [node name="gallery" parent="." instance=ExtResource("1_kk2r5")]
-
-[node name="painting" parent="." instance=ExtResource("3_mkxqb")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 2, 0)
