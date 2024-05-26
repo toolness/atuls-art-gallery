@@ -7,7 +7,7 @@ extends Node3D
 var gallery_id: int
 
 # Called when the node enters the scene tree for the first time.
-func _ready():
+func _ready() -> void:
 	for child in gallery.get_children():
 		if is_instance_of(child, MeshInstance3D):
 			var aabb: AABB = child.get_aabb()
@@ -16,11 +16,7 @@ func _ready():
 				pass
 	print("CALLED _ready")
 
-func init(new_gallery_id: int):
+
+func init(new_gallery_id: int) -> void:
 	gallery_id = new_gallery_id
 	print("Initializing gallery ", gallery_id)
-
-
-# Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta):
-	pass

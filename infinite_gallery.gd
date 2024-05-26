@@ -9,14 +9,14 @@ extends Node3D
 
 @onready var gallery_chunks: Array[Moma] = []
 
-var GALLERY_CHUNK_WIDTH = 28
+const GALLERY_CHUNK_WIDTH = 28
 
 
 func get_gallery_id(x: float) -> int:
 	return floori(x / float(GALLERY_CHUNK_WIDTH))
 
 
-func sync_galleries():
+func sync_galleries() -> void:
 	var middle_gallery_id = get_gallery_id(player.position.x)
 	var min_gallery_id = middle_gallery_id - 1
 	var max_gallery_id = middle_gallery_id + 1
@@ -33,7 +33,7 @@ func sync_galleries():
 	gallery_chunks = new_gallery_chunks
 
 	# Spawn galleries that are near the player.
-	for gallery_id in [min_gallery_id, middle_gallery_id, max_gallery_id]:
+	for gallery_id: int in [min_gallery_id, middle_gallery_id, max_gallery_id]:
 		var found = false
 		for gallery_chunk in gallery_chunks:
 			if gallery_chunk.gallery_id == gallery_id:
@@ -49,10 +49,5 @@ func sync_galleries():
 
 
 # Called when the node enters the scene tree for the first time.
-func _ready():
-	sync_galleries()
-
-
-# Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta):
+func _ready() -> void:
 	sync_galleries()
