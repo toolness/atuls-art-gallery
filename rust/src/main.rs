@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use std::process;
 
 use clap::Parser;
-use serde::{de, Deserialize};
+use serde::{de, Deserialize, Serialize};
 
 use anyhow::{anyhow, Result};
 
@@ -90,6 +90,14 @@ struct MetObjectRecord {
 
     #[serde(rename = "primaryImageSmall")]
     primary_image_small: String,
+
+    #[serde(rename = "objectDate")]
+    object_date: String,
+
+    #[serde(rename = "objectID")]
+    object_id: u64,
+
+    title: String,
 }
 
 impl MetObjectRecord {
@@ -130,6 +138,16 @@ struct ElementMeasurements {
     depth: Option<f64>,
 }
 
+#[derive(Debug, Serialize)]
+struct SimplifiedRecord {
+    object_id: u64,
+    title: String,
+    date: String,
+    width: f64,
+    height: f64,
+    small_image: String,
+}
+
 // By default, struct field names are deserialized based on the position of
 // a corresponding field in the CSV data's header record.
 #[derive(Debug, Deserialize)]
@@ -164,6 +182,7 @@ where
 }
 
 fn run() -> Result<()> {
+    let mut simplified_records: Vec<SimplifiedRecord> = Vec::new();
     let args = Args::parse();
     let csv_file = get_cached_path("MetObjects.csv");
     let reader = BufReader::new(File::open(csv_file)?);
@@ -210,13 +229,19 @@ fn run() -> Result<()> {
         }
         if args.download {
             let obj_record = load_met_object_record(csv_record.object_id)?;
-            if obj_record.overall_width_and_height().is_some()
-                && obj_record.primary_image_small.ends_with(".jpg")
-            {
-                cache_binary_url(
-                    &obj_record.primary_image_small,
-                    format!("object-{}-small.jpg", csv_record.object_id),
-                )?;
+            if let Some((width, height)) = obj_record.overall_width_and_height() {
+                if obj_record.primary_image_small.ends_with(".jpg") {
+                    let small_image = format!("object-{}-small.jpg", csv_record.object_id);
+                    cache_binary_url(&obj_record.primary_image_small, &small_image)?;
+                    simplified_records.push(SimplifiedRecord {
+                        object_id: obj_record.object_id,
+                        title: obj_record.title,
+                        date: obj_record.object_date,
+                        width,
+                        height,
+                        small_image,
+                    });
+                }
             }
         }
         if let Some(max) = args.max {
@@ -227,6 +252,12 @@ fn run() -> Result<()> {
         }
     }
     println!("Processed {count} records.");
+    if !simplified_records.is_empty() {
+        let simplified_index = get_cached_path("_simple-index.json");
+        let pretty_printed = serde_json::to_string_pretty(&simplified_records)?;
+        println!("Writing {}.", simplified_index.display());
+        std::fs::write(simplified_index, pretty_printed)?;
+    }
     Ok(())
 }
 
