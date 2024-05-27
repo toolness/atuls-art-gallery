@@ -7,7 +7,7 @@ use serde::{de, Deserialize};
 
 use anyhow::{anyhow, Result};
 
-use std::io::{BufReader, Read};
+use std::io::BufReader;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -28,6 +28,22 @@ struct Args {
 fn get_cached_path<T: AsRef<str>>(filename: T) -> PathBuf {
     let cache_dir = Path::new("cache");
     cache_dir.join(filename.as_ref())
+}
+
+fn cache_binary_url<T: AsRef<str>, U: AsRef<str>>(url: T, filename: U) -> Result<()> {
+    let filename_path = get_cached_path(filename);
+    if filename_path.exists() {
+        return Ok(());
+    }
+    println!("Caching {} -> {}...", url.as_ref(), filename_path.display());
+    let response = ureq::get(url.as_ref()).call()?;
+    if response.status() != 200 {
+        return Err(anyhow!("Got HTTP {}", response.status()));
+    }
+    let mut response_body = response.into_reader();
+    let mut outfile = File::create(filename_path)?;
+    std::io::copy(&mut response_body, &mut outfile)?;
+    Ok(())
 }
 
 fn cache_json_url<T: AsRef<str>, U: AsRef<str>>(url: T, filename: U) -> Result<()> {
@@ -53,10 +69,7 @@ fn cache_json_url<T: AsRef<str>, U: AsRef<str>>(url: T, filename: U) -> Result<(
 }
 
 fn load_cached_string<T: AsRef<str>>(filename: T) -> Result<String> {
-    let mut file = File::open(get_cached_path(filename))?;
-    let mut contents = String::new();
-    file.read_to_string(&mut contents)?;
-    Ok(contents)
+    Ok(std::fs::read_to_string(get_cached_path(filename))?)
 }
 
 fn load_met_object_record(object_id: u64) -> Result<MetObjectRecord> {
@@ -74,15 +87,19 @@ fn load_met_object_record(object_id: u64) -> Result<MetObjectRecord> {
 #[derive(Debug, Deserialize)]
 struct MetObjectRecord {
     measurements: Vec<Measurements>,
+
+    #[serde(rename = "primaryImageSmall")]
+    primary_image_small: String,
 }
 
 impl MetObjectRecord {
     pub fn overall_width_and_height(&self) -> Option<(f64, f64)> {
         for measurement in &self.measurements {
             if &measurement.element_name == "Overall" {
-                if let (Some(width), Some(height)) = (
+                if let (Some(width), Some(height), None) = (
                     measurement.element_measurements.width,
                     measurement.element_measurements.height,
+                    measurement.element_measurements.depth,
                 ) {
                     return Some((width, height));
                 }
@@ -108,6 +125,9 @@ struct ElementMeasurements {
 
     #[serde(rename = "Height")]
     height: Option<f64>,
+
+    #[serde(rename = "Depth")]
+    depth: Option<f64>,
 }
 
 // By default, struct field names are deserialized based on the position of
@@ -190,12 +210,13 @@ fn run() -> Result<()> {
         }
         if args.download {
             let obj_record = load_met_object_record(csv_record.object_id)?;
-            if args.verbose {
-                println!(
-                    "#{} overall dimensions: {:?}",
-                    csv_record.object_id,
-                    obj_record.overall_width_and_height()
-                )
+            if obj_record.overall_width_and_height().is_some()
+                && obj_record.primary_image_small.ends_with(".jpg")
+            {
+                cache_binary_url(
+                    &obj_record.primary_image_small,
+                    format!("object-{}-small.jpg", csv_record.object_id),
+                )?;
             }
         }
         if let Some(max) = args.max {
