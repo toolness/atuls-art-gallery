@@ -8,15 +8,19 @@ extends Node3D
 
 const MIN_WALL_MOUNT_SIZE = 2
 
+const MIN_CANVAS_SIZE = 0.5
+
 var gallery_id: int
 
-# Called when the node enters the scene tree for the first time.
-func _ready() -> void:
+
+func populate_with_paintings() -> void:
+	var rng = RandomNumberGenerator.new()
+	rng.seed = hash(gallery_id)
 	for child in gallery.get_children():
 		if is_instance_of(child, MeshInstance3D):
 			var mesh_instance: MeshInstance3D = child
 			var aabb: AABB = mesh_instance.get_aabb()
-			var height = aabb.size.y
+			var height: float = aabb.size.y
 			if height < MIN_WALL_MOUNT_SIZE:
 				# This is either a floor or ceiling, or it's just a wall
 				# that isn't tall enough for our needs.
@@ -47,6 +51,12 @@ func _ready() -> void:
 			# TODO: Load images dynamically with:
 			# https://docs.godotengine.org/en/stable/tutorials/io/runtime_file_loading_and_saving.html
 			var painting: Painting = painting_scene.instantiate()
+			painting.init(
+				rng.randf_range(MIN_CANVAS_SIZE, width / 2.0),
+				rng.randf_range(MIN_CANVAS_SIZE, height / 1.5),
+				# TODO: Randomize color.
+				Color.ALICE_BLUE
+			)
 			add_child(painting)
 			var painting_mount_point: Vector3 = mesh_instance.position + aabb.get_center()
 			painting.translate(painting_mount_point)
@@ -59,3 +69,4 @@ func _ready() -> void:
 func init(new_gallery_id: int) -> void:
 	gallery_id = new_gallery_id
 	print("Initializing gallery ", gallery_id)
+	populate_with_paintings()
