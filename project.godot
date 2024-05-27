@@ -11,12 +11,8 @@ config_version=5
 [application]
 
 config/name="Atul's Art Museum"
-config/description="This is GamedevTV's very own Godot starter kit! Built on the Castle Kingdoms asset pack, this starter kit aims to get you set up in three key ways:
-- A demo scene showing all the kit content in action.
-- 1st/ 3rd person character controller with a debug room for testing.
-- A bundled settings menu for controlling visuals, audio, controls, and accessing debug tools."
 config/version="1.0"
-run/main_scene="res://Levels/atul.tscn"
+run/main_scene="res://infinite_gallery.tscn"
 config/features=PackedStringArray("4.2", "Forward Plus")
 boot_splash/show_image=false
 boot_splash/image="res://GDTVAssetPack/Textures/GDTVSplash.png"
