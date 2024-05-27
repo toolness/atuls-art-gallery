@@ -7,7 +7,7 @@ use serde::{de, Deserialize};
 
 use anyhow::{anyhow, Result};
 
-use std::io::BufReader;
+use std::io::{BufReader, Read};
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -52,11 +52,69 @@ fn cache_json_url<T: AsRef<str>, U: AsRef<str>>(url: T, filename: U) -> Result<(
     Ok(())
 }
 
+fn load_cached_string<T: AsRef<str>>(filename: T) -> Result<String> {
+    let mut file = File::open(get_cached_path(filename))?;
+    let mut contents = String::new();
+    file.read_to_string(&mut contents)?;
+    Ok(contents)
+}
+
+fn load_met_object_record(object_id: u64) -> Result<MetObjectRecord> {
+    let filename = format!("object-{}.json", object_id);
+    cache_json_url(
+        format!(
+            "https://collectionapi.metmuseum.org/public/collection/v1/objects/{}",
+            object_id
+        ),
+        &filename,
+    )?;
+    Ok(serde_json::from_str(&load_cached_string(filename)?)?)
+}
+
+#[derive(Debug, Deserialize)]
+struct MetObjectRecord {
+    measurements: Vec<Measurements>,
+}
+
+impl MetObjectRecord {
+    pub fn overall_width_and_height(&self) -> Option<(f64, f64)> {
+        for measurement in &self.measurements {
+            if &measurement.element_name == "Overall" {
+                if let (Some(width), Some(height)) = (
+                    measurement.element_measurements.width,
+                    measurement.element_measurements.height,
+                ) {
+                    return Some((width, height));
+                }
+            }
+        }
+        None
+    }
+}
+
+#[derive(Debug, Deserialize)]
+struct Measurements {
+    #[serde(rename = "elementName")]
+    element_name: String,
+
+    #[serde(rename = "elementMeasurements")]
+    element_measurements: ElementMeasurements,
+}
+
+#[derive(Debug, Deserialize)]
+struct ElementMeasurements {
+    #[serde(rename = "Width")]
+    width: Option<f64>,
+
+    #[serde(rename = "Height")]
+    height: Option<f64>,
+}
+
 // By default, struct field names are deserialized based on the position of
 // a corresponding field in the CSV data's header record.
 #[derive(Debug, Deserialize)]
 struct CsvRecord {
-    #[serde(rename = "Is Public Domain", deserialize_with = "deserialize_bool")]
+    #[serde(rename = "Is Public Domain", deserialize_with = "deserialize_csv_bool")]
     public_domain: bool,
 
     #[serde(rename = "Object ID")]
@@ -131,13 +189,14 @@ fn run() -> Result<()> {
             );
         }
         if args.download {
-            cache_json_url(
-                format!(
-                    "https://collectionapi.metmuseum.org/public/collection/v1/objects/{}",
-                    record.object_id
-                ),
-                format!("object-{}.json", record.object_id),
-            )?;
+            let obj_record = load_met_object_record(record.object_id)?;
+            if args.verbose {
+                println!(
+                    "#{} overall dimensions: {:?}",
+                    record.object_id,
+                    obj_record.overall_width_and_height()
+                )
+            }
         }
         if let Some(max) = args.max {
             if count >= max {
