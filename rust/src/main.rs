@@ -9,7 +9,7 @@ struct Record {
     #[serde(rename = "Object Number")]
     object_number: String,
 
-    #[serde(rename = "Is Public Domain", deserialize_with="deserialize_bool")]
+    #[serde(rename = "Is Public Domain", deserialize_with = "deserialize_bool")]
     public_domain: bool,
 
     #[serde(rename = "Object ID")]
@@ -28,7 +28,7 @@ struct Record {
     link_resource: String,
 
     #[serde(rename = "Dimensions")]
-    dimensions: String
+    dimensions: String,
 }
 
 fn deserialize_bool<'de, D>(deserializer: D) -> Result<bool, D::Error>
@@ -47,7 +47,20 @@ where
 fn example() -> Result<(), Box<dyn Error>> {
     let mut rdr = csv::Reader::from_reader(io::stdin());
     let mut count = 0;
-    let medium_keywords = vec!["watercolor", "lithograph", "oil", "photo", "drawing", "gouache", "chalk", "canvas", "ink", "paper", "print", "aquatint"];
+    let medium_keywords = vec![
+        "watercolor",
+        "lithograph",
+        "oil",
+        "photo",
+        "drawing",
+        "gouache",
+        "chalk",
+        "canvas",
+        "ink",
+        "paper",
+        "print",
+        "aquatint",
+    ];
     for result in rdr.deserialize() {
         // Notice that we need to provide a type hint for automatic
         // deserialization.
@@ -67,7 +80,10 @@ fn example() -> Result<(), Box<dyn Error>> {
             continue;
         }
         count += 1;
-        println!("medium={} title={} {}", record.medium, record.title, record.link_resource);
+        println!(
+            "medium={} title={} {}",
+            record.medium, record.title, record.link_resource
+        );
         //println!("{:?}", record);
     }
     println!("Found {count} records.");
