@@ -54,8 +54,11 @@ func populate_with_paintings() -> void:
 			painting.init(
 				rng.randf_range(MIN_CANVAS_SIZE, width / 2.0),
 				rng.randf_range(MIN_CANVAS_SIZE, height / 1.5),
-				# TODO: Randomize color.
-				Color.ALICE_BLUE
+				Color(
+					rng.randf_range(0.0, 1.0),
+					rng.randf_range(0.0, 1.0),
+					rng.randf_range(0.0, 1.0),
+				)
 			)
 			add_child(painting)
 			var painting_mount_point: Vector3 = mesh_instance.position + aabb.get_center()
