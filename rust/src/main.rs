@@ -166,12 +166,12 @@ fn run() -> Result<()> {
     for result in rdr.deserialize() {
         // Notice that we need to provide a type hint for automatic
         // deserialization.
-        let record: CsvRecord = result?;
-        if !record.public_domain {
+        let csv_record: CsvRecord = result?;
+        if !csv_record.public_domain {
             continue;
         }
         let mut found_keyword = false;
-        let lower_medium = record.medium.to_lowercase();
+        let lower_medium = csv_record.medium.to_lowercase();
         for medium_keyword in medium_keywords.iter() {
             if lower_medium.contains(medium_keyword) {
                 found_keyword = true;
@@ -185,15 +185,15 @@ fn run() -> Result<()> {
         if args.verbose {
             println!(
                 "#{}: medium={} title={} {}",
-                record.object_id, record.medium, record.title, record.link_resource
+                csv_record.object_id, csv_record.medium, csv_record.title, csv_record.link_resource
             );
         }
         if args.download {
-            let obj_record = load_met_object_record(record.object_id)?;
+            let obj_record = load_met_object_record(csv_record.object_id)?;
             if args.verbose {
                 println!(
                     "#{} overall dimensions: {:?}",
-                    record.object_id,
+                    csv_record.object_id,
                     obj_record.overall_width_and_height()
                 )
             }
