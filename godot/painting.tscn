@@ -1,9 +1,0 @@
-[gd_scene load_steps=3 format=3 uid="uid://dfs7nhm0sjhah"]
-
-[ext_resource type="Script" path="res://painting.gd" id="1_2bqws"]
-[ext_resource type="PackedScene" uid="uid://d34mwxnh7jtgj" path="res://Levels/painting.glb" id="1_7tif2"]
-
-[node name="Painting" type="Node3D"]
-script = ExtResource("1_2bqws")
-
-[node name="painting" parent="." instance=ExtResource("1_7tif2")]

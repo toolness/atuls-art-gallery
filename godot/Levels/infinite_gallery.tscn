@@ -1,8 +1,8 @@
 [gd_scene load_steps=5 format=3 uid="uid://dss65i31egqc3"]
 
-[ext_resource type="Script" path="res://infinite_gallery.gd" id="1_drnpr"]
+[ext_resource type="Script" path="res://Levels/infinite_gallery.gd" id="1_drnpr"]
 [ext_resource type="PackedScene" uid="uid://vwr8ajoufse8" path="res://Controller/Player.tscn" id="2_4hb5h"]
-[ext_resource type="PackedScene" uid="uid://mv0032qsc6tk" path="res://moma.tscn" id="3_3c1uq"]
+[ext_resource type="PackedScene" uid="uid://mv0032qsc6tk" path="res://Levels/moma.tscn" id="3_3c1uq"]
 
 [sub_resource type="Environment" id="Environment_ckp8a"]
 ssao_enabled = true

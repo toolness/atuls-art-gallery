@@ -1,8 +1,8 @@
 [gd_scene load_steps=4 format=3 uid="uid://mv0032qsc6tk"]
 
-[ext_resource type="Script" path="res://moma.gd" id="1_k8oh2"]
+[ext_resource type="Script" path="res://Levels/moma.gd" id="1_k8oh2"]
 [ext_resource type="PackedScene" uid="uid://blnio8022b1fn" path="res://Levels/moma-gallery.glb" id="1_kk2r5"]
-[ext_resource type="PackedScene" uid="uid://dfs7nhm0sjhah" path="res://painting.tscn" id="2_4p8tv"]
+[ext_resource type="PackedScene" uid="uid://dfs7nhm0sjhah" path="res://Levels/painting.tscn" id="2_4p8tv"]
 
 [node name="Moma" type="Node3D"]
 script = ExtResource("1_k8oh2")
