@@ -55,7 +55,7 @@ fn cache_json_url<T: AsRef<str>, U: AsRef<str>>(url: T, filename: U) -> Result<(
 // By default, struct field names are deserialized based on the position of
 // a corresponding field in the CSV data's header record.
 #[derive(Debug, Deserialize)]
-struct Record {
+struct CsvRecord {
     #[serde(rename = "Is Public Domain", deserialize_with = "deserialize_bool")]
     public_domain: bool,
 
@@ -72,7 +72,7 @@ struct Record {
     link_resource: String,
 }
 
-fn deserialize_bool<'de, D>(deserializer: D) -> Result<bool, D::Error>
+fn deserialize_csv_bool<'de, D>(deserializer: D) -> Result<bool, D::Error>
 where
     D: de::Deserializer<'de>,
 {
@@ -108,7 +108,7 @@ fn run() -> Result<()> {
     for result in rdr.deserialize() {
         // Notice that we need to provide a type hint for automatic
         // deserialization.
-        let record: Record = result?;
+        let record: CsvRecord = result?;
         if !record.public_domain {
             continue;
         }
