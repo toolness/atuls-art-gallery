@@ -1,7 +1,7 @@
 ## Quick start
 
 ```
-curl https://media.githubusercontent.com/media/metmuseum/openaccess/master/MetObjects.csv --output MetObjects.csv
+curl https://media.githubusercontent.com/media/metmuseum/openaccess/master/MetObjects.csv --output cache/MetObjects.csv
 
-cat MetObjects.csv | cargo run --release
+cargo run --release
 ```
