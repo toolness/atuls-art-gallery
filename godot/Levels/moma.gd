@@ -10,6 +10,8 @@ const MIN_WALL_MOUNT_SIZE = 2
 
 const MIN_CANVAS_SIZE = 0.5
 
+const PAINTING_OFFSET = Vector3(0, -0.5, 0)
+
 var gallery_id: int
 
 
@@ -63,7 +65,7 @@ func populate_with_paintings() -> void:
 					)
 				)
 			add_child(painting)
-			var painting_mount_point: Vector3 = mesh_instance.position + aabb.get_center()
+			var painting_mount_point: Vector3 = mesh_instance.position + aabb.get_center() + PAINTING_OFFSET
 			painting.translate(painting_mount_point)
 			painting.rotate_y(y_rotation)
 			# TODO: Use this width to spawn multiple paintings per wall.
