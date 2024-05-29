@@ -235,6 +235,8 @@ libraries = {
 [node name="ProtoMesh" type="MeshInstance3D" parent="BasePivot"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 material_override = SubResource("StandardMaterial3D_mx3t8")
+cast_shadow = 0
+gi_mode = 0
 mesh = SubResource("CapsuleMesh_leh0u")
 skeleton = NodePath("../..")
 
