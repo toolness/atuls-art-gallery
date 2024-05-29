@@ -21,5 +21,5 @@ func init_with_met_object(object: MetObjects.MetObjectRecord) -> void:
 	var material: StandardMaterial3D = painting.mesh.surface_get_material(PAINTING_SURFACE_IDX)
 	var duplicate_material: StandardMaterial3D = material.duplicate()
 	duplicate_material.albedo_color = Color.TRANSPARENT
-	duplicate_material.albedo_texture = object.get_small_image_texture()
+	duplicate_material.albedo_texture = object.load_small_image_texture()
 	painting.set_surface_override_material(PAINTING_SURFACE_IDX, duplicate_material)

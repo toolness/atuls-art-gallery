@@ -21,11 +21,6 @@ class MetObjectRecord:
 	var height: float
 	var small_image: String
 
-	# TODO: Uhh, these will never get GC'd if we don't dispose of the MetObjectRecord,
-	# which we currently don't...
-	var _cached_small_image: Image
-	var _cached_small_image_texture: ImageTexture
-
 	static func from_json_array(json_array: Variant) -> Array[MetObjectRecord]:
 		var results: Array[MetObjectRecord] = []
 		for json_data in json_array:
@@ -39,16 +34,13 @@ class MetObjectRecord:
 			results.push_back(o)
 		return results
 
-	func get_small_image() -> Image:
-		if not _cached_small_image:
-			_cached_small_image = Image.load_from_file(MetObjects.get_rust_cache_path(small_image))
-			_cached_small_image.generate_mipmaps()
-		return _cached_small_image
+	func load_small_image() -> Image:
+		var image = Image.load_from_file(MetObjects.get_rust_cache_path(small_image))
+		image.generate_mipmaps()
+		return image
 
-	func get_small_image_texture() -> ImageTexture:
-		if not _cached_small_image_texture:
-			_cached_small_image_texture = ImageTexture.create_from_image(get_small_image())
-		return _cached_small_image_texture
+	func load_small_image_texture() -> ImageTexture:
+		return ImageTexture.create_from_image(load_small_image())
 
 
 func _ready():
