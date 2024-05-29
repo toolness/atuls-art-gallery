@@ -48,8 +48,40 @@ func sync_galleries() -> void:
 			instance.init(gallery_id)
 
 
+class MetObjectRecord:
+	var object_id: int
+	var title: String
+	var date: String
+	var width: float
+	var height: float
+	var small_image: String
+
+	static func from_json_array(json_array: Variant) -> Array[MetObjectRecord]:
+		var results: Array[MetObjectRecord] = []
+		for json_data in json_array:
+			var o: MetObjectRecord = MetObjectRecord.new()
+			o.object_id = json_data.object_id
+			o.title = json_data.title
+			o.date = json_data.date
+			o.width = json_data.width
+			o.height = json_data.height
+			o.small_image = json_data.small_image
+			results.push_back(o)
+		return results
+
+
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
+	var json_path: String = ProjectSettings.globalize_path("res://") + "../rust/cache/_simple-index.json"
+	if FileAccess.file_exists(json_path):
+		var file = FileAccess.open(json_path, FileAccess.READ)
+		var content: String = file.get_as_text()
+		var json = JSON.new()
+		var error = json.parse(content)
+		if error == OK:
+			var objects = MetObjectRecord.from_json_array(json.data)
+			print("Loaded ", objects.size(), " Met objects.")
+
 	sync_galleries()
 
 
