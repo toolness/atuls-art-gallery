@@ -70,10 +70,16 @@ func populate_with_paintings() -> void:
 			painting.rotate_y(y_rotation)
 			# TODO: Use this width to spawn multiple paintings per wall.
 			var _unused_width = width
-			# print("COOL ", child.name, " ", normal, " ", width, " ", painting_mount_point)
+
+			# Give the rest of the engine time to process the full frame, we're not in a rush and
+			# processing all paintings synchronously will cause stutter.
+			await get_tree().process_frame
+			# TODO: It's unclear if we're going to continue if we've been removed from the scene
+			# tree. If we are, then we should probably (somehow) check to see if we're still
+			# in the scene tree before continuing.
 
 
 func init(new_gallery_id: int) -> void:
 	gallery_id = new_gallery_id
 	print("Initializing gallery ", gallery_id)
-	populate_with_paintings()
+	await populate_with_paintings()
