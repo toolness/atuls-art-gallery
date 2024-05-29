@@ -48,9 +48,11 @@ func populate_with_paintings() -> void:
 			else:
 				# This isn't a big enough wall to mount anything on.
 				continue
-			# TODO: Load images dynamically with:
-			# https://docs.godotengine.org/en/stable/tutorials/io/runtime_file_loading_and_saving.html
 			var painting: Painting = painting_scene.instantiate()
+			if MetObjects.objects.size() > 0:
+				# TODO: Load images dynamically with:
+				# https://docs.godotengine.org/en/stable/tutorials/io/runtime_file_loading_and_saving.html
+				pass
 			painting.init(
 				rng.randf_range(MIN_CANVAS_SIZE, width / 2.0),
 				rng.randf_range(MIN_CANVAS_SIZE, height / 1.5),
