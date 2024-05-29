@@ -17,14 +17,14 @@ func get_gallery_id(x: float) -> int:
 
 
 func sync_galleries() -> void:
-	var middle_gallery_id = get_gallery_id(player.position.x)
-	var min_gallery_id = middle_gallery_id - 1
-	var max_gallery_id = middle_gallery_id + 1
+	var middle_gallery_id := get_gallery_id(player.position.x)
+	var min_gallery_id := middle_gallery_id - 1
+	var max_gallery_id := middle_gallery_id + 1
 
 	# Get rid of galleries that are far from the player.
 	var new_gallery_chunks: Array[Moma] = []
 	for gallery_chunk in gallery_chunks:
-		var gallery_id = gallery_chunk.gallery_id
+		var gallery_id := gallery_chunk.gallery_id
 		if gallery_id < min_gallery_id or gallery_id > max_gallery_id:
 			print("Despawning gallery with id ", gallery_id, " at ", gallery_chunk.position.x)
 			remove_child(gallery_chunk)
@@ -34,7 +34,7 @@ func sync_galleries() -> void:
 
 	# Spawn galleries that are near the player.
 	for gallery_id: int in [min_gallery_id, middle_gallery_id, max_gallery_id]:
-		var found = false
+		var found := false
 		for gallery_chunk in gallery_chunks:
 			if gallery_chunk.gallery_id == gallery_id:
 				found = true

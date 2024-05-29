@@ -16,24 +16,24 @@ var gallery_id: int
 
 
 func populate_with_paintings() -> void:
-	var rng = RandomNumberGenerator.new()
+	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(gallery_id)
 	for child in gallery.get_children():
 		if is_instance_of(child, MeshInstance3D):
 			var mesh_instance: MeshInstance3D = child
-			var aabb: AABB = mesh_instance.get_aabb()
-			var height: float = aabb.size.y
+			var aabb := mesh_instance.get_aabb()
+			var height := aabb.size.y
 			if height < MIN_WALL_MOUNT_SIZE:
 				# This is either a floor or ceiling, or it's just a wall
 				# that isn't tall enough for our needs.
 				continue
-			var faces = mesh_instance.mesh.get_faces()
+			var faces := mesh_instance.mesh.get_faces()
 			if faces.size() != 6:
 				# This isn't a plane.
 				continue
-			var first: Vector3 = faces[1] - faces[0]
-			var second: Vector3 = faces[2] - faces[0]
-			var normal = second.cross(first).normalized()
+			var first := faces[1] - faces[0]
+			var second := faces[2] - faces[0]
+			var normal := second.cross(first).normalized()
 			var width: float
 			var y_rotation: float
 			if aabb.size.x > MIN_WALL_MOUNT_SIZE:
@@ -52,7 +52,7 @@ func populate_with_paintings() -> void:
 				continue
 			var painting: Painting = painting_scene.instantiate()
 			if MetObjects.objects.size() > 0:
-				var rand_idx = rng.randi_range(0, MetObjects.objects.size() - 1)
+				var rand_idx := rng.randi_range(0, MetObjects.objects.size() - 1)
 				painting.init_with_met_object(MetObjects.objects[rand_idx - 1])
 			else:
 				painting.init_with_size_and_color(
@@ -65,7 +65,7 @@ func populate_with_paintings() -> void:
 					)
 				)
 			add_child(painting)
-			var painting_mount_point: Vector3 = mesh_instance.position + aabb.get_center() + PAINTING_OFFSET
+			var painting_mount_point := mesh_instance.position + aabb.get_center() + PAINTING_OFFSET
 			painting.translate(painting_mount_point)
 			painting.rotate_y(y_rotation)
 			# TODO: Use this width to spawn multiple paintings per wall.
