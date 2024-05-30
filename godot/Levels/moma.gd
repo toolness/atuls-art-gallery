@@ -53,8 +53,13 @@ func place_paintings_along_wall(
 	painting.translate(painting_mount_point)
 	painting.rotate_y(y_rotation)
 
-	# TODO: If we have enough room between each edge of the wall and the beginning/end of
-	# the painting, try to add more paintings by recursively calling place_paintings_along_wall.
+	var margin_width := width / 2.0 - painting_width / 2.0
+	if margin_width > MIN_WALL_MOUNT_SIZE:
+		# Place paintings between the beginning of the wall and the start of the painting.
+		await place_paintings_along_wall(rng, base_position, margin_width, height, y_rotation, horizontal_direction)
+		# Place paintings between the end of the wall and the end of the painting.
+		var end_base_position := base_position + (horizontal_direction * (width / 2.0 + painting_width / 2.0))
+		await place_paintings_along_wall(rng, end_base_position, margin_width, height, y_rotation, horizontal_direction)
 
 	# Give the rest of the engine time to process the full frame, we're not in a rush and
 	# processing all paintings synchronously will cause stutter.
