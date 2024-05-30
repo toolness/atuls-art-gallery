@@ -7,3 +7,16 @@
 script = ExtResource("1_wlgeq")
 
 [node name="painting" parent="." instance=ExtResource("2_ysfke")]
+
+[node name="wall_label" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.5, -0.55, 0.01)
+pixel_size = 0.001
+double_sided = false
+modulate = Color(0, 0, 0, 1)
+outline_modulate = Color(0, 0, 0, 0)
+text = "Art Thing
+1902"
+outline_size = 0
+horizontal_alignment = 0
+vertical_alignment = 0
+autowrap_mode = 2
