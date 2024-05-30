@@ -10,7 +10,7 @@ const MIN_WALL_MOUNT_SIZE = 2
 
 const MIN_CANVAS_SIZE = 0.5
 
-const PAINTING_OFFSET = Vector3(0, -0.5, 0)
+const PAINTING_Y_OFFSET = -0.5
 
 var gallery_id: int
 
@@ -37,14 +37,17 @@ func populate_with_paintings() -> void:
 		var normal := second.cross(first).normalized()
 		var width: float
 		var y_rotation: float
+		var horizontal_direction: Vector3
 		if aabb.size.x > MIN_WALL_MOUNT_SIZE:
 			# We can mount art along the x-axis.
 			width = aabb.size.x
+			horizontal_direction = Vector3.RIGHT
 			if normal.z < 0:
 				y_rotation = PI
 		elif aabb.size.z > MIN_WALL_MOUNT_SIZE:
 			# We can mount art along the z-axis.
 			width = aabb.size.z
+			horizontal_direction = Vector3.BACK
 			y_rotation = PI / 2
 			if normal.x < 0:
 				y_rotation += PI
@@ -66,11 +69,11 @@ func populate_with_paintings() -> void:
 				)
 			)
 		add_child(painting)
-		var painting_mount_point := mesh_instance.position + aabb.get_center() + PAINTING_OFFSET
+		var width_offset := horizontal_direction * (width / 2.0)
+		var height_offset := ((height / 2.0) + PAINTING_Y_OFFSET)
+		var painting_mount_point := mesh_instance.position + aabb.position + width_offset + Vector3.UP * height_offset
 		painting.translate(painting_mount_point)
 		painting.rotate_y(y_rotation)
-		# TODO: Use this width to spawn multiple paintings per wall.
-		var _unused_width = width
 
 		# Give the rest of the engine time to process the full frame, we're not in a rush and
 		# processing all paintings synchronously will cause stutter.
