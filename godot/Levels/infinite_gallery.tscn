@@ -6,6 +6,7 @@
 
 [sub_resource type="Environment" id="Environment_ckp8a"]
 ssao_enabled = true
+sdfgi_enabled = true
 glow_enabled = true
 
 [node name="InfiniteGallery" type="Node3D"]
