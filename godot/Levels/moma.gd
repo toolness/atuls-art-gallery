@@ -55,12 +55,19 @@ func populate_with_paintings() -> void:
 			# This isn't a big enough wall to mount anything on.
 			continue
 		var painting: Painting = painting_scene.instantiate()
+		var painting_width: float
 		if MetObjects.objects.size() > 0:
 			var rand_idx := rng.randi_range(0, MetObjects.objects.size() - 1)
-			painting.init_with_met_object(MetObjects.objects[rand_idx - 1])
+			var met_object := MetObjects.objects[rand_idx - 1]
+			if met_object.width > width or met_object.height > height:
+				# The painting is too wide/tall to fit on the wall.
+				continue
+			painting_width = met_object.width
+			painting.init_with_met_object(met_object)
 		else:
+			painting_width = rng.randf_range(MIN_CANVAS_SIZE, width / 2.0)
 			painting.init_with_size_and_color(
-				rng.randf_range(MIN_CANVAS_SIZE, width / 2.0),
+				painting_width,
 				rng.randf_range(MIN_CANVAS_SIZE, height / 1.5),
 				Color(
 					rng.randf_range(0.0, 1.0),
