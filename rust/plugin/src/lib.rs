@@ -7,8 +7,7 @@ unsafe impl ExtensionLibrary for MyExtension {}
 
 #[derive(GodotClass)]
 #[class(init)]
-struct Boop {
-}
+struct Boop {}
 
 #[godot_api]
 impl Boop {
