@@ -172,6 +172,9 @@ struct CsvRecord {
 
     #[serde(rename = "Link Resource")]
     link_resource: String,
+
+    #[serde(rename = "Dimensions")]
+    dimensions: String,
 }
 
 fn deserialize_csv_bool<'de, D>(deserializer: D) -> Result<bool, D::Error>
@@ -237,6 +240,10 @@ fn run() -> Result<()> {
             let obj_record = load_met_object_record(csv_record.object_id)?;
             if let Some((width, height)) = obj_record.overall_width_and_height() {
                 if obj_record.primary_image_small.ends_with(".jpg") {
+                    println!(
+                        "Downloading image with dimensions {}.",
+                        csv_record.dimensions
+                    );
                     let small_image = format!("object-{}-small.jpg", csv_record.object_id);
                     cache_binary_url(&obj_record.primary_image_small, &small_image)?;
                     simplified_records.push(SimplifiedRecord {
