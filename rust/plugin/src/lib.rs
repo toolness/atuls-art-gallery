@@ -6,7 +6,7 @@ struct MyExtension;
 unsafe impl ExtensionLibrary for MyExtension {}
 
 #[derive(GodotClass)]
-#[class(init, base=Node3D)]
+#[class(init)]
 struct Boop {
 }
 
