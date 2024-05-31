@@ -200,6 +200,20 @@ fn run() -> Result<()> {
     let mut rdr = csv::Reader::from_reader(reader);
     let mut count: usize = 0;
     let dimensions_regex = regex_lite::Regex::new(&DIMENSIONS_REGEX)?;
+    let medium_keywords = vec![
+        "watercolor",
+        "lithograph",
+        "oil",
+        "photo",
+        "drawing",
+        "gouache",
+        "chalk",
+        "canvas",
+        "ink",
+        "paper",
+        "print",
+        "aquatint",
+    ];
     for result in rdr.deserialize() {
         // Notice that we need to provide a type hint for automatic
         // deserialization.
@@ -208,6 +222,17 @@ fn run() -> Result<()> {
             continue;
         }
         if !dimensions_regex.is_match(&csv_record.dimensions) {
+            continue;
+        }
+        let mut found_keyword = false;
+        let lower_medium = csv_record.medium.to_lowercase();
+        for medium_keyword in medium_keywords.iter() {
+            if lower_medium.contains(medium_keyword) {
+                found_keyword = true;
+                break;
+            }
+        }
+        if !found_keyword {
             continue;
         }
         count += 1;
