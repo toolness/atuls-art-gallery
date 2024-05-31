@@ -81,12 +81,15 @@ fn load_met_object_record(object_id: u64) -> Result<MetObjectRecord> {
         ),
         &filename,
     )?;
-    Ok(serde_json::from_str(&load_cached_string(filename)?)?)
+    match serde_json::from_str(&load_cached_string(&filename)?) {
+        Ok(record) => Ok(record),
+        Err(err) => Err(anyhow!("Failed to load {}: {}", filename, err)),
+    }
 }
 
 #[derive(Debug, Deserialize)]
 struct MetObjectRecord {
-    measurements: Vec<Measurements>,
+    measurements: Option<Vec<Measurements>>,
 
     #[serde(rename = "primaryImageSmall")]
     primary_image_small: String,
@@ -102,7 +105,10 @@ struct MetObjectRecord {
 
 impl MetObjectRecord {
     pub fn overall_width_and_height(&self) -> Option<(f64, f64)> {
-        for measurement in &self.measurements {
+        let Some(measurements) = &self.measurements else {
+            return None;
+        };
+        for measurement in measurements {
             if &measurement.element_name == "Overall" {
                 if let (Some(width), Some(height), None) = (
                     measurement.element_measurements.width,
