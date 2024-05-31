@@ -1,0 +1,15 @@
+[package]
+name = "atuls-art-gallery"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.86"
+clap = { version = "4.5.4", features = ["derive"] }
+csv = "1.3.0"
+regex-lite = "0.1.5"
+serde = { version = "1.0.202", features = ["derive"] }
+serde_json = "1.0.117"
+ureq = { version = "2.9.7" }
