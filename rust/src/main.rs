@@ -9,6 +9,8 @@ use anyhow::{anyhow, Result};
 
 use std::io::BufReader;
 
+const DIMENSIONS_REGEX: &'static str = r"^.+ \([0-9.]+ x [0-9.]+ cm\)$";
+
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
@@ -196,7 +198,8 @@ fn run() -> Result<()> {
     let csv_file = get_cached_path("MetObjects.csv");
     let reader = BufReader::new(File::open(csv_file)?);
     let mut rdr = csv::Reader::from_reader(reader);
-    let mut count = 0;
+    let mut count: usize = 0;
+    let dimensions_regex = regex_lite::Regex::new(&DIMENSIONS_REGEX)?;
     let medium_keywords = vec![
         "watercolor",
         "lithograph",
@@ -216,6 +219,9 @@ fn run() -> Result<()> {
         // deserialization.
         let csv_record: CsvRecord = result?;
         if !csv_record.public_domain {
+            continue;
+        }
+        if !dimensions_regex.is_match(&csv_record.dimensions) {
             continue;
         }
         let mut found_keyword = false;
@@ -240,10 +246,6 @@ fn run() -> Result<()> {
             let obj_record = load_met_object_record(csv_record.object_id)?;
             if let Some((width, height)) = obj_record.overall_width_and_height() {
                 if obj_record.primary_image_small.ends_with(".jpg") {
-                    println!(
-                        "Downloading image with dimensions {}.",
-                        csv_record.dimensions
-                    );
                     let small_image = format!("object-{}-small.jpg", csv_record.object_id);
                     cache_binary_url(&obj_record.primary_image_small, &small_image)?;
                     simplified_records.push(SimplifiedRecord {
@@ -278,5 +280,21 @@ fn main() {
     if let Err(err) = run() {
         println!("error running example: {}", err);
         process::exit(1);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use regex_lite::Regex;
+
+    use crate::DIMENSIONS_REGEX;
+
+    #[test]
+    fn test_dimensions_regex_works() {
+        let regex = Regex::new(&DIMENSIONS_REGEX).unwrap();
+
+        assert!(regex.is_match("9 3/4 x 11 3/8 in. (24.8 x 28.9 cm)"));
+        assert!(regex.is_match("9 3/4 x 11 3/8 in. (24 x 28.9 cm)"));
+        assert!(!regex.is_match("H. 2 1/2 in. (6.4 cm); Diam. 8 1/8 in. (20.6 cm)"));
     }
 }
