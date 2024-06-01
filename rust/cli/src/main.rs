@@ -44,10 +44,10 @@ fn run() -> Result<()> {
     let cache = GalleryCache::new("cache".into());
     let csv_file = cache.get_cached_path("MetObjects.csv");
     let reader = BufReader::new(File::open(csv_file)?);
-    let mut rdr = csv::Reader::from_reader(reader);
+    let rdr = csv::Reader::from_reader(reader);
     let mut count: usize = 0;
     let dimension_parser = DimensionParser::new();
-    for result in rdr.deserialize() {
+    for result in rdr.into_deserialize() {
         // Notice that we need to provide a type hint for automatic
         // deserialization.
         let csv_record: MetObjectCsvRecord = result?;
