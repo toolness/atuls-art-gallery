@@ -1,7 +1,7 @@
 [workspace]
 
 resolver = "2"
-members = ["cli", "plugin"]
+members = ["cli", "gallery", "plugin"]
 
 # Enable high optimizations for dependencies, but not for our code.
 # https://doc.rust-lang.org/nightly/cargo/reference/profiles.html#overrides
