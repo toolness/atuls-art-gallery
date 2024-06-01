@@ -3,13 +3,47 @@ use std::path::{Path, PathBuf};
 use std::process;
 
 use clap::Parser;
+use regex_lite::Regex;
 use serde::{de, Deserialize, Serialize};
 
 use anyhow::{anyhow, Result};
 
 use std::io::BufReader;
 
-const DIMENSIONS_REGEX: &'static str = r"^.+ \([0-9.]+ x [0-9.]+ cm\)$";
+const DIMENSIONS_REGEX: &'static str = r"^.+ \(([0-9.]+) x ([0-9.]+) cm\)$";
+
+struct DimensionParser {
+    regex: Regex,
+}
+
+impl DimensionParser {
+    pub fn new() -> Self {
+        Self {
+            regex: Regex::new(&DIMENSIONS_REGEX).unwrap(),
+        }
+    }
+
+    pub fn can_parse<T: AsRef<str>>(&self, value: T) -> bool {
+        self.parse(value.as_ref()).is_some()
+    }
+
+    /// Return a (width, height) tuple of the dimensions. Note that this
+    /// is the opposite order from the format in the data; we're using
+    /// (width, height) because it's the common one in computer graphics.
+    pub fn parse<T: AsRef<str>>(&self, value: T) -> Option<(f64, f64)> {
+        match self.regex.captures(value.as_ref()) {
+            None => None,
+            Some(caps) => {
+                let height = caps[1].parse::<f64>();
+                let width = caps[2].parse::<f64>();
+                match (width, height) {
+                    (Ok(width), Ok(height)) => Some((width, height)),
+                    _ => None,
+                }
+            }
+        }
+    }
+}
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -199,7 +233,7 @@ fn run() -> Result<()> {
     let reader = BufReader::new(File::open(csv_file)?);
     let mut rdr = csv::Reader::from_reader(reader);
     let mut count: usize = 0;
-    let dimensions_regex = regex_lite::Regex::new(&DIMENSIONS_REGEX)?;
+    let dimension_parser = DimensionParser::new();
     let medium_keywords = vec![
         "watercolor",
         "lithograph",
@@ -221,7 +255,7 @@ fn run() -> Result<()> {
         if !csv_record.public_domain {
             continue;
         }
-        if !dimensions_regex.is_match(&csv_record.dimensions) {
+        if !dimension_parser.can_parse(&csv_record.dimensions) {
             continue;
         }
         let mut found_keyword = false;
@@ -285,16 +319,32 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use regex_lite::Regex;
-
-    use crate::DIMENSIONS_REGEX;
+    use crate::DimensionParser;
 
     #[test]
-    fn test_dimensions_regex_works() {
-        let regex = Regex::new(&DIMENSIONS_REGEX).unwrap();
+    fn test_dimensions_is_match_works() {
+        let parser = DimensionParser::new();
 
-        assert!(regex.is_match("9 3/4 x 11 3/8 in. (24.8 x 28.9 cm)"));
-        assert!(regex.is_match("9 3/4 x 11 3/8 in. (24 x 28.9 cm)"));
-        assert!(!regex.is_match("H. 2 1/2 in. (6.4 cm); Diam. 8 1/8 in. (20.6 cm)"));
+        assert!(parser.can_parse("9 3/4 x 11 3/8 in. (24.8 x 28.9 cm)"));
+        assert!(parser.can_parse("9 3/4 x 11 3/8 in. (24 x 28.9 cm)"));
+        assert!(!parser.can_parse("H. 2 1/2 in. (6.4 cm); Diam. 8 1/8 in. (20.6 cm)"));
+    }
+
+    #[test]
+    fn test_dimensions_parse_works() {
+        let parser = DimensionParser::new();
+
+        assert_eq!(
+            parser.parse("9 3/4 x 11 3/8 in. (24.8 x 28.9 cm)"),
+            Some((28.9, 24.8))
+        );
+        assert_eq!(
+            parser.parse("9 3/4 x 11 3/8 in. (24 x 28.9 cm)"),
+            Some((28.9, 24.0))
+        );
+        assert_eq!(
+            parser.parse("H. 2 1/2 in. (6.4 cm); Diam. 8 1/8 in. (20.6 cm)"),
+            None
+        );
     }
 }
