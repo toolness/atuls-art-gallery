@@ -50,7 +50,7 @@ func sync_galleries() -> void:
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
-	print("Boop.add(1, 2) = ", Boop.add(1, 2))
+	print("RustMetObjects.add(1, 2) = ", RustMetObjects.add(1, 2))
 	sync_galleries()
 
 
