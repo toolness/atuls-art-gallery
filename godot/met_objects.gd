@@ -44,6 +44,18 @@ class MetObjectRecord:
 		return ImageTexture.create_from_image(load_small_image())
 
 
+func try_to_get_next_object(rng: RandomNumberGenerator, max_width: float, max_height: float) -> MetObjectRecord:
+	var num_objects := objects.size()
+	if num_objects == 0:
+		return null
+	var rand_idx := rng.randi_range(0, num_objects - 1)
+	var met_object := MetObjects.objects[rand_idx]
+	if met_object.width > max_width or met_object.height > max_height:
+		# The art is too wide/tall to fit on the wall.
+		return null
+	return met_object
+
+
 func _ready() -> void:
 	var json_path := MetObjects.get_rust_cache_path("_simple-index.json")
 	if FileAccess.file_exists(json_path) and ENABLE_MET_OBJECTS:

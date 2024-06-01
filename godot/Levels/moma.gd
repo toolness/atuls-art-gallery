@@ -25,12 +25,8 @@ func place_paintings_along_wall(
 ) -> void:
 	var painting: Painting
 	var painting_width: float
-	if MetObjects.objects.size() > 0:
-		var rand_idx := rng.randi_range(0, MetObjects.objects.size() - 1)
-		var met_object := MetObjects.objects[rand_idx - 1]
-		if met_object.width > width or met_object.height > height:
-			# The painting is too wide/tall to fit on the wall.
-			return
+	var met_object := MetObjects.try_to_get_next_object(rng, width, height)
+	if met_object:
 		painting = painting_scene.instantiate()
 		painting_width = met_object.width
 		painting.init_with_met_object(met_object)
