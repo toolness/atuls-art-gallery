@@ -35,6 +35,7 @@ pub struct MetObjectApiRecord {
 }
 
 impl MetObjectApiRecord {
+    /// Returns physical dimensions, *not* pixels.
     pub fn overall_width_and_height(&self) -> Option<(f64, f64)> {
         let Some(measurements) = &self.measurements else {
             return None;
@@ -53,6 +54,12 @@ impl MetObjectApiRecord {
         None
     }
 
+    /// Try to download & cache the small image of the object if it's 2D artwork.
+    ///
+    /// If it's in the cache, returns the cached version. Otherwise, downloads and adds
+    /// to cache.
+    ///
+    /// Returns (width, height, filename) on success. Dimensions are physical, *not* pixels.
     pub fn try_to_download_small_image(
         &self,
         cache: &GalleryCache,
