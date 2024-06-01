@@ -52,6 +52,20 @@ impl MetObjectApiRecord {
         }
         None
     }
+
+    pub fn try_to_download_small_image(
+        &self,
+        cache: &GalleryCache,
+    ) -> Result<Option<(f64, f64, String)>> {
+        if let Some((width, height)) = self.overall_width_and_height() {
+            if self.primary_image_small.ends_with(".jpg") {
+                let small_image = format!("object-{}-small.jpg", self.object_id);
+                cache.cache_binary_url(&self.primary_image_small, &small_image)?;
+                return Ok(Some((width, height, small_image)));
+            }
+        }
+        Ok(None)
+    }
 }
 
 #[derive(Debug, Deserialize)]

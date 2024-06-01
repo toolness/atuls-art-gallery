@@ -63,19 +63,17 @@ fn run() -> Result<()> {
         }
         if args.download {
             let obj_record = load_met_object_record(&cache, csv_record.object_id)?;
-            if let Some((width, height)) = obj_record.overall_width_and_height() {
-                if obj_record.primary_image_small.ends_with(".jpg") {
-                    let small_image = format!("object-{}-small.jpg", csv_record.object_id);
-                    cache.cache_binary_url(&obj_record.primary_image_small, &small_image)?;
-                    simplified_records.push(SimplifiedRecord {
-                        object_id: obj_record.object_id,
-                        title: obj_record.title,
-                        date: obj_record.object_date,
-                        width,
-                        height,
-                        small_image,
-                    });
-                }
+            if let Some((width, height, small_image)) =
+                obj_record.try_to_download_small_image(&cache)?
+            {
+                simplified_records.push(SimplifiedRecord {
+                    object_id: obj_record.object_id,
+                    title: obj_record.title,
+                    date: obj_record.object_date,
+                    width,
+                    height,
+                    small_image,
+                });
             }
         }
         if let Some(max) = args.max {
