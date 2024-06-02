@@ -48,22 +48,9 @@ func sync_galleries() -> void:
 			instance.init(gallery_id)
 
 
-func _loop_stuff():
-	while true:
-		RustMetObjects.next()
-		var obj: String
-		while not obj:
-			obj = RustMetObjects.poll()
-			await get_tree().process_frame
-		print("GOT OBJ", obj)
-		await get_tree().create_timer(2).timeout
-
-
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
-	print("RustMetObjects.add(1, 2) = ", RustMetObjects.add(1, 2))
 	sync_galleries()
-	_loop_stuff()
 
 
 func _process(_delta) -> void:

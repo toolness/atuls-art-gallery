@@ -1,17 +1,7 @@
 extends Node
 
 
-var objects: Array[MetObjectRecord] = []
-
-
 const ENABLE_MET_OBJECTS := true
-
-# This would be a const but the initializer isn't a constant expression.
-var BASE_RUST_CACHE := ProjectSettings.globalize_path("res://") + "../rust/cache/"
-
-
-func get_rust_cache_path(filename: String) -> String:
-	return BASE_RUST_CACHE + filename
 
 
 class MetObjectRecord:
@@ -22,21 +12,18 @@ class MetObjectRecord:
 	var height: float
 	var small_image: String
 
-	static func from_json_array(json_array: Variant) -> Array[MetObjectRecord]:
-		var results: Array[MetObjectRecord] = []
-		for json_data in json_array:
-			var o := MetObjectRecord.new()
-			o.object_id = json_data.object_id
-			o.title = json_data.title
-			o.date = json_data.date
-			o.width = json_data.width / 100.0
-			o.height = json_data.height / 100.0
-			o.small_image = json_data.small_image
-			results.push_back(o)
-		return results
+	static func from_json(json_data: Variant) -> MetObjectRecord:
+		var o := MetObjectRecord.new()
+		o.object_id = json_data.object_id
+		o.title = json_data.title
+		o.date = json_data.date
+		o.width = json_data.width / 100.0
+		o.height = json_data.height / 100.0
+		o.small_image = json_data.small_image
+		return o
 
 	func load_small_image() -> Image:
-		var image := Image.load_from_file(MetObjects.get_rust_cache_path(small_image))
+		var image := Image.load_from_file(small_image)
 		image.generate_mipmaps()
 		return image
 
@@ -44,26 +31,27 @@ class MetObjectRecord:
 		return ImageTexture.create_from_image(load_small_image())
 
 
-func try_to_get_next_object(rng: RandomNumberGenerator, max_width: float, max_height: float) -> MetObjectRecord:
-	await get_tree().process_frame
-	var num_objects := objects.size()
-	if num_objects == 0:
+var keyed_met_objects := {}
+
+
+func try_to_get_next_object(key: String, max_width: float, max_height: float) -> MetObjectRecord:
+	if not ENABLE_MET_OBJECTS:
 		return null
-	var rand_idx := rng.randi_range(0, num_objects - 1)
-	var met_object := MetObjects.objects[rand_idx]
+	if not keyed_met_objects.has(key):
+		RustMetObjects.next()
+		var obj_str: String
+		while not obj_str:
+			obj_str = RustMetObjects.poll()
+			await get_tree().process_frame
+		keyed_met_objects[key] = MetObjectRecord.from_json(JSON.parse_string(obj_str))
+	var met_object: MetObjectRecord = keyed_met_objects[key]
 	if met_object.width > max_width or met_object.height > max_height:
 		# The art is too wide/tall to fit on the wall.
+		# TODO: We should remember the object and reuse it in another context if possible.
 		return null
-	return met_object
+
+	return keyed_met_objects[key]
 
 
 func _ready() -> void:
-	var json_path := MetObjects.get_rust_cache_path("_simple-index.json")
-	if FileAccess.file_exists(json_path) and ENABLE_MET_OBJECTS:
-		var file := FileAccess.open(json_path, FileAccess.READ)
-		var content := file.get_as_text()
-		var json := JSON.new()
-		var error := json.parse(content)
-		if error == OK:
-			objects = MetObjectRecord.from_json_array(json.data)
-			print("Loaded ", objects.size(), " Met objects.")
+	pass

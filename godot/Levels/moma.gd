@@ -26,12 +26,12 @@ func place_paintings_along_wall(
 ) -> void:
 	var painting: Painting
 	var painting_width: float
-	var met_object := await MetObjects.try_to_get_next_object(rng, width, height)
+	var met_object := await MetObjects.try_to_get_next_object(key, width, height)
 	if met_object:
 		painting = painting_scene.instantiate()
 		painting_width = met_object.width
 		painting.init_with_met_object(met_object)
-	else:
+	elif not MetObjects.ENABLE_MET_OBJECTS:
 		painting = painting_scene.instantiate()
 		painting_width = rng.randf_range(MIN_CANVAS_SIZE, width / 2.0)
 		painting.init_with_size_and_color(
@@ -43,6 +43,8 @@ func place_paintings_along_wall(
 				rng.randf_range(0.0, 1.0),
 			)
 		)
+	else:
+		return
 	add_child(painting)
 	var width_offset := horizontal_direction * (width / 2.0)
 	var height_offset := ((height / 2.0) + PAINTING_Y_OFFSET)
