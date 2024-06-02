@@ -45,6 +45,7 @@ class MetObjectRecord:
 
 
 func try_to_get_next_object(rng: RandomNumberGenerator, max_width: float, max_height: float) -> MetObjectRecord:
+	await get_tree().process_frame
 	var num_objects := objects.size()
 	if num_objects == 0:
 		return null

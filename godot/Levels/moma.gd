@@ -26,7 +26,7 @@ func place_paintings_along_wall(
 ) -> void:
 	var painting: Painting
 	var painting_width: float
-	var met_object := MetObjects.try_to_get_next_object(rng, width, height)
+	var met_object := await MetObjects.try_to_get_next_object(rng, width, height)
 	if met_object:
 		painting = painting_scene.instantiate()
 		painting_width = met_object.width
