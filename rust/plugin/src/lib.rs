@@ -31,9 +31,17 @@ unsafe impl ExtensionLibrary for MyExtension {
 }
 
 #[derive(GodotClass)]
-#[class(init, base=Object)]
+#[class(base=Object)]
 struct MetObjectsSingleton {
     base: Base<Object>,
+}
+
+#[godot_api]
+impl IObject for MetObjectsSingleton {
+    fn init(base: Base<Object>) -> Self {
+        godot_print!("init MetObjectsSingleton!");
+        Self { base }
+    }
 }
 
 #[godot_api]
@@ -42,5 +50,11 @@ impl MetObjectsSingleton {
     fn add(&self, a: i32, b: i32) -> i32 {
         godot_print!("ADD {a} + {b}!");
         a + b
+    }
+}
+
+impl Drop for MetObjectsSingleton {
+    fn drop(&mut self) {
+        godot_print!("drop MetObjectsSingleton!");
     }
 }
