@@ -1,4 +1,7 @@
-use godot::{engine::Engine, prelude::*};
+use godot::{
+    engine::{Engine, ProjectSettings},
+    prelude::*,
+};
 
 struct MyExtension;
 
@@ -39,7 +42,19 @@ struct MetObjectsSingleton {
 #[godot_api]
 impl IObject for MetObjectsSingleton {
     fn init(base: Base<Object>) -> Self {
-        godot_print!("init MetObjectsSingleton!");
+        let project_settings = ProjectSettings::singleton();
+        let mut root_dir = project_settings
+            .globalize_path(GString::from("res://"))
+            .to_string();
+        if cfg!(windows) {
+            // Godot always uses '/' as a path separator. There doesn't seem to
+            // be any built-in tooling to convert to an OS-specific path, so we'll
+            // just do this manually. (Fortunately slashes are illegal characters in
+            // Windows file names, so we don't need to worry about this accidentally
+            // changing the name of a directory.)
+            root_dir = root_dir.replace("/", "\\");
+        }
+        godot_print!("init MetObjectsSingleton, root dir is: {}", root_dir);
         Self { base }
     }
 }
