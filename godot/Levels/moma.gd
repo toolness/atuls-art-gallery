@@ -16,6 +16,7 @@ var gallery_id: int
 
 
 func place_paintings_along_wall(
+	key: String,
 	rng: RandomNumberGenerator,
 	base_position: Vector3,
 	width: float,
@@ -52,10 +53,10 @@ func place_paintings_along_wall(
 	var margin_width := width / 2.0 - painting_width / 2.0
 	if margin_width > MIN_WALL_MOUNT_SIZE:
 		# Place paintings between the beginning of the wall and the start of the painting.
-		await place_paintings_along_wall(rng, base_position, margin_width, height, y_rotation, horizontal_direction)
+		await place_paintings_along_wall(key + "_l", rng, base_position, margin_width, height, y_rotation, horizontal_direction)
 		# Place paintings between the end of the wall and the end of the painting.
 		var end_base_position := base_position + (horizontal_direction * (width / 2.0 + painting_width / 2.0))
-		await place_paintings_along_wall(rng, end_base_position, margin_width, height, y_rotation, horizontal_direction)
+		await place_paintings_along_wall(key + "_r", rng, end_base_position, margin_width, height, y_rotation, horizontal_direction)
 
 	# Give the rest of the engine time to process the full frame, we're not in a rush and
 	# processing all paintings synchronously will cause stutter.
@@ -105,6 +106,7 @@ func populate_with_paintings() -> void:
 			# This isn't a big enough wall to mount anything on.
 			continue
 		await place_paintings_along_wall(
+			str(gallery_id) + "_" + child.name,
 			rng,
 			mesh_instance.position + aabb.position,
 			width,
