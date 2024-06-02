@@ -1,3 +1,8 @@
+use std::{
+    sync::mpsc::{channel, Sender},
+    thread::{self, JoinHandle},
+};
+
 use godot::{
     engine::{Engine, ProjectSettings},
     prelude::*,
@@ -37,6 +42,12 @@ unsafe impl ExtensionLibrary for MyExtension {
 #[class(base=Object)]
 struct MetObjectsSingleton {
     base: Base<Object>,
+    tx: Sender<ChannelMesssage>,
+    handler: Option<JoinHandle<()>>,
+}
+
+enum ChannelMesssage {
+    End,
 }
 
 #[godot_api]
@@ -54,8 +65,27 @@ impl IObject for MetObjectsSingleton {
             // changing the name of a directory.)
             root_dir = root_dir.replace("/", "\\");
         }
+        let (tx, rx) = channel::<ChannelMesssage>();
+        let handler = thread::spawn(move || {
+            loop {
+                match rx.recv() {
+                    Ok(ChannelMesssage::End) => {
+                        break;
+                    }
+                    Err(_) => {
+                        // The other end hung up, just quit.
+                        return;
+                    }
+                }
+            }
+        });
+
         godot_print!("init MetObjectsSingleton, root dir is: {}", root_dir);
-        Self { base }
+        Self {
+            base,
+            tx,
+            handler: Some(handler),
+        }
     }
 }
 
@@ -63,7 +93,7 @@ impl IObject for MetObjectsSingleton {
 impl MetObjectsSingleton {
     #[func]
     fn add(&self, a: i32, b: i32) -> i32 {
-        godot_print!("ADD {a} + {b}!");
+        godot_print!("ADD {a} + {b}!?");
         a + b
     }
 }
@@ -71,5 +101,19 @@ impl MetObjectsSingleton {
 impl Drop for MetObjectsSingleton {
     fn drop(&mut self) {
         godot_print!("drop MetObjectsSingleton!");
+        if let Some(handler) = self.handler.take() {
+            if let Err(err) = self.tx.send(ChannelMesssage::End) {
+                godot_print!("Error sending end signal to thread: {:?}", err);
+                return;
+            }
+            match handler.join() {
+                Ok(_) => {
+                    godot_print!("Joined thread.");
+                }
+                Err(err) => {
+                    godot_print!("Error joining thread: {:?}", err);
+                }
+            }
+        }
     }
 }
