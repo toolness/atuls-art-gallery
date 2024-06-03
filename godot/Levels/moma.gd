@@ -62,10 +62,11 @@ func place_paintings_along_wall(
 
 	# Give the rest of the engine time to process the full frame, we're not in a rush and
 	# processing all paintings synchronously will cause stutter.
-	await get_tree().process_frame
-	# TODO: It's unclear if we're going to continue if we've been removed from the scene
-	# tree. If we are, then we should probably (somehow) check to see if we're still
-	# in the scene tree before continuing.
+	var tree := get_tree()
+	if not tree:
+		# We've been removed from the scene tree, bail.
+		return
+	await tree.process_frame
 
 
 func populate_with_paintings() -> void:
