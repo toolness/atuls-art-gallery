@@ -9,7 +9,7 @@ use std::{
 use anyhow::Result;
 use gallery::{
     gallery_cache::GalleryCache,
-    the_met::{iter_public_domain_2d_met_objects, load_met_object_record},
+    the_met::{iter_public_domain_2d_met_objects, load_met_object_record, MetObjectCsvResult},
 };
 use godot::{
     engine::{Engine, ProjectSettings},
@@ -76,6 +76,36 @@ struct SimplifiedRecord {
     small_image: String,
 }
 
+fn find_and_download_next_valid_record(
+    csv_iterator: &mut impl Iterator<Item = MetObjectCsvResult>,
+    cache: &GalleryCache,
+) -> Result<Option<SimplifiedRecord>> {
+    loop {
+        let Some(result) = csv_iterator.next() else {
+            // We reached the end of all the records!
+            return Ok(None);
+        };
+        let csv_record = result?;
+        let obj_record = load_met_object_record(&cache, csv_record.object_id)?;
+        if let Some((width, height, small_image)) =
+            obj_record.try_to_download_small_image(&cache)?
+        {
+            return Ok(Some(SimplifiedRecord {
+                object_id: obj_record.object_id,
+                title: obj_record.title,
+                date: obj_record.object_date,
+                width,
+                height,
+                small_image: cache
+                    .cache_dir()
+                    .join(small_image)
+                    .to_string_lossy()
+                    .to_string(),
+            }));
+        }
+    }
+}
+
 fn work_thread(
     root_dir: PathBuf,
     cmd_rx: Receiver<ChannelCommand>,
@@ -87,51 +117,34 @@ fn work_thread(
     let reader = BufReader::new(File::open(csv_file)?);
     let rdr = csv::Reader::from_reader(reader);
     let mut csv_iterator = iter_public_domain_2d_met_objects(rdr);
-    'outer: loop {
+    loop {
         println!("work_thread waiting for command.");
         match cmd_rx.recv() {
             Ok(ChannelCommand::End) => {
                 println!("work_thread received 'end' command.");
-                break 'outer;
+                break;
             }
             Ok(ChannelCommand::Next) => {
                 println!("work_thread received 'next' command.");
-                // TODO: These nested loops are horrible, factor out some functions or something.
-                'find_and_download_next_valid_record: loop {
-                    let Some(result) = csv_iterator.next() else {
-                        // We reached the end of all the records!
-                        break 'outer;
-                    };
-                    let csv_record = result?;
-                    let obj_record = load_met_object_record(&cache, csv_record.object_id)?;
-                    if let Some((width, height, small_image)) =
-                        obj_record.try_to_download_small_image(&cache)?
-                    {
+                match find_and_download_next_valid_record(&mut csv_iterator, &cache)? {
+                    Some(simplified_record) => {
                         if response_tx
-                            .send(ChannelResponse::MetObject(SimplifiedRecord {
-                                object_id: obj_record.object_id,
-                                title: obj_record.title,
-                                date: obj_record.object_date,
-                                width,
-                                height,
-                                small_image: cache_dir
-                                    .join(small_image)
-                                    .to_string_lossy()
-                                    .to_string(),
-                            }))
+                            .send(ChannelResponse::MetObject(simplified_record))
                             .is_err()
                         {
-                            break 'outer;
+                            // The other end hung up, we're effectively done.
+                            break;
                         }
-                        break 'find_and_download_next_valid_record;
-                    } else {
-                        continue 'find_and_download_next_valid_record;
+                    }
+                    None => {
+                        // We're out of records!
+                        break;
                     }
                 }
             }
             Err(_) => {
                 // The other end hung up, just quit.
-                break 'outer;
+                break;
             }
         }
     }

@@ -10,6 +10,10 @@ impl GalleryCache {
         Self { cache_dir }
     }
 
+    pub fn cache_dir(&self) -> &PathBuf {
+        &self.cache_dir
+    }
+
     pub fn get_cached_path<T: AsRef<str>>(&self, filename: T) -> PathBuf {
         self.cache_dir.join(filename.as_ref())
     }
