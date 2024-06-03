@@ -30,10 +30,28 @@ func _ready() -> void:
 	pause_container.visible = true
 	settings_container.visible = false
 
+var DEBUG_DRAW_CYCLE: Array[Viewport.DebugDraw] = [
+	Viewport.DEBUG_DRAW_DISABLED,
+	Viewport.DEBUG_DRAW_OVERDRAW,
+	Viewport.DEBUG_DRAW_WIREFRAME,
+]
+
+func cycle_debug_draw():
+	var vp := get_viewport()
+	var curr_index := DEBUG_DRAW_CYCLE.find(vp.debug_draw)
+	if curr_index == -1:
+		# This should never happen, but maybe some other code changed it,
+		# so just fall back to 0.
+		curr_index = 0
+	var next_index := (curr_index + 1) % DEBUG_DRAW_CYCLE.size()
+	vp.debug_draw = DEBUG_DRAW_CYCLE[next_index]
+
 func _unhandled_input(event: InputEvent) -> void:
 	# When the player presses the escape key, pause the game.
 	if event.is_action_pressed("ui_cancel"):
 		paused = true
+	elif event.is_action_pressed("cycle_debug_draw"):
+		cycle_debug_draw()
 
 func _on_resume_button_pressed() -> void:
 	paused = false
