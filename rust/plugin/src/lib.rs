@@ -68,7 +68,6 @@ enum ChannelResponse {
     MetObject(SimplifiedRecord),
 }
 
-// TODO: Consolidate from CLI?
 #[derive(Debug, Serialize)]
 struct SimplifiedRecord {
     object_id: u64,
