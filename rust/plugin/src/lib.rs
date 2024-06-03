@@ -9,9 +9,7 @@ use std::{
 use anyhow::Result;
 use gallery::{
     gallery_cache::GalleryCache,
-    the_met::{
-        is_public_domain_2d_met_object, load_met_object_record, DimensionParser, MetObjectCsvRecord,
-    },
+    the_met::{load_met_object_record, PublicDomain2DMetObjectIterator},
 };
 use godot::{
     engine::{Engine, ProjectSettings},
@@ -88,8 +86,7 @@ fn work_thread(
     let csv_file = cache.get_cached_path("MetObjects.csv");
     let reader = BufReader::new(File::open(csv_file)?);
     let rdr = csv::Reader::from_reader(reader);
-    let dimension_parser = DimensionParser::new();
-    let mut csv_iterator = rdr.into_deserialize();
+    let mut csv_iterator = PublicDomain2DMetObjectIterator::new(rdr);
     'outer: loop {
         println!("work_thread waiting for command.");
         match cmd_rx.recv() {
@@ -101,21 +98,11 @@ fn work_thread(
                 println!("work_thread received 'next' command.");
                 // TODO: These nested loops are horrible, factor out some functions or something.
                 'find_and_download_next_valid_record: loop {
-                    let csv_record: MetObjectCsvRecord;
-                    'find_next_valid_record: loop {
-                        if let Some(maybe_result) = csv_iterator.next() {
-                            let maybe_csv_record: MetObjectCsvRecord = maybe_result?;
-                            if !is_public_domain_2d_met_object(&dimension_parser, &maybe_csv_record)
-                            {
-                                continue 'find_next_valid_record;
-                            }
-                            csv_record = maybe_csv_record;
-                            break 'find_next_valid_record;
-                        } else {
-                            // We reached the end of all the records!
-                            break 'outer;
-                        }
-                    }
+                    let Some(result) = csv_iterator.next() else {
+                        // We reached the end of all the records!
+                        break 'outer;
+                    };
+                    let csv_record = result?;
                     let obj_record = load_met_object_record(&cache, csv_record.object_id)?;
                     if let Some((width, height, small_image)) =
                         obj_record.try_to_download_small_image(&cache)?

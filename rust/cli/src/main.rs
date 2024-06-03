@@ -5,7 +5,7 @@ use anyhow::Result;
 use clap::Parser;
 use gallery::gallery_cache::GalleryCache;
 use gallery::the_met::{
-    is_public_domain_2d_met_object, load_met_object_record, DimensionParser, MetObjectCsvRecord,
+    load_met_object_record, MetObjectCsvRecord, PublicDomain2DMetObjectIterator,
 };
 
 use std::io::BufReader;
@@ -33,14 +33,10 @@ fn run() -> Result<()> {
     let reader = BufReader::new(File::open(csv_file)?);
     let rdr = csv::Reader::from_reader(reader);
     let mut count: usize = 0;
-    let dimension_parser = DimensionParser::new();
-    for result in rdr.into_deserialize() {
+    for result in PublicDomain2DMetObjectIterator::new(rdr) {
         // Notice that we need to provide a type hint for automatic
         // deserialization.
         let csv_record: MetObjectCsvRecord = result?;
-        if !is_public_domain_2d_met_object(&dimension_parser, &csv_record) {
-            continue;
-        }
         count += 1;
         if args.verbose {
             println!(
