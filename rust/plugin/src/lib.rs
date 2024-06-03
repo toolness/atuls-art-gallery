@@ -9,7 +9,7 @@ use std::{
 use anyhow::Result;
 use gallery::{
     gallery_cache::GalleryCache,
-    the_met::{load_met_object_record, PublicDomain2DMetObjectIterator},
+    the_met::{iter_public_domain_2d_met_objects, load_met_object_record},
 };
 use godot::{
     engine::{Engine, ProjectSettings},
@@ -86,7 +86,7 @@ fn work_thread(
     let csv_file = cache.get_cached_path("MetObjects.csv");
     let reader = BufReader::new(File::open(csv_file)?);
     let rdr = csv::Reader::from_reader(reader);
-    let mut csv_iterator = PublicDomain2DMetObjectIterator::new(rdr);
+    let mut csv_iterator = iter_public_domain_2d_met_objects(rdr);
     'outer: loop {
         println!("work_thread waiting for command.");
         match cmd_rx.recv() {

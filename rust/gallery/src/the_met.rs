@@ -167,40 +167,16 @@ fn is_public_domain_2d_met_object(
     false
 }
 
-pub struct PublicDomain2DMetObjectIterator<R: std::io::Read> {
-    iter: csv::DeserializeRecordsIntoIter<R, MetObjectCsvRecord>,
-    dimension_parser: DimensionParser,
-}
-
-impl<R: std::io::Read> PublicDomain2DMetObjectIterator<R> {
-    pub fn new(reader: csv::Reader<R>) -> Self {
-        Self {
-            iter: reader.into_deserialize(),
-            dimension_parser: DimensionParser::new(),
-        }
-    }
-}
-
-impl<R: std::io::Read> Iterator for PublicDomain2DMetObjectIterator<R> {
-    type Item = Result<MetObjectCsvRecord, csv::Error>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            if let Some(maybe_result) = self.iter.next() {
-                match maybe_result {
-                    Ok(result) => {
-                        if is_public_domain_2d_met_object(&self.dimension_parser, &result) {
-                            return Some(Ok(result));
-                        }
-                    }
-                    Err(err) => return Some(Err(err)),
-                }
-            } else {
-                // We reached the end of all the records!
-                return None;
-            }
-        }
-    }
+pub fn iter_public_domain_2d_met_objects<R: std::io::Read>(
+    reader: csv::Reader<R>,
+) -> impl Iterator<Item = Result<MetObjectCsvRecord, csv::Error>> {
+    let parser = DimensionParser::new();
+    reader
+        .into_deserialize()
+        .filter(move |result| match result {
+            Ok(csv_record) => is_public_domain_2d_met_object(&parser, csv_record),
+            Err(_) => true,
+        })
 }
 
 const DIMENSIONS_REGEX: &'static str = r"^.+ \(([0-9.]+) x ([0-9.]+) cm\)$";
