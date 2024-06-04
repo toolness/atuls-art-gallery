@@ -35,6 +35,8 @@ class MetObjectRecord:
 	func can_fit_in(max_width: float, max_height: float) -> bool:
 		return width <= max_width and height <= max_height
 
+	func open_in_browser() -> void:
+		OS.shell_open("https://www.metmuseum.org/art/collection/search/" + str(object_id))
 
 var keyed_met_objects := {}
 

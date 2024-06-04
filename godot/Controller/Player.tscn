@@ -281,6 +281,12 @@ spring_length = 4.0
 [node name="ThirdPersonCamera" type="Camera3D" parent="SmoothCamera/SpringArm3D"]
 unique_name_in_owner = true
 
+[node name="RayCast3D" type="RayCast3D" parent="SmoothCamera"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.08165e-12, 2.08165e-12, 2.08165e-12)
+target_position = Vector3(2.08165e-12, 2.08165e-12, -5)
+debug_shape_custom_color = Color(1, 1, 1, 1)
+debug_shape_thickness = 5
+
 [node name="AnimationTree" type="AnimationTree" parent="."]
 root_node = NodePath("../BasePivot")
 tree_root = SubResource("AnimationNodeBlendSpace2D_e0dl0")
