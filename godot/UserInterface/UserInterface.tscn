@@ -125,7 +125,7 @@ theme_override_colors/default_color = Color(0.803922, 0.803922, 0.803922, 1)
 bbcode_enabled = true
 text = "[color=bd2424]WASD[/color][color=746c61]:[/color] move
 [color=cc612c]Mouse[/color][color=746c61]:[/color] look
-[color=ebbb4f]Space[/color][color=746c61]:[/color] Jump
+[color=ebbb4f]L[/color][color=746c61]:[/color] Toggle labels
 [color=30aa36]scroll[/color][color=746c61]:[/color] zoom
 [color=608dd0]f5[/color][color=746c61]:[/color] toggle view
 [color=9052a1]esc[/color][color=746c61]:[/color] pause"
