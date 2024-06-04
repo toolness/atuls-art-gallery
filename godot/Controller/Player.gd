@@ -161,7 +161,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		zoom -= zoom_sensitivity
 	elif event.is_action_pressed("zoom_out"):
 		zoom += zoom_sensitivity
-	
+
+	if event.is_action_pressed("toggle_wall_labels"):
+		# This is set in project settings but I'm not sure how to keep it in sync with it.
+		# If we change it here, we should change it there too.
+		const WALL_LABELS_LAYER := 20
+		var is_enabled := camera.get_cull_mask_value(WALL_LABELS_LAYER)
+		camera.set_cull_mask_value(WALL_LABELS_LAYER, not is_enabled)
+
+
 func cycle_view() -> void:
 	# Swap from third to first person and vice versa.
 	match view:
