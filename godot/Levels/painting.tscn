@@ -10,7 +10,7 @@ script = ExtResource("1_wlgeq")
 
 [node name="wall_label" type="Label3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.5, -0.55, 0.01)
-pixel_size = 0.0005
+pixel_size = 0.0008
 double_sided = false
 modulate = Color(0, 0, 0, 1)
 outline_modulate = Color(0, 0, 0, 0)
