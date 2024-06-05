@@ -75,6 +75,10 @@ var zoom := min_zoom:
 @onready var jump_audio: AudioStreamPlayer3D = %JumpAudio
 @onready var run_audio: AudioStreamPlayer3D = %RunAudio
 
+@onready var raycast: RayCast3D = $SmoothCamera/RayCast3D
+
+var moving_painting: Painting = null
+
 
 func _ready() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
@@ -153,9 +157,17 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("click"):
 		if Input.get_mouse_mode() != Input.MOUSE_MODE_CAPTURED:
 			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+		elif moving_painting:
+			print("TODO: Drop the painting ", moving_painting)
+			moving_painting = null
+			pass
+		else:
+			var painting := Moma.try_to_find_painting_from_collision(raycast.get_collider())
+			if painting:
+				print("TODO: Pick up the painting ", painting)
+				moving_painting = painting
 
 	if event.is_action_pressed("right_click"):
-		var raycast: RayCast3D = $SmoothCamera/RayCast3D
 		var painting := Moma.try_to_find_painting_from_collision(raycast.get_collider())
 		if painting:
 			painting.try_to_open_in_browser()
