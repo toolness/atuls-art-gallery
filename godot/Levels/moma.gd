@@ -4,6 +4,8 @@ extends Node3D
 
 @onready var gallery: Node3D = $gallery
 
+@onready var gallery_label: Label3D = $GalleryLabel
+
 @export var painting_scene: PackedScene
 
 const MIN_WALL_MOUNT_SIZE = 2
@@ -11,6 +13,8 @@ const MIN_WALL_MOUNT_SIZE = 2
 const MIN_CANVAS_SIZE = 0.5
 
 const PAINTING_Y_OFFSET = -0.5
+
+const GALLERY_LABEL_ID_OFFSET = 101
 
 var gallery_id: int
 
@@ -124,5 +128,6 @@ func populate_with_paintings() -> void:
 
 func init(new_gallery_id: int) -> void:
 	gallery_id = new_gallery_id
+	gallery_label.text = str(gallery_id + GALLERY_LABEL_ID_OFFSET)
 	print("Initializing gallery ", gallery_id)
 	await populate_with_paintings()

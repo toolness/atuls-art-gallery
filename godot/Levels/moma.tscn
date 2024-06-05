@@ -33,3 +33,10 @@ shadow_enabled = true
 [node name="OmniLight3D6" type="OmniLight3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13, 2, -5)
 shadow_enabled = true
+
+[node name="GalleryLabel" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.49, 1.6, 3.009)
+modulate = Color(0, 0, 0, 1)
+text = "1"
+font_size = 48
+outline_size = 0
