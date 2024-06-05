@@ -127,7 +127,7 @@ text = "[color=bd2424]WASD[/color][color=746c61]:[/color] move
 [color=cc612c]Mouse[/color][color=746c61]:[/color] look
 [color=ebbb4f]L[/color][color=746c61]:[/color] Toggle labels
 [color=30aa36]scroll[/color][color=746c61]:[/color] zoom
-[color=608dd0]f5[/color][color=746c61]:[/color] toggle view
+[color=608dd0]right click[/color][color=746c61]:[/color] inspect
 [color=9052a1]esc[/color][color=746c61]:[/color] pause"
 fit_content = true
 
