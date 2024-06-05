@@ -156,12 +156,10 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	if event.is_action_pressed("right_click"):
 		var raycast: RayCast3D = $SmoothCamera/RayCast3D
-		var collision := raycast.get_collider()
-		if collision:
-			var painting = collision.find_parent("MomaPainting*")
-			if painting is Painting and painting.met_object:
-				painting.met_object.open_in_browser()
-			
+		var painting := Moma.try_to_find_painting_from_collision(raycast.get_collider())
+		if painting:
+			painting.try_to_open_in_browser()
+
 	# Camera controls.
 	if event.is_action_pressed("toggle_view"):
 		cycle_view()

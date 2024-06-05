@@ -16,9 +16,22 @@ const PAINTING_Y_OFFSET = -0.5
 
 const GALLERY_LABEL_ID_OFFSET = 101
 
+const PAINTING_BASE_NAME = "MomaPainting"
+
+const PAINTING_PATTERN = "MomaPainting*"
+
 var gallery_id: int
 
 var latest_painting_id := 0
+
+static func try_to_find_painting_from_collision(collision: Object) -> Painting:
+	if collision and collision is Node3D:
+		var node: Node3D = collision
+		var painting: Painting = node.find_parent(PAINTING_PATTERN)
+		if painting is Painting:
+			return painting
+	return null
+
 
 func place_paintings_along_wall(
 	key: String,
@@ -51,7 +64,7 @@ func place_paintings_along_wall(
 	else:
 		return
 	latest_painting_id += 1
-	painting.name = "MomaPainting" + str(latest_painting_id)
+	painting.name = PAINTING_BASE_NAME + str(latest_painting_id)
 	add_child(painting)
 	var width_offset := horizontal_direction * (width / 2.0)
 	var height_offset := ((height / 2.0) + PAINTING_Y_OFFSET)

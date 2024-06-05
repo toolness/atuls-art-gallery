@@ -37,3 +37,8 @@ func init_with_met_object(object: MetObjects.MetObjectRecord) -> void:
 	duplicate_material.albedo_color = Color.TRANSPARENT
 	duplicate_material.albedo_texture = object.load_small_image_texture()
 	painting.set_surface_override_material(PAINTING_SURFACE_IDX, duplicate_material)
+
+
+func try_to_open_in_browser():
+	if met_object:
+		met_object.open_in_browser()
