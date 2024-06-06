@@ -33,16 +33,10 @@ static func try_to_find_painting_from_collision(collision: Object) -> Painting:
 	return null
 
 
-static func try_to_find_wall_from_collision(collision: Object) -> MeshInstance3D:
+static func try_to_find_wall_from_collision(collision: Object) -> Wall:
 	if collision and collision is Node3D:
 		var node: Node3D = collision
-		var parent: MeshInstance3D = node.get_parent_node_3d()
-		if not (parent is MeshInstance3D):
-			return null
-		# TODO: Testing this isn't enough, it could actually be a ceiling or floor.
-		if try_to_get_wall_normal(parent) == Vector3.ZERO:
-			return null
-		return parent
+		return Wall.try_from_object(node.get_parent_node_3d())
 	return null
 
 
@@ -107,41 +101,32 @@ func place_paintings_along_wall(
 	await tree.process_frame
 
 
-# Note that GDScript doesn't support nullable types:
-# https://github.com/godotengine/godot-proposals/issues/162
-#
-# So, this always returns a Vector3, but returns Vector3.ZERO if it's
-# not given a mesh instance that represents a plane.
-static func try_to_get_wall_normal(mesh_instance: MeshInstance3D) -> Vector3:
-	var faces := mesh_instance.mesh.get_faces()
-	if faces.size() != 6:
-		# This isn't a plane.
-		return Vector3.ZERO
-	var first := faces[1] - faces[0]
-	var second := faces[2] - faces[0]
-	var normal := second.cross(first).normalized()
-	return normal
+class Wall:
+	var width: float
+	var height: float
+	var y_rotation: float
+	var horizontal_direction: Vector3
+	var mesh_instance: MeshInstance3D
+	var aabb: AABB
+	var normal: Vector3
 
-
-func populate_with_paintings() -> void:
-	var rng := RandomNumberGenerator.new()
-	rng.seed = hash(gallery_id)
-	for child in gallery.get_children():
-		if not is_instance_of(child, MeshInstance3D):
-			continue
-		var mesh_instance: MeshInstance3D = child
-		var aabb := mesh_instance.get_aabb()
-		var height := aabb.size.y
+	func _try_to_configure(object: Object) -> bool:
+		if not is_instance_of(object, MeshInstance3D):
+			return false
+		mesh_instance = object
+		aabb = mesh_instance.get_aabb()
+		height = aabb.size.y
 		if height < MIN_WALL_MOUNT_SIZE:
 			# This is either a floor or ceiling, or it's just a wall
 			# that isn't tall enough for our needs.
-			continue
-		var normal: Vector3 = Moma.try_to_get_wall_normal(mesh_instance)
-		if normal == Vector3.ZERO:
-			continue
-		var width: float
-		var y_rotation: float
-		var horizontal_direction: Vector3
+			return false
+		var faces := mesh_instance.mesh.get_faces()
+		if faces.size() != 6:
+			# This isn't a plane.
+			return false
+		var first := faces[1] - faces[0]
+		var second := faces[2] - faces[0]
+		normal = second.cross(first).normalized()
 		if aabb.size.x > MIN_WALL_MOUNT_SIZE:
 			# We can mount art along the x-axis.
 			width = aabb.size.x
@@ -157,15 +142,31 @@ func populate_with_paintings() -> void:
 				y_rotation += PI
 		else:
 			# This isn't a big enough wall to mount anything on.
+			return false
+		return true
+
+	static func try_from_object(object: Object) -> Wall:
+		var wall: Wall = Wall.new()
+		if not wall._try_to_configure(object):
+			return null
+		return wall
+
+
+func populate_with_paintings() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(gallery_id)
+	for child in gallery.get_children():
+		var wall := Wall.try_from_object(child)
+		if not wall:
 			continue
 		await place_paintings_along_wall(
 			str(gallery_id) + "_" + child.name,
 			rng,
-			mesh_instance.position + aabb.position,
-			width,
-			height,
-			y_rotation,
-			horizontal_direction,
+			wall.mesh_instance.position + wall.mesh_instance.get_aabb().position,
+			wall.width,
+			wall.height,
+			wall.y_rotation,
+			wall.horizontal_direction,
 		)
 
 
