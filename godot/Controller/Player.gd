@@ -153,7 +153,7 @@ func frame_camera_rotation() -> void:
 # Blend the walking animation based on movement direction.
 func update_animation_tree() -> void:
 	# Get the local movement direction.
-	var movement_direction = basis.inverse() * velocity / base_speed
+	var movement_direction := basis.inverse() * velocity / base_speed
 	# Convert the direction to a Vector2 to select the correct movement animation.
 	var animation_target = Vector2(movement_direction.x, -movement_direction.z)
 	animation_tree.set("parameters/blend_position", animation_target)
@@ -161,8 +161,9 @@ func update_animation_tree() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	# Update the _look variable to the latest mouse offset.
 	if event is InputEventMouseMotion:
+		var motion_event: InputEventMouseMotion = event
 		if Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
-			_look = -event.relative * mouse_sensitivity
+			_look = -motion_event.relative * mouse_sensitivity
 	# Capture the mouse if it is uncaptured.
 	if event.is_action_pressed("click"):
 		if Input.get_mouse_mode() != Input.MOUSE_MODE_CAPTURED:
