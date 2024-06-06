@@ -33,6 +33,14 @@ static func try_to_find_painting_from_collision(collision: Object) -> Painting:
 	return null
 
 
+func make_painting() -> Painting:
+	var painting: Painting = painting_scene.instantiate()
+	latest_painting_id += 1
+	painting.name = PAINTING_BASE_NAME + str(latest_painting_id)
+	add_child(painting)
+	return painting
+
+
 func place_paintings_along_wall(
 	key: String,
 	rng: RandomNumberGenerator,
@@ -46,11 +54,11 @@ func place_paintings_along_wall(
 	var painting_width: float
 	var met_object := await MetObjects.try_to_get_next_object(key, width, height)
 	if met_object:
-		painting = painting_scene.instantiate()
+		painting = make_painting()
 		painting_width = met_object.width
 		painting.init_with_met_object(met_object)
 	elif not MetObjects.ENABLE_MET_OBJECTS:
-		painting = painting_scene.instantiate()
+		painting = make_painting()
 		painting_width = rng.randf_range(MIN_CANVAS_SIZE, width / 2.0)
 		painting.init_with_size_and_color(
 			painting_width,
@@ -63,9 +71,6 @@ func place_paintings_along_wall(
 		)
 	else:
 		return
-	latest_painting_id += 1
-	painting.name = PAINTING_BASE_NAME + str(latest_painting_id)
-	add_child(painting)
 	var width_offset := horizontal_direction * (width / 2.0)
 	var height_offset := ((height / 2.0) + PAINTING_Y_OFFSET)
 	var painting_mount_point := base_position + width_offset + Vector3.UP * height_offset
