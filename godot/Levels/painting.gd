@@ -8,7 +8,9 @@ const PAINTING_SURFACE_IDX = 1
 
 var met_object: MetObjects.MetObjectRecord
 
-@onready var painting: MeshInstance3D  = $painting/Painting
+@onready var painting: MeshInstance3D = $painting/Painting
+
+@onready var collision_shape: CollisionShape3D = $painting/Painting/StaticBody3D/CollisionShape3D
 
 @onready var wall_label: Label3D = $wall_label
 

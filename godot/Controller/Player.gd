@@ -159,6 +159,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 		elif moving_painting:
 			print("TODO: Drop the painting ", moving_painting)
+			moving_painting.collision_shape.disabled = false
 			moving_painting = null
 			pass
 		else:
@@ -166,6 +167,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			if painting:
 				print("TODO: Pick up the painting ", painting)
 				moving_painting = painting
+				moving_painting.collision_shape.disabled = true
 
 	if event.is_action_pressed("right_click"):
 		var painting := Moma.try_to_find_painting_from_collision(raycast.get_collider())
