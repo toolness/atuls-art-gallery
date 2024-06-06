@@ -94,13 +94,16 @@ func place_paintings_along_wall(
 	await tree.process_frame
 
 
-# This returns a Vector3 or null, but there doesn't seem to be
-# a way to represent that in static typing...
-static func try_to_get_wall_normal(mesh_instance: MeshInstance3D):
+# Note that GDScript doesn't support nullable types:
+# https://github.com/godotengine/godot-proposals/issues/162
+#
+# So, this always returns a Vector3, but returns Vector3.ZERO if it's
+# not given a mesh instance that represents a plane.
+static func try_to_get_wall_normal(mesh_instance: MeshInstance3D) -> Vector3:
 	var faces := mesh_instance.mesh.get_faces()
 	if faces.size() != 6:
 		# This isn't a plane.
-		return null
+		return Vector3.ZERO
 	var first := faces[1] - faces[0]
 	var second := faces[2] - faces[0]
 	var normal := second.cross(first).normalized()
@@ -121,7 +124,7 @@ func populate_with_paintings() -> void:
 			# that isn't tall enough for our needs.
 			continue
 		var normal: Vector3 = Moma.try_to_get_wall_normal(mesh_instance)
-		if not normal:
+		if normal == Vector3.ZERO:
 			continue
 		var width: float
 		var y_rotation: float
