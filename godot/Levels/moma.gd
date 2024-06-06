@@ -33,6 +33,19 @@ static func try_to_find_painting_from_collision(collision: Object) -> Painting:
 	return null
 
 
+static func try_to_find_wall_from_collision(collision: Object) -> MeshInstance3D:
+	if collision and collision is Node3D:
+		var node: Node3D = collision
+		var parent: MeshInstance3D = node.get_parent_node_3d()
+		if not (parent is MeshInstance3D):
+			return null
+		# TODO: Testing this isn't enough, it could actually be a ceiling or floor.
+		if try_to_get_wall_normal(parent) == Vector3.ZERO:
+			return null
+		return parent
+	return null
+
+
 func make_painting() -> Painting:
 	var painting: Painting = painting_scene.instantiate()
 	latest_painting_id += 1

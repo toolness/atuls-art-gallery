@@ -122,6 +122,13 @@ func _physics_process(delta: float) -> void:
 	update_animation_tree()
 	move_and_slide()
 
+	if moving_painting:
+		var wall := Moma.try_to_find_wall_from_collision(raycast.get_collider())
+		if wall:
+			# TODO: Try to move the painting.
+			pass
+
+
 # Turn movent inputs into a locally oriented vector.
 func get_movement_direction() -> Vector3:
 	var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
@@ -168,6 +175,7 @@ func _unhandled_input(event: InputEvent) -> void:
 				print("TODO: Pick up the painting ", painting)
 				moving_painting = painting
 				moving_painting.collision_shape.disabled = true
+				raycast.force_raycast_update()
 
 	if event.is_action_pressed("right_click"):
 		var painting := Moma.try_to_find_painting_from_collision(raycast.get_collider())
