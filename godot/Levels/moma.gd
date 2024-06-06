@@ -94,6 +94,19 @@ func place_paintings_along_wall(
 	await tree.process_frame
 
 
+# This returns a Vector3 or null, but there doesn't seem to be
+# a way to represent that in static typing...
+static func try_to_get_wall_normal(mesh_instance: MeshInstance3D):
+	var faces := mesh_instance.mesh.get_faces()
+	if faces.size() != 6:
+		# This isn't a plane.
+		return null
+	var first := faces[1] - faces[0]
+	var second := faces[2] - faces[0]
+	var normal := second.cross(first).normalized()
+	return normal
+
+
 func populate_with_paintings() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(gallery_id)
@@ -107,13 +120,9 @@ func populate_with_paintings() -> void:
 			# This is either a floor or ceiling, or it's just a wall
 			# that isn't tall enough for our needs.
 			continue
-		var faces := mesh_instance.mesh.get_faces()
-		if faces.size() != 6:
-			# This isn't a plane.
+		var normal: Vector3 = Moma.try_to_get_wall_normal(mesh_instance)
+		if not normal:
 			continue
-		var first := faces[1] - faces[0]
-		var second := faces[2] - faces[0]
-		var normal := second.cross(first).normalized()
 		var width: float
 		var y_rotation: float
 		var horizontal_direction: Vector3
