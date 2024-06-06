@@ -125,7 +125,10 @@ func _physics_process(delta: float) -> void:
 	if moving_painting:
 		var wall := Moma.try_to_find_wall_from_collision(raycast.get_collider())
 		if wall:
-			# TODO: Try to move the painting.
+			var point := raycast.get_collision_point()
+			# TODO: Rotate the painting if needed
+			# TODO: Don't move the painting if it's hanging off the edge of the wall
+			moving_painting.global_position = point
 			pass
 
 
