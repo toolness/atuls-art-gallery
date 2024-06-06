@@ -168,14 +168,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		if Input.get_mouse_mode() != Input.MOUSE_MODE_CAPTURED:
 			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 		elif moving_painting:
-			print("TODO: Drop the painting ", moving_painting)
 			moving_painting.collision_shape.disabled = false
 			moving_painting = null
 			pass
 		else:
 			var painting := Moma.try_to_find_painting_from_collision(raycast.get_collider())
 			if painting:
-				print("TODO: Pick up the painting ", painting)
 				moving_painting = painting
 				moving_painting.collision_shape.disabled = true
 				raycast.force_raycast_update()
