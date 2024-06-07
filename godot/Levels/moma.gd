@@ -101,6 +101,33 @@ func place_paintings_along_wall(
 	await tree.process_frame
 
 
+class MovingPainting:
+	var painting: Painting
+
+	func finish_moving() -> void:
+		painting.collision_shape.disabled = false
+
+	func move_along_wall(raycast: RayCast3D) -> void:
+		var wall := Moma.try_to_find_wall_from_collision(raycast.get_collider())
+		if not wall:
+			return
+		var point := raycast.get_collision_point()
+		# TODO: Don't move the painting if it's hanging off the edge of the wall
+		painting.global_position = point
+		painting.rotation = Vector3.ZERO
+		painting.rotate_y(wall.y_rotation)
+
+	static func try_to_start_moving(raycast: RayCast3D) -> MovingPainting:
+		var _painting := Moma.try_to_find_painting_from_collision(raycast.get_collider())
+		if not _painting:
+			return null
+		var moving_painting = MovingPainting.new()
+		moving_painting.painting = _painting
+		moving_painting.painting.collision_shape.disabled = true
+		raycast.force_raycast_update()
+		return moving_painting
+
+
 class Wall:
 	var width: float
 	var height: float

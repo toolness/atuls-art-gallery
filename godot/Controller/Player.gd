@@ -77,7 +77,7 @@ var zoom := min_zoom:
 
 @onready var raycast: RayCast3D = $SmoothCamera/RayCast3D
 
-var moving_painting: Painting = null
+var moving_painting: Moma.MovingPainting = null
 
 
 func _ready() -> void:
@@ -123,14 +123,7 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 
 	if moving_painting:
-		var wall := Moma.try_to_find_wall_from_collision(raycast.get_collider())
-		if wall:
-			var point := raycast.get_collision_point()
-			# TODO: Don't move the painting if it's hanging off the edge of the wall
-			moving_painting.global_position = point
-			moving_painting.rotation = Vector3.ZERO
-			moving_painting.rotate_y(wall.y_rotation)
-
+		moving_painting.move_along_wall(raycast)
 
 # Turn movent inputs into a locally oriented vector.
 func get_movement_direction() -> Vector3:
@@ -169,15 +162,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		if Input.get_mouse_mode() != Input.MOUSE_MODE_CAPTURED:
 			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 		elif moving_painting:
-			moving_painting.collision_shape.disabled = false
+			moving_painting.finish_moving()
 			moving_painting = null
 			pass
 		else:
-			var painting := Moma.try_to_find_painting_from_collision(raycast.get_collider())
-			if painting:
-				moving_painting = painting
-				moving_painting.collision_shape.disabled = true
-				raycast.force_raycast_update()
+			moving_painting = Moma.MovingPainting.try_to_start_moving(raycast)
 
 	if event.is_action_pressed("right_click"):
 		var painting := Moma.try_to_find_painting_from_collision(raycast.get_collider())
