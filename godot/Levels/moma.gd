@@ -130,8 +130,8 @@ class MovingPainting:
 		var point := raycast.get_collision_point()
 		var wall := Moma.try_to_find_wall_from_collision(raycast.get_collider())
 		if not wall:
-			# This is weird, the painting should have been rigth in front of a wall. Technically
-			# it might be the case that the user is at the very edge of the raycast's max distance,
+			# This is unusual, as the painting *should* have been right in front of a wall.
+			# It might be the case that the user is at the very edge of the raycast's max distance,
 			# such that the raycast can hit the painting but not the wall behind it.
 			_painting.finish_interactive_placement()
 			return
