@@ -45,3 +45,11 @@ func init_with_met_object(object: MetObjects.MetObjectRecord) -> void:
 func try_to_open_in_browser():
 	if met_object:
 		met_object.open_in_browser()
+
+
+func start_interactive_placement():
+	collision_shape.disabled = true
+
+
+func finish_interactive_placement():
+	collision_shape.disabled = false

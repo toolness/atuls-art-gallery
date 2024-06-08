@@ -122,14 +122,19 @@ class MovingPainting:
 		var _painting := Moma.try_to_find_painting_from_collision(raycast.get_collider())
 		if not _painting:
 			return null
-		var moving_painting = MovingPainting.new()
-		moving_painting.painting = _painting
-		moving_painting.painting.collision_shape.disabled = true
+		_painting.start_interactive_placement()
+		# The painting's collider is disabled, so the raycast won't hit it now.
 		raycast.force_raycast_update()
 		var point := raycast.get_collision_point()
 		var wall := Moma.try_to_find_wall_from_collision(raycast.get_collider())
 		if not wall:
+			# This is weird, the painting should have been rigth in front of a wall. Technically
+			# it might be the case that the user is at the very edge of the raycast's max distance,
+			# such that the raycast can hit the painting but not the wall behind it.
+			_painting.finish_interactive_placement()
 			return
+		var moving_painting := MovingPainting.new()
+		moving_painting.painting = _painting
 		moving_painting.offset = (point - _painting.global_position).rotated(Vector3.UP, -wall.y_rotation)
 		return moving_painting
 
