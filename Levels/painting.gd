@@ -6,7 +6,7 @@ extends Node3D
 const PAINTING_SURFACE_IDX = 1
 
 
-var met_object: MetObjects.MetObjectRecord
+var met_object: MetObject
 
 var painting_surface_material: StandardMaterial3D
 
@@ -35,7 +35,7 @@ func init_with_size_and_color(width: float, height: float, color: Color) -> void
 	painting.set_surface_override_material(PAINTING_SURFACE_IDX, painting_surface_material)
 
 
-func init_with_met_object(object: MetObjects.MetObjectRecord) -> void:
+func init_with_met_object(object: MetObject) -> void:
 	met_object = object
 	configure_wall_label(object.width, object.height, object.title + "\n" + object.date)
 	painting.set_scale(Vector3(object.width, object.height, 1.0))

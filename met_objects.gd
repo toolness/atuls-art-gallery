@@ -5,56 +5,24 @@ const ENABLE_MET_OBJECTS := true
 
 const MAX_OBJECT_ATTEMPTS = 10
 
-
-class MetObjectRecord:
-	var object_id: int
-	var title: String
-	var date: String
-	var width: float
-	var height: float
-	var small_image: String
-
-	static func from_met_object(obj: MetObject) -> MetObjectRecord:
-		var o := MetObjectRecord.new()
-		o.object_id = obj.object_id
-		o.title = obj.title
-		o.date = obj.date
-		o.width = obj.width / 100.0
-		o.height = obj.height / 100.0
-		o.small_image = obj.small_image
-		return o
-
-	func load_small_image() -> Image:
-		var image := Image.load_from_file(small_image)
-		image.generate_mipmaps()
-		return image
-
-	func load_small_image_texture() -> ImageTexture:
-		return ImageTexture.create_from_image(load_small_image())
-
-	func can_fit_in(max_width: float, max_height: float) -> bool:
-		return width <= max_width and height <= max_height
-
-	func open_in_browser() -> void:
-		OS.shell_open("https://www.metmuseum.org/art/collection/search/" + str(object_id))
-
 var keyed_met_objects := {}
 
-var unused_met_objects: Array[MetObjectRecord] = []
+var unused_met_objects: Array[MetObject] = []
 
 
-func _get_next_object() -> MetObjectRecord:
+func _get_next_object() -> MetObject:
 	RustMetObjects.next()
-	var obj: MetObject
-	while not obj:
+	while true:
 		# TODO: It's possible there are no more objects left, in which case we'll be
 		# looping infinitely!
-		obj = RustMetObjects.poll()
+		var obj := RustMetObjects.poll()
+		if obj:
+			return obj
 		await get_tree().process_frame
-	return MetObjectRecord.from_met_object(obj)
+	return null
 
 
-func _try_to_get_new_met_object(max_width: float, max_height: float) -> MetObjectRecord:
+func _try_to_get_new_met_object(max_width: float, max_height: float) -> MetObject:
 	for i in range(MAX_OBJECT_ATTEMPTS):
 		var met_object := await _get_next_object()
 		if met_object.can_fit_in(max_width, max_height):
@@ -65,7 +33,7 @@ func _try_to_get_new_met_object(max_width: float, max_height: float) -> MetObjec
 	return null
 
 
-func _try_to_get_unused_met_object(max_width: float, max_height: float) -> MetObjectRecord:
+func _try_to_get_unused_met_object(max_width: float, max_height: float) -> MetObject:
 	for met_object in unused_met_objects:
 		if met_object.can_fit_in(max_width, max_height):
 			unused_met_objects.erase(met_object)
@@ -73,7 +41,7 @@ func _try_to_get_unused_met_object(max_width: float, max_height: float) -> MetOb
 	return null
 
 
-func try_to_get_next_object(key: String, max_width: float, max_height: float) -> MetObjectRecord:
+func try_to_get_next_object(key: String, max_width: float, max_height: float) -> MetObject:
 	if not ENABLE_MET_OBJECTS:
 		return null
 	if not keyed_met_objects.has(key):

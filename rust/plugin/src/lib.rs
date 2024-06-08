@@ -12,7 +12,7 @@ use gallery::{
     the_met::{iter_public_domain_2d_met_objects, load_met_object_record, MetObjectCsvResult},
 };
 use godot::{
-    engine::{Engine, ProjectSettings},
+    engine::{Engine, Image, ImageTexture, Os, ProjectSettings},
     prelude::*,
 };
 
@@ -92,6 +92,34 @@ pub struct MetObject {
     small_image: GString,
 }
 
+#[godot_api]
+impl MetObject {
+    #[func]
+    fn load_small_image_texture(&self) -> Option<Gd<ImageTexture>> {
+        let Some(mut image) = Image::load_from_file(self.small_image.clone()) else {
+            return None;
+        };
+        image.generate_mipmaps();
+        ImageTexture::create_from_image(image)
+    }
+
+    #[func]
+    fn can_fit_in(&self, max_width: f64, max_height: f64) -> bool {
+        self.width <= max_width && self.height <= max_height
+    }
+
+    #[func]
+    fn open_in_browser(&self) {
+        Os::singleton().shell_open(
+            format!(
+                "https://www.metmuseum.org/art/collection/search/{}",
+                self.object_id
+            )
+            .into_godot(),
+        );
+    }
+}
+
 fn find_and_download_next_valid_record(
     csv_iterator: &mut impl Iterator<Item = MetObjectCsvResult>,
     cache: &GalleryCache,
@@ -110,8 +138,8 @@ fn find_and_download_next_valid_record(
                 object_id: obj_record.object_id,
                 title: obj_record.title,
                 date: obj_record.object_date,
-                width,
-                height,
+                width: width / 100.0,   // Convert from centimeters to meters
+                height: height / 100.0, // Convert from centimeters to meters
                 small_image: cache
                     .cache_dir()
                     .join(small_image)
