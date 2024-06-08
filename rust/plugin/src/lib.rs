@@ -189,12 +189,6 @@ impl IObject for MetObjectsSingleton {
 #[godot_api]
 impl MetObjectsSingleton {
     #[func]
-    fn add(&self, a: i32, b: i32) -> i32 {
-        godot_print!("ADD {a} + {b}!?");
-        a + b
-    }
-
-    #[func]
     fn next(&mut self) {
         if self.cmd_tx.send(ChannelCommand::Next).is_err() {
             godot_print!("cmd_tx.send() failed!");
