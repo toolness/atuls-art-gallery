@@ -14,14 +14,14 @@ class MetObjectRecord:
 	var height: float
 	var small_image: String
 
-	static func from_json(json_data: Variant) -> MetObjectRecord:
+	static func from_met_object(obj: MetObject) -> MetObjectRecord:
 		var o := MetObjectRecord.new()
-		o.object_id = json_data.object_id
-		o.title = json_data.title
-		o.date = json_data.date
-		o.width = json_data.width / 100.0
-		o.height = json_data.height / 100.0
-		o.small_image = json_data.small_image
+		o.object_id = obj.object_id
+		o.title = obj.title
+		o.date = obj.date
+		o.width = obj.width / 100.0
+		o.height = obj.height / 100.0
+		o.small_image = obj.small_image
 		return o
 
 	func load_small_image() -> Image:
@@ -45,13 +45,13 @@ var unused_met_objects: Array[MetObjectRecord] = []
 
 func _get_next_object() -> MetObjectRecord:
 	RustMetObjects.next()
-	var obj_str: String
-	while not obj_str:
+	var obj: MetObject
+	while not obj:
 		# TODO: It's possible there are no more objects left, in which case we'll be
 		# looping infinitely!
-		obj_str = RustMetObjects.poll()
+		obj = RustMetObjects.poll()
 		await get_tree().process_frame
-	return MetObjectRecord.from_json(JSON.parse_string(obj_str))
+	return MetObjectRecord.from_met_object(obj)
 
 
 func _try_to_get_new_met_object(max_width: float, max_height: float) -> MetObjectRecord:

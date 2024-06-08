@@ -417,8 +417,6 @@ dependencies = [
  "csv",
  "gallery",
  "godot",
- "serde",
- "serde_json",
 ]
 
 [[package]]

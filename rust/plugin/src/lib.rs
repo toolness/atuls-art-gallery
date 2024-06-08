@@ -15,7 +15,6 @@ use godot::{
     engine::{Engine, ProjectSettings},
     prelude::*,
 };
-use serde::Serialize;
 
 struct MyExtension;
 
@@ -66,7 +65,7 @@ enum ChannelResponse {
     MetObject(SimplifiedRecord),
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 struct SimplifiedRecord {
     object_id: u64,
     title: String,
@@ -74,6 +73,23 @@ struct SimplifiedRecord {
     width: f64,
     height: f64,
     small_image: String,
+}
+
+#[derive(Debug, GodotClass)]
+#[class(no_init)]
+pub struct MetObject {
+    #[var]
+    pub object_id: i64,
+    #[var]
+    title: GString,
+    #[var]
+    date: GString,
+    #[var]
+    pub width: f64,
+    #[var]
+    pub height: f64,
+    #[var]
+    small_image: GString,
 }
 
 fn find_and_download_next_valid_record(
@@ -199,27 +215,29 @@ impl MetObjectsSingleton {
     /// This returns a JSON-serialized string. It's not great but the alternative is to use
     /// Gd::from_object() with a custom struct, which is its own hassle.
     #[func]
-    fn poll(&mut self) -> GString {
+    fn poll(&mut self) -> Option<Gd<MetObject>> {
         match self.response_rx.try_recv() {
             Ok(ChannelResponse::Done) => {
                 godot_print!("No more objects!");
                 self.handler = None;
             }
-            Ok(ChannelResponse::MetObject(object)) => match serde_json::to_string(&object) {
-                Err(err) => {
-                    godot_print!("Failed to serialize result: {:?}", err);
-                }
-                Ok(result) => {
-                    return result.into_godot();
-                }
-            },
+            Ok(ChannelResponse::MetObject(object)) => {
+                return Some(Gd::from_object(MetObject {
+                    object_id: object.object_id as i64,
+                    title: object.title.into_godot(),
+                    date: object.date.into_godot(),
+                    width: object.width,
+                    height: object.height,
+                    small_image: object.small_image.into_godot(),
+                }))
+            }
             Err(TryRecvError::Empty) => {}
             Err(TryRecvError::Disconnected) => {
                 godot_print!("response_rx.recv() failed, thread died!");
                 self.handler = None;
             }
         }
-        GString::default()
+        None
     }
 }
 
