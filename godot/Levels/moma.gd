@@ -113,7 +113,9 @@ class MovingPainting:
 		if not wall:
 			return
 		var point := raycast.get_collision_point()
-		# TODO: Don't move the painting if it's hanging off the edge of the wall
+		# TODO: Don't move the painting if it's:
+		#   * hanging off the edge of the wall
+		#   * intersecting with another painting
 		painting.global_position = point - offset.rotated(Vector3.UP, wall.y_rotation)
 		painting.rotation = Vector3.ZERO
 		painting.rotate_y(wall.y_rotation)
