@@ -8,6 +8,10 @@ const PAINTING_SURFACE_IDX = 1
 
 var met_object: MetObjects.MetObjectRecord
 
+var painting_surface_material: StandardMaterial3D
+
+var original_albedo_color: Color
+
 @onready var painting: MeshInstance3D = $painting/Painting
 
 @onready var collision_shape: CollisionShape3D = $painting/Painting/StaticBody3D/CollisionShape3D
@@ -26,9 +30,9 @@ func init_with_size_and_color(width: float, height: float, color: Color) -> void
 	configure_wall_label(width, height, "#" + color.to_html(false).to_upper() + "\n2024")
 	painting.set_scale(Vector3(width, height, 1.0))
 	var material: StandardMaterial3D = painting.mesh.surface_get_material(PAINTING_SURFACE_IDX)
-	var duplicate_material: StandardMaterial3D = material.duplicate()
-	duplicate_material.albedo_color = color
-	painting.set_surface_override_material(PAINTING_SURFACE_IDX, duplicate_material)
+	painting_surface_material = material.duplicate()
+	painting_surface_material.albedo_color = color
+	painting.set_surface_override_material(PAINTING_SURFACE_IDX, painting_surface_material)
 
 
 func init_with_met_object(object: MetObjects.MetObjectRecord) -> void:
@@ -36,10 +40,10 @@ func init_with_met_object(object: MetObjects.MetObjectRecord) -> void:
 	configure_wall_label(object.width, object.height, object.title + "\n" + object.date)
 	painting.set_scale(Vector3(object.width, object.height, 1.0))
 	var material: StandardMaterial3D = painting.mesh.surface_get_material(PAINTING_SURFACE_IDX)
-	var duplicate_material: StandardMaterial3D = material.duplicate()
-	duplicate_material.albedo_color = Color.TRANSPARENT
-	duplicate_material.albedo_texture = object.load_small_image_texture()
-	painting.set_surface_override_material(PAINTING_SURFACE_IDX, duplicate_material)
+	painting_surface_material = material.duplicate()
+	painting_surface_material.albedo_color = Color.TRANSPARENT
+	painting_surface_material.albedo_texture = object.load_small_image_texture()
+	painting.set_surface_override_material(PAINTING_SURFACE_IDX, painting_surface_material)
 
 
 func try_to_open_in_browser():
@@ -48,8 +52,11 @@ func try_to_open_in_browser():
 
 
 func start_interactive_placement():
+	original_albedo_color = painting_surface_material.albedo_color
+	painting_surface_material.albedo_color = Color.GREEN
 	collision_shape.disabled = true
 
 
 func finish_interactive_placement():
+	painting_surface_material.albedo_color = original_albedo_color
 	collision_shape.disabled = false

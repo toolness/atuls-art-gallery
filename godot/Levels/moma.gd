@@ -106,7 +106,7 @@ class MovingPainting:
 	var offset: Vector3
 
 	func finish_moving() -> void:
-		painting.collision_shape.disabled = false
+		painting.finish_interactive_placement()
 
 	func move_along_wall(raycast: RayCast3D) -> void:
 		var wall := Moma.try_to_find_wall_from_collision(raycast.get_collider())
