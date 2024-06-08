@@ -202,8 +202,8 @@ impl MetObjectsSingleton {
         }
     }
 
-    /// This returns a JSON-serialized string. It's really bad but I can't figure out any other
-    /// reasonable way of returning structured data.
+    /// This returns a JSON-serialized string. It's not great but the alternative is to use
+    /// Gd::from_object() with a custom struct, which is its own hassle.
     #[func]
     fn poll(&mut self) -> GString {
         match self.response_rx.try_recv() {
