@@ -127,7 +127,7 @@ fn work_thread(
     cmd_rx: Receiver<ChannelCommand>,
     response_tx: Sender<ChannelResponse>,
 ) -> Result<()> {
-    let cache_dir = root_dir.join("..").join("rust").join("cache");
+    let cache_dir = root_dir.join("rust").join("cache");
     let cache = GalleryCache::new(cache_dir.clone());
     let csv_file = cache.get_cached_path("MetObjects.csv");
     let reader = BufReader::new(File::open(csv_file)?);

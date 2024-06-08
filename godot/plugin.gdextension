@@ -4,11 +4,11 @@ compatibility_minimum = 4.1
 reloadable = true
 
 [libraries]
-linux.debug.x86_64 =     "res://../rust/target/debug/libplugin.so"
-linux.release.x86_64 =   "res://../rust/target/release/libplugin.so"
-windows.debug.x86_64 =   "res://../rust/target/debug/plugin.dll"
-windows.release.x86_64 = "res://../rust/target/release/plugin.dll"
-macos.debug =            "res://../rust/target/debug/libplugin.dylib"
-macos.release =          "res://../rust/target/release/libplugin.dylib"
-macos.debug.arm64 =      "res://../rust/target/debug/libplugin.dylib"
-macos.release.arm64 =    "res://../rust/target/release/libplugin.dylib"
+linux.debug.x86_64 =     "res://rust/target/debug/libplugin.so"
+linux.release.x86_64 =   "res://rust/target/release/libplugin.so"
+windows.debug.x86_64 =   "res://rust/target/debug/plugin.dll"
+windows.release.x86_64 = "res://rust/target/release/plugin.dll"
+macos.debug =            "res://rust/target/debug/libplugin.dylib"
+macos.release =          "res://rust/target/release/libplugin.dylib"
+macos.debug.arm64 =      "res://rust/target/debug/libplugin.dylib"
+macos.release.arm64 =    "res://rust/target/release/libplugin.dylib"
