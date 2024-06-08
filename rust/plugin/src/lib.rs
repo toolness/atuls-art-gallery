@@ -77,18 +77,17 @@ struct SimplifiedRecord {
 
 #[derive(Debug, GodotClass)]
 #[class(init)]
-pub struct MetObject {
+struct MetObject {
     #[var]
-    pub object_id: i64,
+    object_id: i64,
     #[var]
     title: GString,
     #[var]
     date: GString,
     #[var]
-    pub width: f64,
+    width: f64,
     #[var]
-    pub height: f64,
-    #[var]
+    height: f64,
     small_image: GString,
 }
 
