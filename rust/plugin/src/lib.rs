@@ -76,7 +76,7 @@ struct SimplifiedRecord {
 }
 
 #[derive(Debug, GodotClass)]
-#[class(no_init)]
+#[class(init)]
 pub struct MetObject {
     #[var]
     pub object_id: i64,
