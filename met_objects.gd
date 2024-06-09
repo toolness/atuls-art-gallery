@@ -5,21 +5,28 @@ const ENABLE_MET_OBJECTS := true
 
 const MAX_OBJECT_ATTEMPTS = 10
 
+const MAX_REQUESTS_PER_FRAME = 10
+
 var keyed_met_objects := {}
 
 var unused_met_objects: Array[MetObject] = []
 
+var requests: Array[MetObjectRequest] = []
+
+
+class MetObjectRequest:
+	var response: MetObject
+	signal responded
+
 
 func _get_next_object() -> MetObject:
+	var request := MetObjectRequest.new()
+	requests.push_back(request)
 	RustMetObjects.next()
-	while true:
-		# TODO: It's possible there are no more objects left, in which case we'll be
-		# looping infinitely!
-		var obj := RustMetObjects.poll()
-		if obj:
-			return obj
-		await get_tree().process_frame
-	return null
+	# TODO: It's possible there are no more objects left, in which case we'll be
+	# awaiting infinitely!
+	await request.responded
+	return request.response
 
 
 func _try_to_get_new_met_object(max_width: float, max_height: float) -> MetObject:
@@ -55,5 +62,14 @@ func try_to_get_next_object(key: String, max_width: float, max_height: float) ->
 	return keyed_met_objects[key]
 
 
-func _ready() -> void:
-	pass
+func _process(_delta) -> void:
+	for i in range(MAX_REQUESTS_PER_FRAME):
+		var obj := RustMetObjects.poll()
+		if not obj:
+			return
+		var request: MetObjectRequest = requests.pop_back()
+		if not request:
+			print("No more requests left!")
+			return
+		request.response = obj
+		request.responded.emit()
