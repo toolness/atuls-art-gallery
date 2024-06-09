@@ -4,9 +4,11 @@ use std::process;
 use anyhow::Result;
 use clap::Parser;
 use gallery::gallery_cache::GalleryCache;
+use gallery::gallery_db::GalleryDb;
 use gallery::the_met::{
     iter_public_domain_2d_met_objects, load_met_object_record, MetObjectCsvRecord,
 };
+use rusqlite::Connection;
 
 use std::io::BufReader;
 
@@ -32,6 +34,8 @@ fn run() -> Result<()> {
     let csv_file = cache.get_cached_path("MetObjects.csv");
     let reader = BufReader::new(File::open(csv_file)?);
     let rdr = csv::Reader::from_reader(reader);
+    let db = GalleryDb::new(Connection::open_in_memory()?);
+    db.create_tables()?;
     let mut count: usize = 0;
     for result in iter_public_domain_2d_met_objects(rdr) {
         // Notice that we need to provide a type hint for automatic
@@ -44,6 +48,7 @@ fn run() -> Result<()> {
                 csv_record.object_id, csv_record.medium, csv_record.title, csv_record.link_resource
             );
         }
+        db.add_csv_record(&csv_record)?;
         if args.download {
             let obj_record = load_met_object_record(&cache, csv_record.object_id)?;
             obj_record.try_to_download_small_image(&cache)?;

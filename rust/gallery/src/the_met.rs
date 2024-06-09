@@ -106,6 +106,9 @@ pub struct MetObjectCsvRecord {
     #[serde(rename = "Object ID")]
     pub object_id: u64,
 
+    #[serde(rename = "Object Date")]
+    pub object_date: String,
+
     #[serde(rename = "Title")]
     pub title: String,
 
