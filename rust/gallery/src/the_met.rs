@@ -120,6 +120,8 @@ pub struct MetObjectCsvRecord {
 
     #[serde(rename = "Dimensions")]
     pub dimensions: String,
+
+    pub parsed_dimensions: Option<(f64, f64)>,
 }
 
 fn deserialize_csv_bool<'de, D>(deserializer: D) -> Result<bool, D::Error>
@@ -152,11 +154,15 @@ const MEDIUM_KEYWORDS: [&str; 12] = [
 
 fn is_public_domain_2d_met_object(
     dimension_parser: &DimensionParser,
-    csv_record: &MetObjectCsvRecord,
+    csv_record: &mut MetObjectCsvRecord,
 ) -> bool {
     if !csv_record.public_domain {
         return false;
     }
+    let Some(dimensions) = dimension_parser.parse(&csv_record.dimensions) else {
+        return false;
+    };
+    csv_record.parsed_dimensions = Some(dimensions);
     if !dimension_parser.can_parse(&csv_record.dimensions) {
         return false;
     }
@@ -177,10 +183,15 @@ pub fn iter_public_domain_2d_met_objects<R: std::io::Read>(
 ) -> impl Iterator<Item = MetObjectCsvResult> {
     let parser = DimensionParser::new();
     reader
-        .into_deserialize()
-        .filter(move |result| match result {
-            Ok(csv_record) => is_public_domain_2d_met_object(&parser, csv_record),
-            Err(_) => true,
+        .into_deserialize::<MetObjectCsvRecord>()
+        .filter_map(move |result| match result {
+            Ok(mut csv_record) => {
+                if !is_public_domain_2d_met_object(&parser, &mut csv_record) {
+                    return None;
+                }
+                return Some(Ok(csv_record));
+            } //is_public_domain_2d_met_object(&parser, csv_record),
+            Err(_) => Some(result),
         })
 }
 

@@ -40,9 +40,8 @@ impl GalleryDb {
                 &record.title,
                 &record.object_date,
                 &record.medium,
-                // TODO: Actually store width and height.
-                0.0,
-                0.0
+                record.parsed_dimensions.map(|r| r.0),
+                record.parsed_dimensions.map(|r| r.1),
             ),
         )?;
         Ok(())
