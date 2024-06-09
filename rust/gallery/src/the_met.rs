@@ -106,6 +106,9 @@ pub struct MetObjectCsvRecord {
     #[serde(rename = "Object ID")]
     pub object_id: u64,
 
+    #[serde(rename = "AccessionYear", deserialize_with = "deserialize_csv_year")]
+    pub accession_year: Option<u16>,
+
     #[serde(rename = "Object Date")]
     pub object_date: String,
 
@@ -134,6 +137,18 @@ where
         "True" => Ok(true),
         "False" => Ok(false),
         _ => Err(de::Error::unknown_variant(s, &["True", "False"])),
+    }
+}
+
+/// A very small number of records have malformed year numbers, in such
+/// cases, we'll just ignore the field instead of erroring.
+fn deserialize_csv_year<'de, D>(deserializer: D) -> Result<Option<u16>, D::Error>
+where
+    D: de::Deserializer<'de>,
+{
+    match de::Deserialize::deserialize(deserializer) {
+        Ok(year) => Ok(year),
+        Err(_) => Ok(None),
     }
 }
 
