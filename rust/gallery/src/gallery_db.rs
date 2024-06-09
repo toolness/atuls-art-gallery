@@ -12,8 +12,11 @@ impl GalleryDb {
         GalleryDb { conn }
     }
 
-    pub fn create_tables(&mut self) -> Result<()> {
-        self.conn.execute(
+    pub fn create_met_objects_table(&mut self) -> Result<()> {
+        let tx = self.conn.transaction()?;
+
+        tx.execute("DROP TABLE IF EXISTS met_objects", ())?;
+        tx.execute(
             "
             CREATE TABLE met_objects (
                 id INTEGER PRIMARY KEY,
@@ -27,6 +30,9 @@ impl GalleryDb {
             ",
             (),
         )?;
+
+        tx.commit()?;
+
         Ok(())
     }
 
@@ -66,6 +72,6 @@ mod tests {
     #[test]
     fn test_it_works() {
         let mut db = GalleryDb::new(Connection::open_in_memory().unwrap());
-        db.create_tables().unwrap();
+        db.create_met_objects_table().unwrap();
     }
 }

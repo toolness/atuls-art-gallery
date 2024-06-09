@@ -37,11 +37,8 @@ fn run() -> Result<()> {
     let reader = BufReader::new(File::open(csv_file)?);
     let rdr = csv::Reader::from_reader(reader);
     let db_path = cache.get_cached_path("gallery.sqlite");
-    if db_path.exists() {
-        std::fs::remove_file(&db_path)?;
-    }
     let mut db = GalleryDb::new(Connection::open(db_path)?);
-    db.create_tables()?;
+    db.create_met_objects_table()?;
     let mut count: usize = 0;
     let mut records_to_commit: Vec<MetObjectCsvRecord> = vec![];
     for result in iter_public_domain_2d_met_objects(rdr) {
