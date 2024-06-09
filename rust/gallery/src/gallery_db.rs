@@ -12,7 +12,7 @@ impl GalleryDb {
         GalleryDb { conn }
     }
 
-    pub fn create_tables(&self) -> Result<()> {
+    pub fn create_tables(&mut self) -> Result<()> {
         self.conn.execute(
             "
             CREATE TABLE met_objects (
@@ -30,20 +30,27 @@ impl GalleryDb {
         Ok(())
     }
 
-    pub fn add_csv_record(&self, record: &MetObjectCsvRecord) -> Result<()> {
-        self.conn.execute(
+    pub fn add_csv_records(&mut self, records: &Vec<MetObjectCsvRecord>) -> Result<()> {
+        let tx = self.conn.transaction()?;
+
+        for record in records {
+            tx.execute(
             "
-            INSERT INTO met_objects (id, title, date, medium, width, height) VALUES (?1, ?2, ?3, ?4, ?5, ?6)
-            ",
-            (
-                &record.object_id,
-                &record.title,
-                &record.object_date,
-                &record.medium,
-                record.parsed_dimensions.map(|r| r.0),
-                record.parsed_dimensions.map(|r| r.1),
-            ),
-        )?;
+                INSERT INTO met_objects (id, title, date, medium, width, height) VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+                ",
+        (
+                    &record.object_id,
+                    &record.title,
+                    &record.object_date,
+                    &record.medium,
+                    record.parsed_dimensions.map(|r| r.0),
+                    record.parsed_dimensions.map(|r| r.1),
+                ),
+            )?;
+        }
+
+        tx.commit()?;
+
         Ok(())
     }
 }
@@ -56,7 +63,7 @@ mod tests {
 
     #[test]
     fn test_it_works() {
-        let db = GalleryDb::new(Connection::open_in_memory().unwrap());
+        let mut db = GalleryDb::new(Connection::open_in_memory().unwrap());
         db.create_tables().unwrap();
     }
 }

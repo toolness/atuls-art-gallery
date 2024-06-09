@@ -12,6 +12,8 @@ use rusqlite::Connection;
 
 use std::io::BufReader;
 
+const TRANSACTION_BATCH_SIZE: usize = 250;
+
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
@@ -34,9 +36,14 @@ fn run() -> Result<()> {
     let csv_file = cache.get_cached_path("MetObjects.csv");
     let reader = BufReader::new(File::open(csv_file)?);
     let rdr = csv::Reader::from_reader(reader);
-    let db = GalleryDb::new(Connection::open_in_memory()?);
+    let db_path = cache.get_cached_path("gallery.sqlite");
+    if db_path.exists() {
+        std::fs::remove_file(&db_path)?;
+    }
+    let mut db = GalleryDb::new(Connection::open(db_path)?);
     db.create_tables()?;
     let mut count: usize = 0;
+    let mut records_to_commit: Vec<MetObjectCsvRecord> = vec![];
     for result in iter_public_domain_2d_met_objects(rdr) {
         // Notice that we need to provide a type hint for automatic
         // deserialization.
@@ -48,10 +55,17 @@ fn run() -> Result<()> {
                 csv_record.object_id, csv_record.medium, csv_record.title, csv_record.link_resource
             );
         }
-        db.add_csv_record(&csv_record)?;
         if args.download {
             let obj_record = load_met_object_record(&cache, csv_record.object_id)?;
             obj_record.try_to_download_small_image(&cache)?;
+        }
+        records_to_commit.push(csv_record);
+        if records_to_commit.len() >= TRANSACTION_BATCH_SIZE {
+            if args.verbose {
+                println!("Committing {} records.", records_to_commit.len());
+            }
+            db.add_csv_records(&records_to_commit)?;
+            records_to_commit.clear();
         }
         if let Some(max) = args.max {
             if count >= max {
@@ -59,6 +73,12 @@ fn run() -> Result<()> {
                 break;
             }
         }
+    }
+    if records_to_commit.len() > 0 {
+        if args.verbose {
+            println!("Committing {} records.", records_to_commit.len());
+        }
+        db.add_csv_records(&records_to_commit)?;
     }
     println!("Processed {count} records.");
     Ok(())
