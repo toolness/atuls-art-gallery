@@ -48,8 +48,8 @@ fn run() -> Result<()> {
         count += 1;
         if args.verbose {
             println!(
-                "#{}: medium={} title={} {}",
-                csv_record.object_id, csv_record.medium, csv_record.title, csv_record.link_resource
+                "#{}: medium={} title={}",
+                csv_record.object_id, csv_record.medium, csv_record.title
             );
         }
         if args.download {

@@ -118,9 +118,6 @@ pub struct MetObjectCsvRecord {
     #[serde(rename = "Medium")]
     pub medium: String,
 
-    #[serde(rename = "Link Resource")]
-    pub link_resource: String,
-
     #[serde(rename = "Dimensions")]
     pub dimensions: String,
 
