@@ -38,7 +38,7 @@ fn run() -> Result<()> {
     let rdr = csv::Reader::from_reader(reader);
     let db_path = cache.get_cached_path("gallery.sqlite");
     let mut db = GalleryDb::new(Connection::open(db_path)?);
-    db.create_met_objects_table()?;
+    db.reset_met_objects_table()?;
     let mut count: usize = 0;
     let mut records_to_commit: Vec<MetObjectCsvRecord> = vec![];
     for result in iter_public_domain_2d_met_objects(rdr) {

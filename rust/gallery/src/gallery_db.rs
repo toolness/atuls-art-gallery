@@ -12,7 +12,7 @@ impl GalleryDb {
         GalleryDb { conn }
     }
 
-    pub fn create_met_objects_table(&mut self) -> Result<()> {
+    pub fn reset_met_objects_table(&mut self) -> Result<()> {
         let tx = self.conn.transaction()?;
 
         tx.execute("DROP TABLE IF EXISTS met_objects", ())?;
@@ -72,6 +72,6 @@ mod tests {
     #[test]
     fn test_it_works() {
         let mut db = GalleryDb::new(Connection::open_in_memory().unwrap());
-        db.create_met_objects_table().unwrap();
+        db.reset_met_objects_table().unwrap();
     }
 }
