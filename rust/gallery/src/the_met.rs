@@ -171,7 +171,7 @@ fn is_public_domain_2d_met_object(
     dimension_parser: &DimensionParser,
     csv_record: &mut MetObjectCsvRecord,
 ) -> bool {
-    if !csv_record.public_domain {
+    if !csv_record.public_domain || csv_record.accession_year.is_none() {
         return false;
     }
     let Some(dimensions) = dimension_parser.parse(&csv_record.dimensions) else {
