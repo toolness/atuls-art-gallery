@@ -82,7 +82,14 @@ impl GalleryDb {
 
 #[cfg(test)]
 mod tests {
+    use std::{fs::File, io::BufReader, path::PathBuf};
+
     use rusqlite::Connection;
+
+    use crate::{
+        gallery_cache::GalleryCache,
+        the_met::{iter_public_domain_2d_met_objects, MetObjectCsvRecord},
+    };
 
     use super::GalleryDb;
 
@@ -91,5 +98,16 @@ mod tests {
         let mut db = GalleryDb::new(Connection::open_in_memory().unwrap());
         db.reset_met_objects_table().unwrap();
         db.create_visited_met_objects_table().unwrap();
+
+        let manifest_dir: PathBuf = env!("CARGO_MANIFEST_DIR").into();
+        let cache = GalleryCache::new(manifest_dir.join("..").join("test_data"));
+        let csv_file = cache.get_cached_path("MetObjects.csv");
+        let reader = BufReader::new(File::open(csv_file).unwrap());
+        let rdr = csv::Reader::from_reader(reader);
+        let mut records: Vec<MetObjectCsvRecord> = vec![];
+        for result in iter_public_domain_2d_met_objects(rdr) {
+            records.push(result.unwrap());
+        }
+        db.add_csv_records(&records).unwrap();
     }
 }
