@@ -30,6 +30,8 @@ impl GalleryDb {
         Ok(())
     }
 
+    /// Add a bunch of CSV records in a single transaction. This is much faster than adding
+    /// a single record in a single transaction.
     pub fn add_csv_records(&mut self, records: &Vec<MetObjectCsvRecord>) -> Result<()> {
         let tx = self.conn.transaction()?;
 
