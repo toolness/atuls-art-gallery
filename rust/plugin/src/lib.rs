@@ -240,8 +240,6 @@ impl MetObjectsSingleton {
         }
     }
 
-    /// This returns a JSON-serialized string. It's not great but the alternative is to use
-    /// Gd::from_object() with a custom struct, which is its own hassle.
     #[func]
     fn poll(&mut self) -> Option<Gd<MetObject>> {
         match self.response_rx.try_recv() {
