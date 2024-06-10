@@ -26,8 +26,16 @@ pub struct MetObjectCsvRecord {
 
     #[serde(rename = "Dimensions")]
     pub dimensions: String,
+}
 
-    pub parsed_dimensions: Option<(f64, f64)>,
+pub struct PublicDomain2DMetObjectCsvRecord {
+    pub object_id: u64,
+    pub accession_year: u16,
+    pub object_date: String,
+    pub title: String,
+    pub medium: String,
+    pub width: f64,
+    pub height: f64,
 }
 
 fn deserialize_csv_bool<'de, D>(deserializer: D) -> Result<bool, D::Error>
@@ -70,31 +78,38 @@ const MEDIUM_KEYWORDS: [&str; 12] = [
     "aquatint",
 ];
 
-fn is_public_domain_2d_met_object(
+fn try_into_public_domain_2d_met_object(
     dimension_parser: &DimensionParser,
-    csv_record: &mut MetObjectCsvRecord,
-) -> bool {
-    if !csv_record.public_domain || csv_record.accession_year.is_none() {
-        return false;
+    csv_record: MetObjectCsvRecord,
+) -> Option<PublicDomain2DMetObjectCsvRecord> {
+    if !csv_record.public_domain {
+        return None;
     }
-    let Some(dimensions) = dimension_parser.parse(&csv_record.dimensions) else {
-        return false;
+    let Some(accession_year) = csv_record.accession_year else {
+        return None;
     };
-    csv_record.parsed_dimensions = Some(dimensions);
-    if !dimension_parser.can_parse(&csv_record.dimensions) {
-        return false;
-    }
+    let Some((width, height)) = dimension_parser.parse(&csv_record.dimensions) else {
+        return None;
+    };
     let lower_medium = csv_record.medium.to_lowercase();
     for medium_keyword in MEDIUM_KEYWORDS.iter() {
         if lower_medium.contains(medium_keyword) {
-            return true;
+            return None;
         }
     }
 
-    false
+    Some(PublicDomain2DMetObjectCsvRecord {
+        object_id: csv_record.object_id,
+        accession_year,
+        object_date: csv_record.object_date,
+        title: csv_record.title,
+        medium: csv_record.medium,
+        width,
+        height,
+    })
 }
 
-pub type MetObjectCsvResult = Result<MetObjectCsvRecord, csv::Error>;
+pub type MetObjectCsvResult = Result<PublicDomain2DMetObjectCsvRecord, csv::Error>;
 
 pub fn iter_public_domain_2d_met_csv_objects<R: std::io::Read>(
     reader: csv::Reader<R>,
@@ -103,13 +118,11 @@ pub fn iter_public_domain_2d_met_csv_objects<R: std::io::Read>(
     reader
         .into_deserialize::<MetObjectCsvRecord>()
         .filter_map(move |result| match result {
-            Ok(mut csv_record) => {
-                if !is_public_domain_2d_met_object(&parser, &mut csv_record) {
-                    return None;
-                }
-                return Some(Ok(csv_record));
-            } //is_public_domain_2d_met_object(&parser, csv_record),
-            Err(_) => Some(result),
+            Ok(csv_record) => match try_into_public_domain_2d_met_object(&parser, csv_record) {
+                Some(record) => Some(Ok(record)),
+                None => None,
+            },
+            Err(err) => Some(Err(err)),
         })
 }
 
@@ -124,10 +137,6 @@ impl DimensionParser {
         Self {
             regex: Regex::new(&DIMENSIONS_REGEX).unwrap(),
         }
-    }
-
-    pub fn can_parse<T: AsRef<str>>(&self, value: T) -> bool {
-        self.parse(value.as_ref()).is_some()
     }
 
     /// Return a (width, height) tuple of the dimensions. Note that this
@@ -151,15 +160,6 @@ impl DimensionParser {
 #[cfg(test)]
 mod tests {
     use crate::met_csv::DimensionParser;
-
-    #[test]
-    fn test_dimensions_is_match_works() {
-        let parser = DimensionParser::new();
-
-        assert!(parser.can_parse("9 3/4 x 11 3/8 in. (24.8 x 28.9 cm)"));
-        assert!(parser.can_parse("9 3/4 x 11 3/8 in. (24 x 28.9 cm)"));
-        assert!(!parser.can_parse("H. 2 1/2 in. (6.4 cm); Diam. 8 1/8 in. (20.6 cm)"));
-    }
 
     #[test]
     fn test_dimensions_parse_works() {

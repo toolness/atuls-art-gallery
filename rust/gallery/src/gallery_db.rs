@@ -1,7 +1,7 @@
 use anyhow::Result;
 use rusqlite::Connection;
 
-use crate::met_csv::MetObjectCsvRecord;
+use crate::met_csv::PublicDomain2DMetObjectCsvRecord;
 
 pub struct GalleryDb {
     conn: Connection,
@@ -55,7 +55,10 @@ impl GalleryDb {
 
     /// Add a bunch of CSV records in a single transaction. This is much faster than adding
     /// a single record in a single transaction.
-    pub fn add_csv_records(&mut self, records: &Vec<MetObjectCsvRecord>) -> Result<()> {
+    pub fn add_csv_records(
+        &mut self,
+        records: &Vec<PublicDomain2DMetObjectCsvRecord>,
+    ) -> Result<()> {
         let tx = self.conn.transaction()?;
 
         for record in records {
@@ -68,8 +71,8 @@ impl GalleryDb {
                     &record.title,
                     &record.object_date,
                     &record.medium,
-                    record.parsed_dimensions.map(|r| r.0),
-                    record.parsed_dimensions.map(|r| r.1),
+                    &record.width,
+                    &record.height
                 ),
             )?;
         }
@@ -86,10 +89,7 @@ mod tests {
 
     use rusqlite::Connection;
 
-    use crate::{
-        gallery_cache::GalleryCache,
-        met_csv::{iter_public_domain_2d_met_csv_objects, MetObjectCsvRecord},
-    };
+    use crate::{gallery_cache::GalleryCache, met_csv::iter_public_domain_2d_met_csv_objects};
 
     use super::GalleryDb;
 
@@ -104,7 +104,7 @@ mod tests {
         let csv_file = cache.get_cached_path("MetObjects.csv");
         let reader = BufReader::new(File::open(csv_file).unwrap());
         let rdr = csv::Reader::from_reader(reader);
-        let mut records: Vec<MetObjectCsvRecord> = vec![];
+        let mut records = vec![];
         for result in iter_public_domain_2d_met_csv_objects(rdr) {
             records.push(result.unwrap());
         }

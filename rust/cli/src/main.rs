@@ -6,7 +6,7 @@ use clap::Parser;
 use gallery::gallery_cache::GalleryCache;
 use gallery::gallery_db::GalleryDb;
 use gallery::met_api::load_met_api_record;
-use gallery::met_csv::{iter_public_domain_2d_met_csv_objects, MetObjectCsvRecord};
+use gallery::met_csv::{iter_public_domain_2d_met_csv_objects, PublicDomain2DMetObjectCsvRecord};
 use rusqlite::Connection;
 
 use std::io::BufReader;
@@ -39,11 +39,11 @@ fn run() -> Result<()> {
     let mut db = GalleryDb::new(Connection::open(db_path)?);
     db.reset_met_objects_table()?;
     let mut count: usize = 0;
-    let mut records_to_commit: Vec<MetObjectCsvRecord> = vec![];
+    let mut records_to_commit = vec![];
     for result in iter_public_domain_2d_met_csv_objects(rdr) {
         // Notice that we need to provide a type hint for automatic
         // deserialization.
-        let csv_record: MetObjectCsvRecord = result?;
+        let csv_record: PublicDomain2DMetObjectCsvRecord = result?;
         count += 1;
         if args.verbose {
             println!(
