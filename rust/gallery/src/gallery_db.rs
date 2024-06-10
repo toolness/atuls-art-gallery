@@ -1,7 +1,7 @@
 use anyhow::Result;
 use rusqlite::Connection;
 
-use crate::the_met::MetObjectCsvRecord;
+use crate::met_csv::MetObjectCsvRecord;
 
 pub struct GalleryDb {
     conn: Connection,
@@ -88,7 +88,7 @@ mod tests {
 
     use crate::{
         gallery_cache::GalleryCache,
-        the_met::{iter_public_domain_2d_met_objects, MetObjectCsvRecord},
+        met_csv::{iter_public_domain_2d_met_objects, MetObjectCsvRecord},
     };
 
     use super::GalleryDb;

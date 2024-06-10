@@ -5,9 +5,8 @@ use anyhow::Result;
 use clap::Parser;
 use gallery::gallery_cache::GalleryCache;
 use gallery::gallery_db::GalleryDb;
-use gallery::the_met::{
-    iter_public_domain_2d_met_objects, load_met_object_record, MetObjectCsvRecord,
-};
+use gallery::met_api::load_met_object_record;
+use gallery::met_csv::{iter_public_domain_2d_met_objects, MetObjectCsvRecord};
 use rusqlite::Connection;
 
 use std::io::BufReader;

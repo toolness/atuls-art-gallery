@@ -9,7 +9,8 @@ use std::{
 use anyhow::Result;
 use gallery::{
     gallery_cache::GalleryCache,
-    the_met::{iter_public_domain_2d_met_objects, load_met_object_record, MetObjectCsvResult},
+    met_api::load_met_object_record,
+    met_csv::{iter_public_domain_2d_met_objects, MetObjectCsvResult},
 };
 use godot::{
     engine::{Engine, Image, ImageTexture, Os, ProjectSettings},
