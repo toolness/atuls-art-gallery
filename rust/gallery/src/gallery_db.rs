@@ -88,7 +88,7 @@ mod tests {
 
     use crate::{
         gallery_cache::GalleryCache,
-        met_csv::{iter_public_domain_2d_met_objects, MetObjectCsvRecord},
+        met_csv::{iter_public_domain_2d_met_csv_objects, MetObjectCsvRecord},
     };
 
     use super::GalleryDb;
@@ -105,7 +105,7 @@ mod tests {
         let reader = BufReader::new(File::open(csv_file).unwrap());
         let rdr = csv::Reader::from_reader(reader);
         let mut records: Vec<MetObjectCsvRecord> = vec![];
-        for result in iter_public_domain_2d_met_objects(rdr) {
+        for result in iter_public_domain_2d_met_csv_objects(rdr) {
             records.push(result.unwrap());
         }
         db.add_csv_records(&records).unwrap();

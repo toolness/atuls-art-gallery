@@ -96,7 +96,7 @@ fn is_public_domain_2d_met_object(
 
 pub type MetObjectCsvResult = Result<MetObjectCsvRecord, csv::Error>;
 
-pub fn iter_public_domain_2d_met_objects<R: std::io::Read>(
+pub fn iter_public_domain_2d_met_csv_objects<R: std::io::Read>(
     reader: csv::Reader<R>,
 ) -> impl Iterator<Item = MetObjectCsvResult> {
     let parser = DimensionParser::new();

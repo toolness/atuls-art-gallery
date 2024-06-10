@@ -5,8 +5,8 @@ use anyhow::Result;
 use clap::Parser;
 use gallery::gallery_cache::GalleryCache;
 use gallery::gallery_db::GalleryDb;
-use gallery::met_api::load_met_object_record;
-use gallery::met_csv::{iter_public_domain_2d_met_objects, MetObjectCsvRecord};
+use gallery::met_api::load_met_api_record;
+use gallery::met_csv::{iter_public_domain_2d_met_csv_objects, MetObjectCsvRecord};
 use rusqlite::Connection;
 
 use std::io::BufReader;
@@ -40,7 +40,7 @@ fn run() -> Result<()> {
     db.reset_met_objects_table()?;
     let mut count: usize = 0;
     let mut records_to_commit: Vec<MetObjectCsvRecord> = vec![];
-    for result in iter_public_domain_2d_met_objects(rdr) {
+    for result in iter_public_domain_2d_met_csv_objects(rdr) {
         // Notice that we need to provide a type hint for automatic
         // deserialization.
         let csv_record: MetObjectCsvRecord = result?;
@@ -52,7 +52,7 @@ fn run() -> Result<()> {
             );
         }
         if args.download {
-            let obj_record = load_met_object_record(&cache, csv_record.object_id)?;
+            let obj_record = load_met_api_record(&cache, csv_record.object_id)?;
             obj_record.try_to_download_small_image(&cache)?;
         }
         records_to_commit.push(csv_record);

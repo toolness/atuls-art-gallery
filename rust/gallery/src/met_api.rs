@@ -2,7 +2,7 @@ use crate::gallery_cache::GalleryCache;
 use anyhow::{anyhow, Result};
 use serde::Deserialize;
 
-pub fn load_met_object_record(cache: &GalleryCache, object_id: u64) -> Result<MetObjectApiRecord> {
+pub fn load_met_api_record(cache: &GalleryCache, object_id: u64) -> Result<MetObjectApiRecord> {
     let filename = format!("object-{}.json", object_id);
     cache.cache_json_url(
         format!(

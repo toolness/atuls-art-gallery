@@ -9,8 +9,8 @@ use std::{
 use anyhow::Result;
 use gallery::{
     gallery_cache::GalleryCache,
-    met_api::load_met_object_record,
-    met_csv::{iter_public_domain_2d_met_objects, MetObjectCsvResult},
+    met_api::load_met_api_record,
+    met_csv::{iter_public_domain_2d_met_csv_objects, MetObjectCsvResult},
 };
 use godot::{
     engine::{Engine, Image, ImageTexture, Os, ProjectSettings},
@@ -130,7 +130,7 @@ fn find_and_download_next_valid_record(
             return Ok(None);
         };
         let csv_record = result?;
-        let obj_record = load_met_object_record(&cache, csv_record.object_id)?;
+        let obj_record = load_met_api_record(&cache, csv_record.object_id)?;
         if let Some((width, height, small_image)) =
             obj_record.try_to_download_small_image(&cache)?
         {
@@ -160,7 +160,7 @@ fn work_thread(
     let csv_file = cache.get_cached_path("MetObjects.csv");
     let reader = BufReader::new(File::open(csv_file)?);
     let rdr = csv::Reader::from_reader(reader);
-    let mut csv_iterator = iter_public_domain_2d_met_objects(rdr);
+    let mut csv_iterator = iter_public_domain_2d_met_csv_objects(rdr);
     loop {
         println!("work_thread waiting for command.");
         match cmd_rx.recv() {
