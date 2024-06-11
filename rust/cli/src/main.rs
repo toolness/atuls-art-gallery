@@ -41,55 +41,63 @@ fn run() -> Result<()> {
     let args = Args::parse();
     let cache = GalleryCache::new("cache".into());
     let db_path = cache.get_cached_path("gallery.sqlite");
-    let mut db = GalleryDb::new(Connection::open(db_path)?);
+    let db = GalleryDb::new(Connection::open(db_path)?);
     match args.command {
-        Commands::Csv { max, download } => {
-            let csv_file = cache.get_cached_path("MetObjects.csv");
-            let reader = BufReader::new(File::open(csv_file)?);
-            let rdr = csv::Reader::from_reader(reader);
-            db.reset_met_objects_table()?;
-            let mut count: usize = 0;
-            let mut records_to_commit = vec![];
-            for result in iter_public_domain_2d_met_csv_objects(rdr) {
-                // Notice that we need to provide a type hint for automatic
-                // deserialization.
-                let csv_record: PublicDomain2DMetObjectCsvRecord = result?;
-                count += 1;
-                if args.verbose {
-                    println!(
-                        "#{}: medium={} title={}",
-                        csv_record.object_id, csv_record.medium, csv_record.title
-                    );
-                }
-                if download {
-                    let obj_record = load_met_api_record(&cache, csv_record.object_id)?;
-                    obj_record.try_to_download_small_image(&cache)?;
-                }
-                records_to_commit.push(csv_record);
-                if records_to_commit.len() >= TRANSACTION_BATCH_SIZE {
-                    if args.verbose {
-                        println!("Committing {} records.", records_to_commit.len());
-                    }
-                    db.add_csv_records(&records_to_commit)?;
-                    records_to_commit.clear();
-                }
-                if let Some(max) = max {
-                    if count >= max {
-                        println!("Reached max of {count} objects.");
-                        break;
-                    }
-                }
+        Commands::Csv { max, download } => csv_command(args, cache, db, max, download),
+    }
+}
+
+fn csv_command(
+    args: Args,
+    cache: GalleryCache,
+    mut db: GalleryDb,
+    max: Option<usize>,
+    download: bool,
+) -> Result<()> {
+    let csv_file = cache.get_cached_path("MetObjects.csv");
+    let reader = BufReader::new(File::open(csv_file)?);
+    let rdr = csv::Reader::from_reader(reader);
+    db.reset_met_objects_table()?;
+    let mut count: usize = 0;
+    let mut records_to_commit = vec![];
+    for result in iter_public_domain_2d_met_csv_objects(rdr) {
+        // Notice that we need to provide a type hint for automatic
+        // deserialization.
+        let csv_record: PublicDomain2DMetObjectCsvRecord = result?;
+        count += 1;
+        if args.verbose {
+            println!(
+                "#{}: medium={} title={}",
+                csv_record.object_id, csv_record.medium, csv_record.title
+            );
+        }
+        if download {
+            let obj_record = load_met_api_record(&cache, csv_record.object_id)?;
+            obj_record.try_to_download_small_image(&cache)?;
+        }
+        records_to_commit.push(csv_record);
+        if records_to_commit.len() >= TRANSACTION_BATCH_SIZE {
+            if args.verbose {
+                println!("Committing {} records.", records_to_commit.len());
             }
-            if records_to_commit.len() > 0 {
-                if args.verbose {
-                    println!("Committing {} records.", records_to_commit.len());
-                }
-                db.add_csv_records(&records_to_commit)?;
+            db.add_csv_records(&records_to_commit)?;
+            records_to_commit.clear();
+        }
+        if let Some(max) = max {
+            if count >= max {
+                println!("Reached max of {count} objects.");
+                break;
             }
-            println!("Processed {count} records.");
-            Ok(())
         }
     }
+    if records_to_commit.len() > 0 {
+        if args.verbose {
+            println!("Committing {} records.", records_to_commit.len());
+        }
+        db.add_csv_records(&records_to_commit)?;
+    }
+    println!("Processed {count} records.");
+    Ok(())
 }
 
 fn main() {
