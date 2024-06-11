@@ -1,10 +1,12 @@
-use std::fs::File;
+use std::fs::{self, File};
+use std::path::PathBuf;
 use std::process;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use gallery::gallery_cache::GalleryCache;
 use gallery::gallery_db::GalleryDb;
+use gallery::gallery_wall::GalleryWall;
 use gallery::met_api::load_met_api_record;
 use gallery::met_csv::{iter_public_domain_2d_met_csv_objects, PublicDomain2DMetObjectCsvRecord};
 use rusqlite::Connection;
@@ -26,6 +28,7 @@ struct Args {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Import MetObjects.csv into database.
     Csv {
         /// Max objects to process
         #[arg(short, long)]
@@ -35,16 +38,33 @@ enum Commands {
         #[arg(short, long, default_value_t = false)]
         download: bool,
     },
+    /// Layout gallery walls.
+    Layout {},
 }
 
 fn run() -> Result<()> {
     let args = Args::parse();
-    let cache = GalleryCache::new("cache".into());
+    let manifest_dir: PathBuf = env!("CARGO_MANIFEST_DIR").into();
+    let cache_dir = manifest_dir.join("..").join("cache");
+    let cache = GalleryCache::new(cache_dir);
     let db_path = cache.get_cached_path("gallery.sqlite");
     let db = GalleryDb::new(Connection::open(db_path)?);
     match args.command {
         Commands::Csv { max, download } => csv_command(args, cache, db, max, download),
+        Commands::Layout {} => layout_command(manifest_dir),
     }
+}
+
+fn layout_command(manifest_dir: PathBuf) -> Result<()> {
+    let walls_json_file = manifest_dir
+        .join("..")
+        .join("..")
+        .join("Levels")
+        .join("moma-gallery.walls.json");
+    let walls: Vec<GalleryWall> = serde_json::from_str(&fs::read_to_string(walls_json_file)?)?;
+    println!("WALLS: {:?}", walls);
+    // TODO: Do layout.
+    Ok(())
 }
 
 fn csv_command(
