@@ -51,11 +51,11 @@ fn run() -> Result<()> {
     let db = GalleryDb::new(Connection::open(db_path)?);
     match args.command {
         Commands::Csv { max, download } => csv_command(args, cache, db, max, download),
-        Commands::Layout {} => layout_command(manifest_dir),
+        Commands::Layout {} => layout_command(manifest_dir, db),
     }
 }
 
-fn layout_command(manifest_dir: PathBuf) -> Result<()> {
+fn layout_command(manifest_dir: PathBuf, mut db: GalleryDb) -> Result<()> {
     let walls_json_file = manifest_dir
         .join("..")
         .join("..")
@@ -63,7 +63,17 @@ fn layout_command(manifest_dir: PathBuf) -> Result<()> {
         .join("moma-gallery.walls.json");
     let walls: Vec<GalleryWall> = serde_json::from_str(&fs::read_to_string(walls_json_file)?)?;
     println!("WALLS: {:?}", walls);
-    // TODO: Do layout.
+    let mut offset = 0;
+    const LIMIT: usize = 500;
+    loop {
+        let rows = db.get_met_objects_for_layout(offset, LIMIT)?;
+        if rows.len() == 0 {
+            break;
+        }
+        println!("read {} met objects.", rows.len());
+        offset += rows.len();
+        // TODO: Do layout.
+    }
     Ok(())
 }
 
