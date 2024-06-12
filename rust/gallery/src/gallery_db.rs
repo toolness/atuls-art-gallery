@@ -29,6 +29,28 @@ impl GalleryDb {
         Ok(())
     }
 
+    pub fn get_met_objects_for_layout(
+        &mut self,
+        offset: usize,
+        limit: usize,
+    ) -> Result<Vec<MetObjectLayoutInfo>> {
+        let mut statement = self.conn.prepare_cached(
+            "
+            SELECT id, width, height FROM met_objects ORDER BY id LIMIT ?1, ?2
+            ",
+        )?;
+        let mut rows = statement.query([offset, limit])?;
+        let mut result: Vec<MetObjectLayoutInfo> = Vec::with_capacity(limit);
+        while let Some(row) = rows.next()? {
+            result.push(MetObjectLayoutInfo {
+                id: row.get(0)?,
+                width: row.get(1)?,
+                height: row.get(2)?,
+            });
+        }
+        Ok(result)
+    }
+
     pub fn reset_met_objects_table(&mut self) -> Result<()> {
         let tx = self.conn.transaction()?;
 
@@ -83,6 +105,12 @@ impl GalleryDb {
     }
 }
 
+pub struct MetObjectLayoutInfo {
+    pub id: u64,
+    pub width: f64,
+    pub height: f64,
+}
+
 #[cfg(test)]
 mod tests {
     use std::{fs::File, io::BufReader, path::PathBuf};
@@ -109,5 +137,8 @@ mod tests {
             records.push(result.unwrap());
         }
         db.add_csv_records(&records).unwrap();
+
+        let rows = db.get_met_objects_for_layout(0, 5).unwrap();
+        assert_eq!(rows.len(), 5);
     }
 }
