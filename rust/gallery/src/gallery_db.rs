@@ -36,18 +36,14 @@ impl GalleryDb {
         Ok(())
     }
 
-    pub fn get_met_objects_for_layout(
-        &mut self,
-        offset: usize,
-        limit: usize,
-    ) -> Result<Vec<MetObjectLayoutInfo>> {
+    pub fn get_all_met_objects_for_layout(&mut self) -> Result<Vec<MetObjectLayoutInfo>> {
         let mut statement = self.conn.prepare_cached(
             "
-            SELECT id, width, height FROM met_objects ORDER BY id LIMIT ?1, ?2
+            SELECT id, width, height FROM met_objects ORDER BY id
             ",
         )?;
-        let mut rows = statement.query([offset, limit])?;
-        let mut result: Vec<MetObjectLayoutInfo> = Vec::with_capacity(limit);
+        let mut rows = statement.query([])?;
+        let mut result: Vec<MetObjectLayoutInfo> = Vec::new();
         while let Some(row) = rows.next()? {
             result.push(MetObjectLayoutInfo {
                 id: row.get(0)?,
@@ -144,7 +140,7 @@ mod tests {
         }
         db.add_csv_records(&records).unwrap();
 
-        let rows = db.get_met_objects_for_layout(0, 5).unwrap();
-        assert_eq!(rows.len(), 5);
+        let rows = db.get_all_met_objects_for_layout().unwrap();
+        assert!(rows.len() > 0);
     }
 }

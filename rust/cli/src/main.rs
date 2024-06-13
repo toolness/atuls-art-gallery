@@ -61,19 +61,14 @@ fn layout_command(manifest_dir: PathBuf, mut db: GalleryDb) -> Result<()> {
         .join("..")
         .join("Levels")
         .join("moma-gallery.walls.json");
-    let _walls: Vec<GalleryWall> = serde_json::from_str(&fs::read_to_string(walls_json_file)?)?;
+    let walls: Vec<GalleryWall> = serde_json::from_str(&fs::read_to_string(walls_json_file)?)?;
     db.reset_layout_table()?;
-    let mut offset = 0;
-    const LIMIT: usize = 500;
-    loop {
-        let rows = db.get_met_objects_for_layout(offset, LIMIT)?;
-        if rows.len() == 0 {
-            break;
-        }
-        println!("read {} met objects.", rows.len());
-        offset += rows.len();
-        // TODO: Do layout.
-    }
+    let met_objects = db.get_all_met_objects_for_layout()?;
+    println!(
+        "Laying out {} met objects across galleries with {} walls each.",
+        met_objects.len(),
+        walls.len()
+    );
     Ok(())
 }
 
