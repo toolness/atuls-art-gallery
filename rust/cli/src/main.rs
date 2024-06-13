@@ -5,7 +5,7 @@ use std::process;
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use gallery::gallery_cache::GalleryCache;
-use gallery::gallery_db::GalleryDb;
+use gallery::gallery_db::{GalleryDb, LayoutRecord};
 use gallery::gallery_wall::GalleryWall;
 use gallery::met_api::load_met_api_record;
 use gallery::met_csv::{iter_public_domain_2d_met_csv_objects, PublicDomain2DMetObjectCsvRecord};
@@ -63,12 +63,38 @@ fn layout_command(manifest_dir: PathBuf, mut db: GalleryDb) -> Result<()> {
         .join("moma-gallery.walls.json");
     let walls: Vec<GalleryWall> = serde_json::from_str(&fs::read_to_string(walls_json_file)?)?;
     db.reset_layout_table()?;
-    let met_objects = db.get_all_met_objects_for_layout()?;
+    let mut met_objects = db.get_all_met_objects_for_layout()?;
+    met_objects.reverse();
     println!(
         "Laying out {} met objects across galleries with {} walls each.",
         met_objects.len(),
         walls.len()
     );
+    let mut layout_records: Vec<LayoutRecord<&str>> = vec![];
+    let mut wall_idx = 0;
+    let mut gallery_id = 1;
+    loop {
+        let wall = walls.get(wall_idx).unwrap();
+        let Some(met_object) = met_objects.pop() else {
+            break;
+        };
+        let x = wall.width / 2.0;
+        let y = wall.height / 2.0;
+        layout_records.push(LayoutRecord {
+            gallery_id,
+            wall_id: &wall.name,
+            met_object_id: met_object.id,
+            x,
+            y,
+        });
+        wall_idx += 1;
+        if wall_idx == walls.len() {
+            wall_idx = 0;
+            gallery_id += 1;
+        }
+    }
+    db.add_layout_records(&layout_records)?;
+    println!("Created a layout with {} galleries.", gallery_id);
     Ok(())
 }
 

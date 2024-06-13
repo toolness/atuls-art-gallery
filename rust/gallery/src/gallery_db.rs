@@ -36,6 +36,32 @@ impl GalleryDb {
         Ok(())
     }
 
+    pub fn add_layout_records<T: AsRef<str>>(
+        &mut self,
+        records: &Vec<LayoutRecord<T>>,
+    ) -> Result<()> {
+        let tx = self.conn.transaction()?;
+
+        for record in records {
+            tx.execute(
+            "
+                INSERT INTO layout (gallery_id, wall_id, met_object_id, x, y) VALUES (?1, ?2, ?3, ?4, ?5)
+                ",
+        (
+                    &record.gallery_id,
+                    record.wall_id.as_ref(),
+                    &record.met_object_id,
+                    &record.x,
+                    &record.y
+                ),
+            )?;
+        }
+
+        tx.commit()?;
+
+        Ok(())
+    }
+
     pub fn get_all_met_objects_for_layout(&mut self) -> Result<Vec<MetObjectLayoutInfo>> {
         let mut statement = self.conn.prepare_cached(
             "
@@ -111,6 +137,14 @@ pub struct MetObjectLayoutInfo {
     pub id: u64,
     pub width: f64,
     pub height: f64,
+}
+
+pub struct LayoutRecord<T: AsRef<str>> {
+    pub gallery_id: u64,
+    pub wall_id: T,
+    pub met_object_id: u64,
+    pub x: f64,
+    pub y: f64,
 }
 
 #[cfg(test)]
