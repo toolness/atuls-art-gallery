@@ -69,9 +69,8 @@ impl GalleryDb {
                 title TEXT NOT NULL,
                 date TEXT NOT NULL,
                 medium TEXT NOT NULL,
-                primary_image_small TEXT,
-                width REAL,
-                height REAL
+                width REAL NOT NULL,
+                height REAL NOT NULL
             )
             ",
             (),
