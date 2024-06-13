@@ -61,8 +61,8 @@ fn layout_command(manifest_dir: PathBuf, mut db: GalleryDb) -> Result<()> {
         .join("..")
         .join("Levels")
         .join("moma-gallery.walls.json");
-    let walls: Vec<GalleryWall> = serde_json::from_str(&fs::read_to_string(walls_json_file)?)?;
-    println!("WALLS: {:?}", walls);
+    let _walls: Vec<GalleryWall> = serde_json::from_str(&fs::read_to_string(walls_json_file)?)?;
+    db.reset_layout_table()?;
     let mut offset = 0;
     const LIMIT: usize = 500;
     loop {

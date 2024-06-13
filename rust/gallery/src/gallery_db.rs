@@ -12,20 +12,27 @@ impl GalleryDb {
         GalleryDb { conn }
     }
 
-    pub fn create_visited_met_objects_table(&mut self) -> Result<()> {
-        // The existence of a record with a given `id` means it's been visited.
-        //
-        // Note that conceptually, `id` is also a foreign key to the met_objects
+    pub fn reset_layout_table(&mut self) -> Result<()> {
+        let tx = self.conn.transaction()?;
+
+        tx.execute("DROP TABLE IF EXISTS layout", ())?;
+        // Note that conceptually, `met_object_id` is a foreign key to the met_objects
         // table, but we don't want to enforce a constraint because we want to
         // be able to blow away the met_objects table for re-importing if needed.
-        self.conn.execute(
+        tx.execute(
             "
-            CREATE TABLE IF NOT EXISTS visited_met_objects (
-                id INTEGER PRIMARY KEY
+            CREATE TABLE IF NOT EXISTS layout (
+                gallery_id INTEGER NOT NULL,
+                wall_id TEXT NOT NULL,
+                met_object_id INTEGER NOT NULL,
+                x REAL NOT NULL,
+                y REAL NOT NULL
             )
             ",
             (),
         )?;
+        tx.commit()?;
+
         Ok(())
     }
 
@@ -125,7 +132,7 @@ mod tests {
     fn test_it_works() {
         let mut db = GalleryDb::new(Connection::open_in_memory().unwrap());
         db.reset_met_objects_table().unwrap();
-        db.create_visited_met_objects_table().unwrap();
+        db.reset_layout_table().unwrap();
 
         let manifest_dir: PathBuf = env!("CARGO_MANIFEST_DIR").into();
         let cache = GalleryCache::new(manifest_dir.join("..").join("test_data"));
