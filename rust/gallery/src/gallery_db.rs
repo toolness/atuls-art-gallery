@@ -101,9 +101,12 @@ impl GalleryDb {
         Ok(())
     }
 
-    /// Add a bunch of CSV records in a single transaction. This is much faster than adding
+    /// Add a bunch of records in a single transaction. This is much faster than adding
     /// a single record in a single transaction.
-    pub fn add_csv_records(&mut self, records: &Vec<PublicDomain2DMetObjectRecord>) -> Result<()> {
+    pub fn add_public_domain_2d_met_objects(
+        &mut self,
+        records: &Vec<PublicDomain2DMetObjectRecord>,
+    ) -> Result<()> {
         let tx = self.conn.transaction()?;
 
         for record in records {
@@ -177,7 +180,7 @@ mod tests {
         for result in iter_public_domain_2d_met_csv_objects(rdr) {
             records.push(result.unwrap());
         }
-        db.add_csv_records(&records).unwrap();
+        db.add_public_domain_2d_met_objects(&records).unwrap();
 
         let rows = db.get_all_met_objects_for_layout().unwrap();
         assert!(rows.len() > 0);

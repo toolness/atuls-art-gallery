@@ -131,7 +131,7 @@ fn csv_command(
             if args.verbose {
                 println!("Committing {} records.", records_to_commit.len());
             }
-            db.add_csv_records(&records_to_commit)?;
+            db.add_public_domain_2d_met_objects(&records_to_commit)?;
             records_to_commit.clear();
         }
         if let Some(max) = max {
@@ -145,7 +145,7 @@ fn csv_command(
         if args.verbose {
             println!("Committing {} records.", records_to_commit.len());
         }
-        db.add_csv_records(&records_to_commit)?;
+        db.add_public_domain_2d_met_objects(&records_to_commit)?;
     }
     println!("Processed {count} records.");
     Ok(())
