@@ -1,8 +1,6 @@
 use anyhow::Result;
 use rusqlite::Connection;
 
-use crate::met_csv::PublicDomain2DMetObjectCsvRecord;
-
 pub struct GalleryDb {
     conn: Connection,
 }
@@ -105,10 +103,7 @@ impl GalleryDb {
 
     /// Add a bunch of CSV records in a single transaction. This is much faster than adding
     /// a single record in a single transaction.
-    pub fn add_csv_records(
-        &mut self,
-        records: &Vec<PublicDomain2DMetObjectCsvRecord>,
-    ) -> Result<()> {
+    pub fn add_csv_records(&mut self, records: &Vec<PublicDomain2DMetObjectRecord>) -> Result<()> {
         let tx = self.conn.transaction()?;
 
         for record in records {
@@ -131,6 +126,16 @@ impl GalleryDb {
 
         Ok(())
     }
+}
+
+pub struct PublicDomain2DMetObjectRecord {
+    pub object_id: u64,
+    pub accession_year: u16,
+    pub object_date: String,
+    pub title: String,
+    pub medium: String,
+    pub width: f64,
+    pub height: f64,
 }
 
 pub struct MetObjectLayoutInfo {

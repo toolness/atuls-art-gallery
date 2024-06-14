@@ -5,10 +5,10 @@ use std::process;
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use gallery::gallery_cache::GalleryCache;
-use gallery::gallery_db::{GalleryDb, LayoutRecord};
+use gallery::gallery_db::{GalleryDb, LayoutRecord, PublicDomain2DMetObjectRecord};
 use gallery::gallery_wall::GalleryWall;
 use gallery::met_api::load_met_api_record;
-use gallery::met_csv::{iter_public_domain_2d_met_csv_objects, PublicDomain2DMetObjectCsvRecord};
+use gallery::met_csv::iter_public_domain_2d_met_csv_objects;
 use rusqlite::Connection;
 
 use std::io::BufReader;
@@ -114,7 +114,7 @@ fn csv_command(
     for result in iter_public_domain_2d_met_csv_objects(rdr) {
         // Notice that we need to provide a type hint for automatic
         // deserialization.
-        let csv_record: PublicDomain2DMetObjectCsvRecord = result?;
+        let csv_record: PublicDomain2DMetObjectRecord = result?;
         count += 1;
         if args.verbose {
             println!(

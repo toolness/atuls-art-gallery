@@ -2,6 +2,8 @@ use anyhow::Result;
 use regex_lite::Regex;
 use serde::{de, Deserialize};
 
+use crate::gallery_db::PublicDomain2DMetObjectRecord;
+
 // By default, struct field names are deserialized based on the position of
 // a corresponding field in the CSV data's header record.
 #[derive(Debug, Deserialize)]
@@ -26,16 +28,6 @@ pub struct MetObjectCsvRecord {
 
     #[serde(rename = "Dimensions")]
     pub dimensions: String,
-}
-
-pub struct PublicDomain2DMetObjectCsvRecord {
-    pub object_id: u64,
-    pub accession_year: u16,
-    pub object_date: String,
-    pub title: String,
-    pub medium: String,
-    pub width: f64,
-    pub height: f64,
 }
 
 fn deserialize_csv_bool<'de, D>(deserializer: D) -> Result<bool, D::Error>
@@ -81,7 +73,7 @@ const MEDIUM_KEYWORDS: [&str; 12] = [
 fn try_into_public_domain_2d_met_object(
     dimension_parser: &DimensionParser,
     csv_record: MetObjectCsvRecord,
-) -> Option<PublicDomain2DMetObjectCsvRecord> {
+) -> Option<PublicDomain2DMetObjectRecord> {
     if !csv_record.public_domain {
         return None;
     }
@@ -98,7 +90,7 @@ fn try_into_public_domain_2d_met_object(
         }
     }
 
-    Some(PublicDomain2DMetObjectCsvRecord {
+    Some(PublicDomain2DMetObjectRecord {
         object_id: csv_record.object_id,
         accession_year,
         object_date: csv_record.object_date,
@@ -109,7 +101,7 @@ fn try_into_public_domain_2d_met_object(
     })
 }
 
-pub type MetObjectCsvResult = Result<PublicDomain2DMetObjectCsvRecord, csv::Error>;
+pub type MetObjectCsvResult = Result<PublicDomain2DMetObjectRecord, csv::Error>;
 
 pub fn iter_public_domain_2d_met_csv_objects<R: std::io::Read>(
     reader: csv::Reader<R>,
