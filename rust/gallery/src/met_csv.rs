@@ -86,19 +86,19 @@ fn try_into_public_domain_2d_met_object(
     let lower_medium = csv_record.medium.to_lowercase();
     for medium_keyword in MEDIUM_KEYWORDS.iter() {
         if lower_medium.contains(medium_keyword) {
-            return None;
+            return Some(PublicDomain2DMetObjectRecord {
+                object_id: csv_record.object_id,
+                accession_year,
+                object_date: csv_record.object_date,
+                title: csv_record.title,
+                medium: csv_record.medium,
+                width,
+                height,
+            });
         }
     }
 
-    Some(PublicDomain2DMetObjectRecord {
-        object_id: csv_record.object_id,
-        accession_year,
-        object_date: csv_record.object_date,
-        title: csv_record.title,
-        medium: csv_record.medium,
-        width,
-        height,
-    })
+    None
 }
 
 pub type MetObjectCsvResult = Result<PublicDomain2DMetObjectRecord, csv::Error>;
