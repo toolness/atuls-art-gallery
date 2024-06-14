@@ -40,6 +40,12 @@ enum Commands {
     },
     /// Layout gallery walls.
     Layout {},
+    /// Show layout for the given gallery.
+    ShowLayout {
+        /// Gallery id to show.
+        #[arg()]
+        gallery_id: u64,
+    },
 }
 
 fn run() -> Result<()> {
@@ -51,17 +57,35 @@ fn run() -> Result<()> {
     let db = GalleryDb::new(Connection::open(db_path)?);
     match args.command {
         Commands::Csv { max, download } => csv_command(args, cache, db, max, download),
-        Commands::Layout {} => layout_command(manifest_dir, db),
+        Commands::Layout {} => layout_command(db),
+        Commands::ShowLayout { gallery_id } => show_layout_command(db, gallery_id),
     }
 }
 
-fn layout_command(manifest_dir: PathBuf, mut db: GalleryDb) -> Result<()> {
+fn get_walls() -> Result<Vec<GalleryWall>> {
+    let manifest_dir: PathBuf = env!("CARGO_MANIFEST_DIR").into();
     let walls_json_file = manifest_dir
         .join("..")
         .join("..")
         .join("Levels")
         .join("moma-gallery.walls.json");
     let walls: Vec<GalleryWall> = serde_json::from_str(&fs::read_to_string(walls_json_file)?)?;
+    Ok(walls)
+}
+
+fn show_layout_command(mut db: GalleryDb, gallery_id: u64) -> Result<()> {
+    let walls = get_walls()?;
+    for wall in walls {
+        println!("Wall {}:", wall.name);
+        for (object, layout) in db.get_met_objects_for_gallery_wall(gallery_id, wall.name)? {
+            println!("  {:?} {:?}", object, layout);
+        }
+    }
+    Ok(())
+}
+
+fn layout_command(mut db: GalleryDb) -> Result<()> {
+    let walls = get_walls()?;
     db.reset_layout_table()?;
     let mut met_objects = db.get_all_met_objects_for_layout()?;
     met_objects.reverse();

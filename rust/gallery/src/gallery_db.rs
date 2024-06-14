@@ -19,7 +19,7 @@ impl GalleryDb {
         // be able to blow away the met_objects table for re-importing if needed.
         tx.execute(
             "
-            CREATE TABLE IF NOT EXISTS layout (
+            CREATE TABLE layout (
                 gallery_id INTEGER NOT NULL,
                 wall_id TEXT NOT NULL,
                 met_object_id INTEGER NOT NULL,
@@ -129,8 +129,61 @@ impl GalleryDb {
 
         Ok(())
     }
+
+    pub fn get_met_objects_for_gallery_wall<T: AsRef<str>>(
+        &mut self,
+        gallery_id: u64,
+        wall_id: T,
+    ) -> Result<Vec<(PublicDomain2DMetObjectRecord, MetObjectLayoutInfo)>> {
+        let mut result = vec![];
+
+        let mut statement = self.conn.prepare_cached(
+            "
+            SELECT
+                layout.met_object_id,
+                layout.x,
+                layout.y,
+                mo.title,
+                mo.date,
+                mo.medium,
+                mo.width,
+                mo.height
+            FROM
+                met_objects AS mo
+            INNER JOIN
+                layout
+            ON
+                layout.met_object_id = mo.id
+            WHERE
+                layout.gallery_id = ?1 AND
+                layout.wall_id = ?2
+            ",
+        )?;
+        let mut rows = statement.query(rusqlite::params![&gallery_id, wall_id.as_ref()])?;
+        while let Some(row) = rows.next()? {
+            let id = row.get(0)?;
+            let layout = MetObjectLayoutInfo {
+                id,
+                width: row.get(1)?,
+                height: row.get(2)?,
+            };
+            let object = PublicDomain2DMetObjectRecord {
+                object_id: id,
+                accession_year: 0, // TODO add it to our schema
+                title: row.get(3)?,
+                object_date: row.get(4)?,
+                medium: row.get(5)?,
+                width: row.get(6)?,
+                height: row.get(7)?,
+            };
+            result.push((object, layout));
+        }
+
+        Ok(result)
+    }
 }
 
+#[derive(Debug)]
 pub struct PublicDomain2DMetObjectRecord {
     pub object_id: u64,
     pub accession_year: u16,
@@ -141,6 +194,7 @@ pub struct PublicDomain2DMetObjectRecord {
     pub height: f64,
 }
 
+#[derive(Debug)]
 pub struct MetObjectLayoutInfo {
     pub id: u64,
     pub width: f64,
@@ -184,5 +238,7 @@ mod tests {
 
         let rows = db.get_all_met_objects_for_layout().unwrap();
         assert!(rows.len() > 0);
+
+        db.get_met_objects_for_gallery_wall(5, "wall_1").unwrap();
     }
 }
