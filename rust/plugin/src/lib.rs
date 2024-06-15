@@ -54,16 +54,17 @@ struct MetObjectsSingleton {
     cmd_tx: Sender<ChannelCommand>,
     response_rx: Receiver<ChannelResponse>,
     handler: Option<JoinHandle<()>>,
+    next_request_id: u32,
 }
 
 enum ChannelCommand {
     End,
-    Next,
+    NextCsvRecord(u32),
 }
 
 enum ChannelResponse {
     Done,
-    MetObject(SimplifiedRecord),
+    NextCsvRecord(u32, Option<SimplifiedRecord>),
 }
 
 #[derive(Debug)]
@@ -74,6 +75,22 @@ struct SimplifiedRecord {
     width: f64,
     height: f64,
     small_image: String,
+}
+
+#[derive(Debug, GodotClass)]
+#[class(init)]
+struct MetResponse {
+    #[var]
+    request_id: u32,
+    response: Variant,
+}
+
+#[godot_api]
+impl MetResponse {
+    #[func]
+    fn get(&self) -> Variant {
+        self.response.clone()
+    }
 }
 
 #[derive(Debug, GodotClass)]
@@ -168,22 +185,19 @@ fn work_thread(
                 println!("work_thread received 'end' command.");
                 break;
             }
-            Ok(ChannelCommand::Next) => {
-                println!("work_thread received 'next' command.");
-                match find_and_download_next_valid_record(&mut csv_iterator, &cache)? {
-                    Some(simplified_record) => {
-                        if response_tx
-                            .send(ChannelResponse::MetObject(simplified_record))
-                            .is_err()
-                        {
-                            // The other end hung up, we're effectively done.
-                            break;
-                        }
-                    }
-                    None => {
-                        // We're out of records!
-                        break;
-                    }
+            Ok(ChannelCommand::NextCsvRecord(request_id)) => {
+                println!("work_thread received 'next' command, request_id={request_id:}.");
+                let simplified_record =
+                    find_and_download_next_valid_record(&mut csv_iterator, &cache)?;
+                if response_tx
+                    .send(ChannelResponse::NextCsvRecord(
+                        request_id,
+                        simplified_record,
+                    ))
+                    .is_err()
+                {
+                    // The other end hung up, we're effectively done.
+                    break;
                 }
             }
             Err(_) => {
@@ -226,36 +240,60 @@ impl IObject for MetObjectsSingleton {
             cmd_tx,
             response_rx,
             handler: Some(handler),
+            next_request_id: 1,
         }
     }
 }
 
+const NULL_REQUEST_ID: u32 = 0;
+
 #[godot_api]
 impl MetObjectsSingleton {
     #[func]
-    fn next(&mut self) {
-        if self.cmd_tx.send(ChannelCommand::Next).is_err() {
+    fn next_csv_record(&mut self) -> u32 {
+        let request_id = self.new_request_id();
+        if self
+            .cmd_tx
+            .send(ChannelCommand::NextCsvRecord(request_id))
+            .is_ok()
+        {
+            request_id
+        } else {
             godot_print!("cmd_tx.send() failed!");
             self.handler = None;
+            NULL_REQUEST_ID
         }
     }
 
+    fn new_request_id(&mut self) -> u32 {
+        let request_id = self.next_request_id;
+        self.next_request_id += 1;
+        request_id
+    }
+
     #[func]
-    fn poll(&mut self) -> Option<Gd<MetObject>> {
+    fn poll(&mut self) -> Option<Gd<MetResponse>> {
         match self.response_rx.try_recv() {
             Ok(ChannelResponse::Done) => {
                 godot_print!("No more objects!");
                 self.handler = None;
             }
-            Ok(ChannelResponse::MetObject(object)) => {
-                return Some(Gd::from_object(MetObject {
-                    object_id: object.object_id as i64,
-                    title: object.title.into_godot(),
-                    date: object.date.into_godot(),
-                    width: object.width,
-                    height: object.height,
-                    small_image: object.small_image.into_godot(),
-                }))
+            Ok(ChannelResponse::NextCsvRecord(request_id, object)) => {
+                return Some(Gd::from_object(MetResponse {
+                    request_id,
+                    response: match object {
+                        Some(object) => Gd::from_object(MetObject {
+                            object_id: object.object_id as i64,
+                            title: object.title.into_godot(),
+                            date: object.date.into_godot(),
+                            width: object.width,
+                            height: object.height,
+                            small_image: object.small_image.into_godot(),
+                        })
+                        .to_variant(),
+                        None => Variant::nil(),
+                    },
+                }));
             }
             Err(TryRecvError::Empty) => {}
             Err(TryRecvError::Disconnected) => {

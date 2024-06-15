@@ -7,11 +7,13 @@ const MAX_OBJECT_ATTEMPTS = 10
 
 const MAX_REQUESTS_PER_FRAME = 10
 
+const NULL_REQUEST_ID = 0
+
 var keyed_met_objects := {}
 
 var unused_met_objects: Array[MetObject] = []
 
-var requests: Array[MetObjectRequest] = []
+var requests = {}
 
 
 class MetObjectRequest:
@@ -21,10 +23,11 @@ class MetObjectRequest:
 
 func _get_next_object() -> MetObject:
 	var request := MetObjectRequest.new()
-	requests.push_back(request)
-	RustMetObjects.next()
-	# TODO: It's possible there are no more objects left, in which case we'll be
-	# awaiting infinitely!
+	var request_id := RustMetObjects.next_csv_record()
+	if request_id == NULL_REQUEST_ID:
+		# Oof, something went wrong.
+		return null
+	requests[request_id] = request
 	await request.responded
 	return request.response
 
@@ -32,6 +35,8 @@ func _get_next_object() -> MetObject:
 func _try_to_get_new_met_object(max_width: float, max_height: float) -> MetObject:
 	for i in range(MAX_OBJECT_ATTEMPTS):
 		var met_object := await _get_next_object()
+		if not met_object:
+			return null
 		if met_object.can_fit_in(max_width, max_height):
 			return met_object
 		else:
@@ -67,9 +72,10 @@ func _process(_delta) -> void:
 		var obj := RustMetObjects.poll()
 		if not obj:
 			return
-		var request: MetObjectRequest = requests.pop_back()
-		if not request:
-			print("No more requests left!")
+		if not requests.has(obj.request_id):
+			print("Warning: request #", obj.request_id, " does not exist.")
 			return
-		request.response = obj
+		var request: MetObjectRequest = requests[obj.request_id]
+		requests.erase(obj.request_id)
+		request.response = obj.get()
 		request.responded.emit()
