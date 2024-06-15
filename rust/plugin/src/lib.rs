@@ -87,19 +87,38 @@ struct SimplifiedRecord {
     y: f64,
 }
 
+#[derive(Default, Debug)]
+enum InnerMetResponse {
+    #[default]
+    None,
+    MetObject(Gd<MetObject>),
+    MetObjects(Array<Gd<MetObject>>),
+}
+
 #[derive(Debug, GodotClass)]
 #[class(init)]
 struct MetResponse {
     #[var]
     request_id: u32,
-    response: Variant,
+    response: InnerMetResponse,
 }
 
 #[godot_api]
 impl MetResponse {
     #[func]
-    fn get(&self) -> Variant {
-        self.response.clone()
+    fn take_optional_met_object(&mut self) -> Option<Gd<MetObject>> {
+        match std::mem::take(&mut self.response) {
+            InnerMetResponse::MetObject(response) => Some(response),
+            _ => None,
+        }
+    }
+
+    #[func]
+    fn take_met_objects(&mut self) -> Array<Gd<MetObject>> {
+        match std::mem::take(&mut self.response) {
+            InnerMetResponse::MetObjects(response) => response,
+            _ => Array::new(),
+        }
     }
 }
 
@@ -366,32 +385,29 @@ impl MetObjectsSingleton {
                 self.handler = None;
             }
             Ok(ChannelResponse::MetObjectsForGalleryWall(request_id, objects)) => {
-                let variant_array: VariantArray = objects
-                    .into_iter()
-                    .map(|object| {
-                        Gd::from_object(MetObject {
-                            object_id: object.object_id as i64,
-                            title: object.title.into_godot(),
-                            date: object.date.into_godot(),
-                            width: object.width,
-                            height: object.height,
-                            small_image: object.small_image.into_godot(),
-                            x: object.x,
-                            y: object.y,
-                        })
-                        .to_variant()
-                    })
-                    .collect();
                 return Some(Gd::from_object(MetResponse {
                     request_id,
-                    response: variant_array.to_variant(),
+                    response: InnerMetResponse::MetObjects(Array::from_iter(
+                        objects.into_iter().map(|object| {
+                            Gd::from_object(MetObject {
+                                object_id: object.object_id as i64,
+                                title: object.title.into_godot(),
+                                date: object.date.into_godot(),
+                                width: object.width,
+                                height: object.height,
+                                small_image: object.small_image.into_godot(),
+                                x: object.x,
+                                y: object.y,
+                            })
+                        }),
+                    )),
                 }));
             }
             Ok(ChannelResponse::NextCsvRecord(request_id, object)) => {
                 return Some(Gd::from_object(MetResponse {
                     request_id,
                     response: match object {
-                        Some(object) => Gd::from_object(MetObject {
+                        Some(object) => InnerMetResponse::MetObject(Gd::from_object(MetObject {
                             object_id: object.object_id as i64,
                             title: object.title.into_godot(),
                             date: object.date.into_godot(),
@@ -400,9 +416,8 @@ impl MetObjectsSingleton {
                             small_image: object.small_image.into_godot(),
                             x: object.x,
                             y: object.y,
-                        })
-                        .to_variant(),
-                        None => Variant::nil(),
+                        })),
+                        None => InnerMetResponse::None,
                     },
                 }));
             }

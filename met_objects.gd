@@ -102,19 +102,11 @@ func _process(_delta) -> void:
 		requests.erase(obj.request_id)
 		if request is MetObjectRequest:
 			var r: MetObjectRequest = request
-			r.response = obj.get()
+			r.response = obj.take_optional_met_object()
 			r.responded.emit()
 		elif request is MetObjectsRequest:
-			# This is really annoying, we can't just assign the array because an array of
-			# variants that happen to contain type T is _not_ the same thing as an array of
-			# type T (Godot will error).
-			var array: Array = obj.get()
-			var met_object_array: Array[MetObject] = []
-			for thing in array:
-				assert(thing is MetObject, "Result should be MetObject!")
-				met_object_array.push_back(thing)
 			var r: MetObjectsRequest = request
-			r.response = met_object_array
+			r.response = obj.take_met_objects()
 			r.responded.emit()
 		else:
 			assert(false, "Unknown request type, cannot fill response")
