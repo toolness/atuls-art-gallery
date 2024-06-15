@@ -1,6 +1,7 @@
 use std::{
-    fs::File,
+    fs::{File, OpenOptions},
     io::BufReader,
+    io::Write,
     path::PathBuf,
     sync::mpsc::{channel, Receiver, Sender, TryRecvError},
     thread::{self, JoinHandle},
@@ -234,7 +235,34 @@ fn find_and_download_next_valid_record(
     }
 }
 
+/// We need this for the thread because there apparently
+/// isn't any way to print to stdout on MacOS from a
+/// different thread in Godot:
+///
+/// https://github.com/godotengine/godot/issues/78114
+#[derive(Clone)]
+struct Logger {
+    file: PathBuf,
+}
+
+impl Logger {
+    fn log<T: AsRef<str>>(&self, message: T) {
+        println!("{}", message.as_ref());
+
+        let mut file = OpenOptions::new()
+            .create(true)
+            .write(true)
+            .append(true)
+            .open(&self.file)
+            .expect(format!("opening log file '{}' failed", self.file.display()).as_str());
+
+        writeln!(file, "{}", message.as_ref())
+            .expect(format!("writing to log file '{}' failed", self.file.display()).as_str());
+    }
+}
+
 fn work_thread(
+    logger: Logger,
     root_dir: PathBuf,
     cmd_rx: Receiver<ChannelCommand>,
     response_tx: Sender<ChannelResponse>,
@@ -248,10 +276,10 @@ fn work_thread(
     let db_path = cache.get_cached_path("gallery.sqlite");
     let mut db = GalleryDb::new(Connection::open(db_path)?);
     loop {
-        println!("work_thread waiting for command.");
+        logger.log("work_thread waiting for command.");
         match cmd_rx.recv() {
             Ok(ChannelCommand::End) => {
-                println!("work_thread received 'end' command.");
+                logger.log("work_thread received 'end' command.");
                 break;
             }
             Ok(ChannelCommand::GetMetObjectsForGalleryWall {
@@ -259,7 +287,7 @@ fn work_thread(
                 gallery_id,
                 wall_id,
             }) => {
-                println!("work_thread received 'GetMetObjectsForGalleryWall' command, request_id={request_id}, gallery_id={gallery_id}, wall_id={wall_id}.");
+                logger.log(format!("work_thread received 'GetMetObjectsForGalleryWall' command, request_id={request_id}, gallery_id={gallery_id}, wall_id={wall_id}."));
                 let records = download_records(&cache, &mut db, gallery_id, wall_id)?;
                 if response_tx
                     .send(ChannelResponse::MetObjectsForGalleryWall(
@@ -272,7 +300,9 @@ fn work_thread(
                 }
             }
             Ok(ChannelCommand::GetNextCsvRecord(request_id)) => {
-                println!("work_thread received 'NextCsvRecord' command, request_id={request_id:}.");
+                logger.log(format!(
+                    "work_thread received 'NextCsvRecord' command, request_id={request_id:}."
+                ));
                 let simplified_record =
                     find_and_download_next_valid_record(&mut csv_iterator, &cache)?;
                 if response_tx
@@ -317,8 +347,12 @@ impl IObject for MetObjectsSingleton {
         let (cmd_tx, cmd_rx) = channel::<ChannelCommand>();
         let (response_tx, response_rx) = channel::<ChannelResponse>();
         let handler = thread::spawn(move || {
-            if let Err(err) = work_thread(root_dir.into(), cmd_rx, response_tx) {
-                println!("Thread errored: {:?}", err);
+            let root_dir = PathBuf::from(root_dir);
+            let logger = Logger {
+                file: root_dir.join("rust").join("worker_thread.log"),
+            };
+            if let Err(err) = work_thread(logger.clone(), root_dir.clone(), cmd_rx, response_tx) {
+                logger.log(format!("Thread errored: {err:?}"));
             }
         });
         Self {
