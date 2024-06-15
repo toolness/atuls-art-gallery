@@ -37,6 +37,9 @@ func get_met_objects_for_gallery_wall(gallery_id: int, wall_id: String) -> Array
 	requests[request_id] = request
 	await request.responded
 	var result: Array[MetObject] = []
+	# This is really annoying, we can't just assign the array because an array of
+	# variants that happen to contain type T is _not_ the same thing as an array of
+	# type T.
 	for thing in request.response:
 		assert(thing is MetObject, "Result should be MetObject!")
 		result.push_back(thing)
