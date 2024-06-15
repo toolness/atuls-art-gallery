@@ -52,6 +52,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		paused = true
 	elif event.is_action_pressed("cycle_debug_draw"):
 		cycle_debug_draw()
+	elif event.is_action_pressed("reload_scene"):
+		restart_current_scene()
 
 func _on_resume_button_pressed() -> void:
 	paused = false
