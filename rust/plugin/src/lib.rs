@@ -396,8 +396,9 @@ impl MetObjectsSingleton {
                                 width: object.width,
                                 height: object.height,
                                 small_image: object.small_image.into_godot(),
-                                x: object.x,
-                                y: object.y,
+                                // Convert from centimeters to meters
+                                x: object.x / 100.0,
+                                y: object.y / 100.0,
                             })
                         }),
                     )),
@@ -414,8 +415,9 @@ impl MetObjectsSingleton {
                             width: object.width,
                             height: object.height,
                             small_image: object.small_image.into_godot(),
-                            x: object.x,
-                            y: object.y,
+                            // Convert from centimeters to meters
+                            x: object.x / 100.0,
+                            y: object.y / 100.0,
                         })),
                         None => InnerMetResponse::None,
                     },

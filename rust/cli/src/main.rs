@@ -5,7 +5,9 @@ use std::process;
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use gallery::gallery_cache::GalleryCache;
-use gallery::gallery_db::{GalleryDb, LayoutRecord, PublicDomain2DMetObjectRecord};
+use gallery::gallery_db::{
+    GalleryDb, LayoutRecord, MetObjectLayoutInfo, PublicDomain2DMetObjectRecord,
+};
 use gallery::gallery_wall::GalleryWall;
 use gallery::met_api::load_met_api_record;
 use gallery::met_csv::iter_public_domain_2d_met_csv_objects;
@@ -69,7 +71,12 @@ fn get_walls() -> Result<Vec<GalleryWall>> {
         .join("..")
         .join("Levels")
         .join("moma-gallery.walls.json");
-    let walls: Vec<GalleryWall> = serde_json::from_str(&fs::read_to_string(walls_json_file)?)?;
+    let mut walls: Vec<GalleryWall> = serde_json::from_str(&fs::read_to_string(walls_json_file)?)?;
+    for wall in walls.iter_mut() {
+        // Convert meters to centimeters
+        wall.width = wall.width * 100.0;
+        wall.height = wall.height * 100.0;
+    }
     Ok(walls)
 }
 
@@ -82,6 +89,10 @@ fn show_layout_command(mut db: GalleryDb, gallery_id: u64) -> Result<()> {
         }
     }
     Ok(())
+}
+
+fn can_object_fit_in_wall(object_layout: &MetObjectLayoutInfo, wall: &GalleryWall) -> bool {
+    object_layout.width < wall.width && object_layout.height < wall.height
 }
 
 fn layout_command(mut db: GalleryDb) -> Result<()> {
@@ -102,6 +113,10 @@ fn layout_command(mut db: GalleryDb) -> Result<()> {
         let Some(met_object) = met_objects.pop() else {
             break;
         };
+        if !can_object_fit_in_wall(&met_object, &wall) {
+            // TODO: Put it somewhere so we can try it on other walls.
+            continue;
+        }
         let x = wall.width / 2.0;
         let y = wall.height / 2.0;
         layout_records.push(LayoutRecord {
