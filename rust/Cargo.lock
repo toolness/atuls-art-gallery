@@ -484,6 +484,7 @@ dependencies = [
  "csv",
  "gallery",
  "godot",
+ "rusqlite",
 ]
 
 [[package]]

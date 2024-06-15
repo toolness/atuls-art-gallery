@@ -164,6 +164,7 @@ impl GalleryDb {
             let id = row.get(0)?;
             let layout = MetObjectLayoutInfo {
                 id,
+                // TODO: Wait, this isn't width/height, it's x/y... blah, need to make a new type.
                 width: row.get(1)?,
                 height: row.get(2)?,
             };

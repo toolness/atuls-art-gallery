@@ -13,3 +13,4 @@ godot = { git = "https://github.com/godot-rust/gdext", branch = "master" }
 gallery = { path = "../gallery" }
 anyhow = "1.0.86"
 csv = "1.3.0"
+rusqlite = { version = "0.31.0", features = ["bundled"] }
