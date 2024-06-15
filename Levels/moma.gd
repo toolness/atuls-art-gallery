@@ -60,6 +60,9 @@ func place_paintings_along_wall(
 	var painting: Painting
 	var painting_width: float
 	var met_object := await MetObjects.try_to_get_next_object(key, width, height)
+	if not is_inside_tree():
+		# We've been despawned, exit.
+		return
 	if met_object:
 		painting = make_painting()
 		painting_width = met_object.width
@@ -94,11 +97,10 @@ func place_paintings_along_wall(
 
 	# Give the rest of the engine time to process the full frame, we're not in a rush and
 	# processing all paintings synchronously will cause stutter.
-	var tree := get_tree()
-	if not tree:
+	if not is_inside_tree():
 		# We've been removed from the scene tree, bail.
 		return
-	await tree.process_frame
+	await get_tree().process_frame
 
 
 class MovingPainting:
