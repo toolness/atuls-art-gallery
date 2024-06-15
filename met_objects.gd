@@ -26,7 +26,7 @@ class MetObjectRequest:
 
 
 class MetObjectsRequest:
-	var response: Array
+	var response: Array[MetObject]
 	signal responded
 
 
@@ -41,14 +41,7 @@ func get_met_objects_for_gallery_wall(gallery_id: int, wall_id: String) -> Array
 		return []
 	requests[request_id] = request
 	await request.responded
-	var result: Array[MetObject] = []
-	# This is really annoying, we can't just assign the array because an array of
-	# variants that happen to contain type T is _not_ the same thing as an array of
-	# type T.
-	for thing in request.response:
-		assert(thing is MetObject, "Result should be MetObject!")
-		result.push_back(thing)
-	return result
+	return request.response
 
 
 func _get_next_object() -> MetObject:
@@ -105,8 +98,23 @@ func _process(_delta) -> void:
 		if not requests.has(obj.request_id):
 			print("Warning: request #", obj.request_id, " does not exist.")
 			return
-		var request: Variant = requests[obj.request_id]
+		var request = requests[obj.request_id]
 		requests.erase(obj.request_id)
-		request.response = obj.get()
-		var responded: Signal = request.responded
-		responded.emit()
+		if request is MetObjectRequest:
+			var r: MetObjectRequest = request
+			r.response = obj.get()
+			r.responded.emit()
+		elif request is MetObjectsRequest:
+			# This is really annoying, we can't just assign the array because an array of
+			# variants that happen to contain type T is _not_ the same thing as an array of
+			# type T (Godot will error).
+			var array: Array = obj.get()
+			var met_object_array: Array[MetObject] = []
+			for thing in array:
+				assert(thing is MetObject, "Result should be MetObject!")
+				met_object_array.push_back(thing)
+			var r: MetObjectsRequest = request
+			r.response = met_object_array
+			r.responded.emit()
+		else:
+			assert(false, "Unknown request type, cannot fill response")
