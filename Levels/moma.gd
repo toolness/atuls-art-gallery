@@ -48,6 +48,19 @@ func make_painting() -> Painting:
 	return painting
 
 
+func place_met_object_on_wall(
+	met_object: MetObject,
+	wall: Wall
+) -> void:
+	var painting := make_painting()
+	painting.init_with_met_object(met_object)
+	var width_offset := wall.horizontal_direction * met_object.x
+	var height_offset := Vector3.UP * met_object.y
+	var painting_mount_point := wall.get_base_position() + width_offset + height_offset
+	painting.translate(painting_mount_point)
+	painting.rotate_y(wall.y_rotation)
+
+
 func place_paintings_along_wall(
 	key: String,
 	rng: RandomNumberGenerator,
@@ -187,6 +200,9 @@ class Wall:
 			return false
 		return true
 
+	func get_base_position() -> Vector3:
+		return mesh_instance.position + mesh_instance.get_aabb().position
+
 	static func try_from_object(object: Object) -> Wall:
 		var wall: Wall = Wall.new()
 		if not wall._try_to_configure(object):
@@ -202,19 +218,23 @@ func populate_with_paintings() -> void:
 		if not wall:
 			continue
 
-		var met_objects := await MetObjects.get_met_objects_for_gallery_wall(gallery_id, child.name)
-		for met_object in met_objects:
-			print(gallery_id, " ", child.name, " ", met_object.title, " ", met_object.x, " ", met_object.y)
-
-		await place_paintings_along_wall(
-			str(gallery_id) + "_" + child.name,
-			rng,
-			wall.mesh_instance.position + wall.mesh_instance.get_aabb().position,
-			wall.width,
-			wall.height,
-			wall.y_rotation,
-			wall.horizontal_direction,
-		)
+		if MetObjects.ENABLE_DB_MET_OBJECTS:
+			var met_objects := await MetObjects.get_met_objects_for_gallery_wall(gallery_id, child.name)
+			if not is_inside_tree():
+				return
+			for met_object in met_objects:
+				print(gallery_id, " ", child.name, " ", met_object.title, " ", met_object.x, " ", met_object.y)
+				place_met_object_on_wall(met_object, wall)
+		else:
+			await place_paintings_along_wall(
+				str(gallery_id) + "_" + child.name,
+				rng,
+				wall.mesh_instance.position + wall.mesh_instance.get_aabb().position,
+				wall.width,
+				wall.height,
+				wall.y_rotation,
+				wall.horizontal_direction,
+			)
 
 
 func init(new_gallery_id: int) -> void:
