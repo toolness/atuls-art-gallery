@@ -134,7 +134,7 @@ impl GalleryDb {
         &mut self,
         gallery_id: u64,
         wall_id: T,
-    ) -> Result<Vec<(PublicDomain2DMetObjectRecord, MetObjectLayoutInfo)>> {
+    ) -> Result<Vec<(PublicDomain2DMetObjectRecord, (f64, f64))>> {
         let mut result = vec![];
 
         let mut statement = self.conn.prepare_cached(
@@ -162,12 +162,7 @@ impl GalleryDb {
         let mut rows = statement.query(rusqlite::params![&gallery_id, wall_id.as_ref()])?;
         while let Some(row) = rows.next()? {
             let id = row.get(0)?;
-            let layout = MetObjectLayoutInfo {
-                id,
-                // TODO: Wait, this isn't width/height, it's x/y... blah, need to make a new type.
-                width: row.get(1)?,
-                height: row.get(2)?,
-            };
+            let location: (f64, f64) = (row.get(1)?, row.get(2)?);
             let object = PublicDomain2DMetObjectRecord {
                 object_id: id,
                 accession_year: 0, // TODO add it to our schema
@@ -177,7 +172,7 @@ impl GalleryDb {
                 width: row.get(6)?,
                 height: row.get(7)?,
             };
-            result.push((object, layout));
+            result.push((object, location));
         }
 
         Ok(result)

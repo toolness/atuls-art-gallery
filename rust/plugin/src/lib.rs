@@ -159,7 +159,7 @@ fn download_records(
 ) -> Result<Vec<SimplifiedRecord>> {
     let mut result = vec![];
     let objects = db.get_met_objects_for_gallery_wall(gallery_id, wall_id)?;
-    for (object, layout_info) in objects {
+    for (object, (x, y)) in objects {
         let obj_record = load_met_api_record(&cache, object.object_id)?;
         if let Some((width, height, small_image)) =
             obj_record.try_to_download_small_image(&cache)?
@@ -175,8 +175,8 @@ fn download_records(
                     .join(small_image)
                     .to_string_lossy()
                     .to_string(),
-                x: layout_info.width,
-                y: layout_info.height,
+                x,
+                y,
             });
         }
     }
