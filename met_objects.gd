@@ -21,6 +21,28 @@ class MetObjectRequest:
 	signal responded
 
 
+class MetObjectsRequest:
+	var response: Array
+	signal responded
+
+
+func get_met_objects_for_gallery_wall(gallery_id: int, wall_id: String) -> Array[MetObject]:
+	if gallery_id < 0:
+		return []
+	var request := MetObjectsRequest.new()
+	var request_id := RustMetObjects.get_met_objects_for_gallery_wall(gallery_id, wall_id)
+	if request_id == NULL_REQUEST_ID:
+		# Oof, something went wrong.
+		return []
+	requests[request_id] = request
+	await request.responded
+	var result: Array[MetObject] = []
+	for thing in request.response:
+		assert(thing is MetObject, "Result should be MetObject!")
+		result.push_back(thing)
+	return result
+
+
 func _get_next_object() -> MetObject:
 	var request := MetObjectRequest.new()
 	var request_id := RustMetObjects.next_csv_record()
@@ -75,7 +97,8 @@ func _process(_delta) -> void:
 		if not requests.has(obj.request_id):
 			print("Warning: request #", obj.request_id, " does not exist.")
 			return
-		var request: MetObjectRequest = requests[obj.request_id]
+		var request: Variant = requests[obj.request_id]
 		requests.erase(obj.request_id)
 		request.response = obj.get()
-		request.responded.emit()
+		var responded: Signal = request.responded
+		responded.emit()

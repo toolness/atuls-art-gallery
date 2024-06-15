@@ -199,6 +199,11 @@ func populate_with_paintings() -> void:
 		var wall := Wall.try_from_object(child)
 		if not wall:
 			continue
+
+		var met_objects := await MetObjects.get_met_objects_for_gallery_wall(gallery_id, child.name)
+		for met_object in met_objects:
+			print(gallery_id, " ", child.name, " ", met_object.title, " ", met_object.x, " ", met_object.y)
+
 		await place_paintings_along_wall(
 			str(gallery_id) + "_" + child.name,
 			rng,

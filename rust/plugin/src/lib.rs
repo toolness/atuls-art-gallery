@@ -180,7 +180,7 @@ fn download_records(
             });
         }
     }
-    Ok(vec![])
+    Ok(result)
 }
 
 fn find_and_download_next_valid_record(
@@ -241,10 +241,10 @@ fn work_thread(
                 wall_id,
             }) => {
                 println!("work_thread received 'GetMetObjectsForGalleryWall' command, request_id={request_id}, gallery_id={gallery_id}, wall_id={wall_id}.");
+                let records = download_records(&cache, &mut db, gallery_id, wall_id)?;
                 if response_tx
                     .send(ChannelResponse::MetObjectsForGalleryWall(
-                        request_id,
-                        download_records(&cache, &mut db, gallery_id, wall_id)?,
+                        request_id, records,
                     ))
                     .is_err()
                 {
