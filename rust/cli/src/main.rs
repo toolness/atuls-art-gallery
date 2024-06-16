@@ -144,6 +144,8 @@ fn can_object_fit_anywhere(object_layout: &MetObjectLayoutInfo, walls: &Vec<Gall
     false
 }
 
+const PAINTING_Y_OFFSET: f64 = 0.5;
+
 fn layout_command(mut db: GalleryDb) -> Result<()> {
     let walls = get_walls()?;
     db.reset_layout_table()?;
@@ -162,7 +164,10 @@ fn layout_command(mut db: GalleryDb) -> Result<()> {
         let wall = walls.get(wall_idx).unwrap();
         if let Some(met_object) = finder.get_object_fitting_in(wall.width, wall.height, &walls) {
             let x = wall.width / 2.0;
-            let y = wall.height / 2.0;
+            let mut y = wall.height / 2.0;
+            if met_object.height < wall.width - PAINTING_Y_OFFSET {
+                y -= PAINTING_Y_OFFSET;
+            }
             layout_records.push(LayoutRecord {
                 gallery_id,
                 wall_id: &wall.name,
