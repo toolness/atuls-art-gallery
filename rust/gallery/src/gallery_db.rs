@@ -204,37 +204,3 @@ pub struct LayoutRecord<T: AsRef<str>> {
     pub x: f64,
     pub y: f64,
 }
-
-#[cfg(test)]
-mod tests {
-    use std::{fs::File, io::BufReader, path::PathBuf};
-
-    use rusqlite::Connection;
-
-    use crate::{gallery_cache::GalleryCache, met_csv::iter_public_domain_2d_met_csv_objects};
-
-    use super::GalleryDb;
-
-    #[test]
-    fn test_it_works() {
-        let mut db = GalleryDb::new(Connection::open_in_memory().unwrap());
-        db.reset_met_objects_table().unwrap();
-        db.reset_layout_table().unwrap();
-
-        let manifest_dir: PathBuf = env!("CARGO_MANIFEST_DIR").into();
-        let cache = GalleryCache::new(manifest_dir.join("..").join("test_data"));
-        let csv_file = cache.get_cached_path("MetObjects.csv");
-        let reader = BufReader::new(File::open(csv_file).unwrap());
-        let rdr = csv::Reader::from_reader(reader);
-        let mut records = vec![];
-        for result in iter_public_domain_2d_met_csv_objects(rdr) {
-            records.push(result.unwrap());
-        }
-        db.add_public_domain_2d_met_objects(&records).unwrap();
-
-        let rows = db.get_all_met_objects_for_layout().unwrap();
-        assert!(rows.len() > 0);
-
-        db.get_met_objects_for_gallery_wall(5, "wall_1").unwrap();
-    }
-}

@@ -1,8 +1,7 @@
 use anyhow::Result;
+use gallery::gallery_db::PublicDomain2DMetObjectRecord;
 use regex_lite::Regex;
 use serde::{de, Deserialize};
-
-use crate::gallery_db::PublicDomain2DMetObjectRecord;
 
 // By default, struct field names are deserialized based on the position of
 // a corresponding field in the CSV data's header record.

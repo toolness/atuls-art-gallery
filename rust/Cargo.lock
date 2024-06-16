@@ -235,8 +235,6 @@ name = "gallery"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "csv",
- "regex-lite",
  "rusqlite",
  "serde",
  "serde_json",
@@ -481,7 +479,6 @@ name = "plugin"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "csv",
  "gallery",
  "godot",
  "rusqlite",
