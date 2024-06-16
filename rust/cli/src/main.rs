@@ -146,6 +146,57 @@ fn can_object_fit_anywhere(object_layout: &MetObjectLayoutInfo, walls: &Vec<Gall
 
 const PAINTING_Y_OFFSET: f64 = 0.5;
 
+const PAINTING_MOUNT_AREA: f64 = 2.0;
+
+fn place_paintings_along_wall<'a>(
+    gallery_id: u64,
+    walls: &Vec<GalleryWall>,
+    wall_name: &'a str,
+    finder: &mut MetObjectFinder,
+    x_start: f64,
+    max_width: f64,
+    max_height: f64,
+    layout_records: &mut Vec<LayoutRecord<&'a str>>,
+) {
+    if let Some(met_object) = finder.get_object_fitting_in(max_width, max_height, &walls) {
+        let x = x_start + max_width / 2.0;
+        let mut y = max_height / 2.0;
+        if met_object.height < max_height - PAINTING_Y_OFFSET {
+            y -= PAINTING_Y_OFFSET;
+        }
+        layout_records.push(LayoutRecord {
+            gallery_id,
+            wall_id: &wall_name,
+            met_object_id: met_object.id,
+            x,
+            y,
+        });
+        let margin_width = max_width / 2.0 - met_object.width / 2.0;
+        if margin_width > PAINTING_MOUNT_AREA {
+            place_paintings_along_wall(
+                gallery_id,
+                walls,
+                wall_name,
+                finder,
+                x_start,
+                margin_width,
+                max_height,
+                layout_records,
+            );
+            place_paintings_along_wall(
+                gallery_id,
+                walls,
+                wall_name,
+                finder,
+                x_start + (max_width / 2.0 + met_object.width / 2.0),
+                margin_width,
+                max_height,
+                layout_records,
+            );
+        }
+    }
+}
+
 fn layout_command(mut db: GalleryDb) -> Result<()> {
     let walls = get_walls()?;
     db.reset_layout_table()?;
@@ -162,20 +213,16 @@ fn layout_command(mut db: GalleryDb) -> Result<()> {
     let mut gallery_id = 1;
     while !finder.is_empty() {
         let wall = walls.get(wall_idx).unwrap();
-        if let Some(met_object) = finder.get_object_fitting_in(wall.width, wall.height, &walls) {
-            let x = wall.width / 2.0;
-            let mut y = wall.height / 2.0;
-            if met_object.height < wall.width - PAINTING_Y_OFFSET {
-                y -= PAINTING_Y_OFFSET;
-            }
-            layout_records.push(LayoutRecord {
-                gallery_id,
-                wall_id: &wall.name,
-                met_object_id: met_object.id,
-                x,
-                y,
-            });
-        }
+        place_paintings_along_wall(
+            gallery_id,
+            &walls,
+            &wall.name,
+            &mut finder,
+            0.0,
+            wall.width,
+            wall.height,
+            &mut layout_records,
+        );
         wall_idx += 1;
         if wall_idx == walls.len() {
             wall_idx = 0;
