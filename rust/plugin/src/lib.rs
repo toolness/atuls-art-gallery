@@ -1,6 +1,5 @@
 use std::{
-    fs::{File, OpenOptions},
-    io::BufReader,
+    fs::OpenOptions,
     io::Write,
     path::PathBuf,
     sync::mpsc::{channel, Receiver, Sender, TryRecvError},
@@ -8,12 +7,7 @@ use std::{
 };
 
 use anyhow::Result;
-use gallery::{
-    gallery_cache::GalleryCache,
-    gallery_db::GalleryDb,
-    met_api::load_met_api_record,
-    met_csv::{iter_public_domain_2d_met_csv_objects, MetObjectCsvResult},
-};
+use gallery::{gallery_cache::GalleryCache, gallery_db::GalleryDb, met_api::load_met_api_record};
 use godot::{
     engine::{Engine, Image, ImageTexture, Os, ProjectSettings},
     prelude::*,
@@ -62,7 +56,6 @@ struct MetObjectsSingleton {
 
 enum ChannelCommand {
     End,
-    GetNextCsvRecord(u32),
     GetMetObjectsForGalleryWall {
         request_id: u32,
         gallery_id: u64,
@@ -72,7 +65,6 @@ enum ChannelCommand {
 
 enum ChannelResponse {
     Done,
-    NextCsvRecord(u32, Option<SimplifiedRecord>),
     MetObjectsForGalleryWall(u32, Vec<SimplifiedRecord>),
 }
 
@@ -92,7 +84,11 @@ struct SimplifiedRecord {
 enum InnerMetResponse {
     #[default]
     None,
+
+    // This is currently unused, but we might have reason to reuse it someday soon.
+    #[allow(dead_code)]
     MetObject(Gd<MetObject>),
+
     MetObjects(Array<Gd<MetObject>>),
 }
 
@@ -203,38 +199,6 @@ fn download_records(
     Ok(result)
 }
 
-fn find_and_download_next_valid_record(
-    csv_iterator: &mut impl Iterator<Item = MetObjectCsvResult>,
-    cache: &GalleryCache,
-) -> Result<Option<SimplifiedRecord>> {
-    loop {
-        let Some(result) = csv_iterator.next() else {
-            // We reached the end of all the records!
-            return Ok(None);
-        };
-        let csv_record = result?;
-        let obj_record = load_met_api_record(&cache, csv_record.object_id)?;
-        if let Some((width, height, small_image)) =
-            obj_record.try_to_download_small_image(&cache)?
-        {
-            return Ok(Some(SimplifiedRecord {
-                object_id: obj_record.object_id,
-                title: obj_record.title,
-                date: obj_record.object_date,
-                width,
-                height,
-                small_image: cache
-                    .cache_dir()
-                    .join(small_image)
-                    .to_string_lossy()
-                    .to_string(),
-                x: 0.0,
-                y: 0.0,
-            }));
-        }
-    }
-}
-
 /// We need this for the thread because there apparently
 /// isn't any way to print to stdout on MacOS from a
 /// different thread in Godot:
@@ -269,10 +233,6 @@ fn work_thread(
 ) -> Result<()> {
     let cache_dir = root_dir.join("rust").join("cache");
     let cache = GalleryCache::new(cache_dir.clone());
-    let csv_file = cache.get_cached_path("MetObjects.csv");
-    let reader = BufReader::new(File::open(csv_file)?);
-    let rdr = csv::Reader::from_reader(reader);
-    let mut csv_iterator = iter_public_domain_2d_met_csv_objects(rdr);
     let db_path = cache.get_cached_path("gallery.sqlite");
     let mut db = GalleryDb::new(Connection::open(db_path)?);
     loop {
@@ -292,23 +252,6 @@ fn work_thread(
                 if response_tx
                     .send(ChannelResponse::MetObjectsForGalleryWall(
                         request_id, records,
-                    ))
-                    .is_err()
-                {
-                    // The other end hung up, we're effectively done.
-                    break;
-                }
-            }
-            Ok(ChannelCommand::GetNextCsvRecord(request_id)) => {
-                logger.log(format!(
-                    "work_thread received 'NextCsvRecord' command, request_id={request_id:}."
-                ));
-                let simplified_record =
-                    find_and_download_next_valid_record(&mut csv_iterator, &cache)?;
-                if response_tx
-                    .send(ChannelResponse::NextCsvRecord(
-                        request_id,
-                        simplified_record,
                     ))
                     .is_err()
                 {
@@ -389,22 +332,6 @@ impl MetObjectsSingleton {
         }
     }
 
-    #[func]
-    fn next_csv_record(&mut self) -> u32 {
-        let request_id = self.new_request_id();
-        if self
-            .cmd_tx
-            .send(ChannelCommand::GetNextCsvRecord(request_id))
-            .is_ok()
-        {
-            request_id
-        } else {
-            godot_print!("cmd_tx.send() failed!");
-            self.handler = None;
-            NULL_REQUEST_ID
-        }
-    }
-
     fn new_request_id(&mut self) -> u32 {
         let request_id = self.next_request_id;
         self.next_request_id += 1;
@@ -435,24 +362,6 @@ impl MetObjectsSingleton {
                             })
                         }),
                     )),
-                }));
-            }
-            Ok(ChannelResponse::NextCsvRecord(request_id, object)) => {
-                return Some(Gd::from_object(MetResponse {
-                    request_id,
-                    response: match object {
-                        Some(object) => InnerMetResponse::MetObject(Gd::from_object(MetObject {
-                            object_id: object.object_id as i64,
-                            title: object.title.into_godot(),
-                            date: object.date.into_godot(),
-                            width: object.width,
-                            height: object.height,
-                            small_image: object.small_image.into_godot(),
-                            x: object.x,
-                            y: object.y,
-                        })),
-                        None => InnerMetResponse::None,
-                    },
                 }));
             }
             Err(TryRecvError::Empty) => {}

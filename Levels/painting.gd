@@ -26,15 +26,6 @@ func configure_wall_label(painting_width: float, painting_height: float, text: S
 	wall_label.text = text
 
 
-func init_with_size_and_color(width: float, height: float, color: Color) -> void:
-	configure_wall_label(width, height, "#" + color.to_html(false).to_upper() + "\n2024")
-	painting.set_scale(Vector3(width, height, 1.0))
-	var material: StandardMaterial3D = painting.mesh.surface_get_material(PAINTING_SURFACE_IDX)
-	painting_surface_material = material.duplicate()
-	painting_surface_material.albedo_color = color
-	painting.set_surface_override_material(PAINTING_SURFACE_IDX, painting_surface_material)
-
-
 func init_with_met_object(object: MetObject) -> void:
 	met_object = object
 	configure_wall_label(object.width, object.height, object.title + "\n" + object.date)
@@ -47,6 +38,10 @@ func init_with_met_object(object: MetObject) -> void:
 
 
 func try_to_open_in_browser():
+	# TODO: The conditional is from when paintings could potentially have
+	# solid colors instead of met objects, consider removing it and renaming
+	# the function to `open_in_browser`... Or just get rid of it and have clients
+	# directly reference `met_object`.
 	if met_object:
 		met_object.open_in_browser()
 

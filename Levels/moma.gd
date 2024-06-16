@@ -10,10 +10,6 @@ extends Node3D
 
 const MIN_WALL_MOUNT_SIZE = 2
 
-const MIN_CANVAS_SIZE = 0.5
-
-const PAINTING_Y_OFFSET = -0.5
-
 const GALLERY_LABEL_ID_OFFSET = 101
 
 const PAINTING_BASE_NAME = "MomaPainting"
@@ -59,61 +55,6 @@ func place_met_object_on_wall(
 	var painting_mount_point := wall.get_base_position() + width_offset + height_offset
 	painting.translate(painting_mount_point)
 	painting.rotate_y(wall.y_rotation)
-
-
-func place_paintings_along_wall(
-	key: String,
-	rng: RandomNumberGenerator,
-	base_position: Vector3,
-	width: float,
-	height: float,
-	y_rotation: float,
-	horizontal_direction: Vector3,
-) -> void:
-	var painting: Painting
-	var painting_width: float
-	var met_object := await MetObjects.try_to_get_next_object(key, width, height)
-	if not is_inside_tree():
-		# We've been despawned, exit.
-		return
-	if met_object:
-		painting = make_painting()
-		painting_width = met_object.width
-		painting.init_with_met_object(met_object)
-	elif not MetObjects.ENABLE_MET_OBJECTS:
-		painting = make_painting()
-		painting_width = rng.randf_range(MIN_CANVAS_SIZE, width / 2.0)
-		painting.init_with_size_and_color(
-			painting_width,
-			rng.randf_range(MIN_CANVAS_SIZE, height / 1.5),
-			Color(
-				rng.randf_range(0.0, 1.0),
-				rng.randf_range(0.0, 1.0),
-				rng.randf_range(0.0, 1.0),
-			)
-		)
-	else:
-		return
-	var width_offset := horizontal_direction * (width / 2.0)
-	var height_offset := ((height / 2.0) + PAINTING_Y_OFFSET)
-	var painting_mount_point := base_position + width_offset + Vector3.UP * height_offset
-	painting.translate(painting_mount_point)
-	painting.rotate_y(y_rotation)
-
-	var margin_width := width / 2.0 - painting_width / 2.0
-	if margin_width > MIN_WALL_MOUNT_SIZE:
-		# Place paintings between the beginning of the wall and the start of the painting.
-		await place_paintings_along_wall(key + "_l", rng, base_position, margin_width, height, y_rotation, horizontal_direction)
-		# Place paintings between the end of the wall and the end of the painting.
-		var end_base_position := base_position + (horizontal_direction * (width / 2.0 + painting_width / 2.0))
-		await place_paintings_along_wall(key + "_r", rng, end_base_position, margin_width, height, y_rotation, horizontal_direction)
-
-	# Give the rest of the engine time to process the full frame, we're not in a rush and
-	# processing all paintings synchronously will cause stutter.
-	if not is_inside_tree():
-		# We've been removed from the scene tree, bail.
-		return
-	await get_tree().process_frame
 
 
 class MovingPainting:
@@ -218,29 +159,18 @@ func populate_with_paintings() -> void:
 		if not wall:
 			continue
 
-		if MetObjects.ENABLE_DB_MET_OBJECTS:
-			var met_objects := await MetObjects.get_met_objects_for_gallery_wall(gallery_id, child.name)
+		var met_objects := await MetObjects.get_met_objects_for_gallery_wall(gallery_id, child.name)
+		if not is_inside_tree():
+			return
+		for met_object in met_objects:
+			print(gallery_id, " ", child.name, " ", met_object.title, " ", met_object.x, " ", met_object.y)
+			place_met_object_on_wall(met_object, wall)
+			# Give the rest of the engine time to process the full frame, we're not in a rush and
+			# processing all paintings synchronously will cause stutter.
 			if not is_inside_tree():
+				# We've been removed from the scene tree, bail.
 				return
-			for met_object in met_objects:
-				print(gallery_id, " ", child.name, " ", met_object.title, " ", met_object.x, " ", met_object.y)
-				place_met_object_on_wall(met_object, wall)
-				# Give the rest of the engine time to process the full frame, we're not in a rush and
-				# processing all paintings synchronously will cause stutter.
-				if not is_inside_tree():
-					# We've been removed from the scene tree, bail.
-					return
-				await get_tree().process_frame
-		else:
-			await place_paintings_along_wall(
-				str(gallery_id) + "_" + child.name,
-				rng,
-				wall.mesh_instance.position + wall.mesh_instance.get_aabb().position,
-				wall.width,
-				wall.height,
-				wall.y_rotation,
-				wall.horizontal_direction,
-			)
+			await get_tree().process_frame
 
 
 func init(new_gallery_id: int) -> void:
