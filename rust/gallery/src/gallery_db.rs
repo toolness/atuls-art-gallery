@@ -132,7 +132,7 @@ impl GalleryDb {
 
     pub fn get_met_objects_for_gallery_wall<T: AsRef<str>>(
         &mut self,
-        gallery_id: u64,
+        gallery_id: i64,
         wall_id: T,
     ) -> Result<Vec<(PublicDomain2DMetObjectRecord, (f64, f64))>> {
         let mut result = vec![];
@@ -198,7 +198,7 @@ pub struct MetObjectLayoutInfo {
 }
 
 pub struct LayoutRecord<T: AsRef<str>> {
-    pub gallery_id: u64,
+    pub gallery_id: i64,
     pub wall_id: T,
     pub met_object_id: u64,
     pub x: f64,

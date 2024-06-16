@@ -66,7 +66,7 @@ const PAINTING_Y_OFFSET: f64 = 0.5;
 const PAINTING_MOUNT_AREA: f64 = 2.0;
 
 pub fn place_paintings_along_wall<'a>(
-    gallery_id: u64,
+    gallery_id: i64,
     walls: &Vec<GalleryWall>,
     wall_name: &'a str,
     finder: &mut MetObjectLayoutFitter,

@@ -48,7 +48,7 @@ enum Commands {
     ShowLayout {
         /// Gallery id to show.
         #[arg()]
-        gallery_id: u64,
+        gallery_id: i64,
     },
 }
 
@@ -77,7 +77,7 @@ fn get_walls() -> Result<Vec<GalleryWall>> {
     Ok(walls)
 }
 
-fn show_layout_command(mut db: GalleryDb, gallery_id: u64) -> Result<()> {
+fn show_layout_command(mut db: GalleryDb, gallery_id: i64) -> Result<()> {
     let walls = get_walls()?;
     for wall in walls {
         println!("Wall {}:", wall.name);

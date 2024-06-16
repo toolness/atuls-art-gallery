@@ -58,7 +58,7 @@ enum ChannelCommand {
     End,
     GetMetObjectsForGalleryWall {
         request_id: u32,
-        gallery_id: u64,
+        gallery_id: i64,
         wall_id: String,
     },
 }
@@ -170,7 +170,7 @@ impl MetObject {
 fn download_records(
     cache: &GalleryCache,
     db: &mut GalleryDb,
-    gallery_id: u64,
+    gallery_id: i64,
     wall_id: String,
 ) -> Result<Vec<SimplifiedRecord>> {
     let mut result = vec![];
@@ -313,7 +313,7 @@ const NULL_REQUEST_ID: u32 = 0;
 #[godot_api]
 impl MetObjectsSingleton {
     #[func]
-    fn get_met_objects_for_gallery_wall(&mut self, gallery_id: u64, wall_id: String) -> u32 {
+    fn get_met_objects_for_gallery_wall(&mut self, gallery_id: i64, wall_id: String) -> u32 {
         let request_id = self.new_request_id();
         if self
             .cmd_tx
