@@ -22,7 +22,7 @@ impl GalleryDb {
             CREATE TABLE layout (
                 gallery_id INTEGER NOT NULL,
                 wall_id TEXT NOT NULL,
-                met_object_id INTEGER NOT NULL,
+                met_object_id INTEGER NOT NULL UNIQUE,
                 x REAL NOT NULL,
                 y REAL NOT NULL
             )
