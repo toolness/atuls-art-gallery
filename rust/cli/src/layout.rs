@@ -3,6 +3,11 @@ use gallery::{
     gallery_wall::GalleryWall,
 };
 
+/// Try to push paintings down closer to eye level if possible.
+const PAINTING_Y_OFFSET: f64 = 0.5;
+
+const PAINTING_MIN_MOUNT_AREA: f64 = 2.0;
+
 pub struct MetObjectLayoutFitter {
     unused: Vec<MetObjectLayoutInfo>,
     remaining: Vec<MetObjectLayoutInfo>,
@@ -61,10 +66,6 @@ fn can_object_fit_anywhere(object_layout: &MetObjectLayoutInfo, walls: &Vec<Gall
     false
 }
 
-const PAINTING_Y_OFFSET: f64 = 0.5;
-
-const PAINTING_MOUNT_AREA: f64 = 2.0;
-
 pub fn place_paintings_along_wall<'a>(
     gallery_id: i64,
     walls: &Vec<GalleryWall>,
@@ -89,7 +90,7 @@ pub fn place_paintings_along_wall<'a>(
             y,
         });
         let margin_width = max_width / 2.0 - met_object.width / 2.0;
-        if margin_width > PAINTING_MOUNT_AREA {
+        if margin_width > PAINTING_MIN_MOUNT_AREA {
             place_paintings_along_wall(
                 gallery_id,
                 walls,
