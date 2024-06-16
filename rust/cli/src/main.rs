@@ -86,8 +86,62 @@ fn show_layout_command(mut db: GalleryDb, gallery_id: u64) -> Result<()> {
     Ok(())
 }
 
-fn can_object_fit_in_wall(object_layout: &MetObjectLayoutInfo, wall: &GalleryWall) -> bool {
-    object_layout.width < wall.width && object_layout.height < wall.height
+struct MetObjectFinder {
+    unused: Vec<MetObjectLayoutInfo>,
+    remaining: Vec<MetObjectLayoutInfo>,
+}
+
+impl MetObjectFinder {
+    fn new(remaining: Vec<MetObjectLayoutInfo>) -> Self {
+        MetObjectFinder {
+            unused: vec![],
+            remaining,
+        }
+    }
+
+    fn get_object_fitting_in(
+        &mut self,
+        max_width: f64,
+        max_height: f64,
+        walls: &Vec<GalleryWall>,
+    ) -> Option<MetObjectLayoutInfo> {
+        let idx = self
+            .unused
+            .iter()
+            .position(|met_object| can_object_fit_in(&met_object, max_width, max_height));
+        if let Some(idx) = idx {
+            return Some(self.unused.swap_remove(idx));
+        }
+        while let Some(met_object) = self.remaining.pop() {
+            if can_object_fit_in(&met_object, max_width, max_height) {
+                return Some(met_object);
+            }
+            if can_object_fit_anywhere(&met_object, &walls) {
+                self.unused.push(met_object);
+            } else {
+                println!("Warning: object {} can't fit on any walls.", met_object.id);
+            }
+        }
+
+        None
+    }
+
+    fn is_empty(&self) -> bool {
+        self.unused.is_empty() && self.remaining.is_empty()
+    }
+}
+
+fn can_object_fit_in(object_layout: &MetObjectLayoutInfo, max_width: f64, max_height: f64) -> bool {
+    object_layout.width < max_width && object_layout.height < max_height
+}
+
+fn can_object_fit_anywhere(object_layout: &MetObjectLayoutInfo, walls: &Vec<GalleryWall>) -> bool {
+    for wall in walls {
+        if can_object_fit_in(object_layout, wall.width, wall.height) {
+            return true;
+        }
+    }
+    false
 }
 
 fn layout_command(mut db: GalleryDb) -> Result<()> {
@@ -95,32 +149,28 @@ fn layout_command(mut db: GalleryDb) -> Result<()> {
     db.reset_layout_table()?;
     let mut met_objects = db.get_all_met_objects_for_layout()?;
     met_objects.reverse();
+    let mut finder = MetObjectFinder::new(met_objects);
     println!(
         "Laying out {} met objects across galleries with {} walls each.",
-        met_objects.len(),
+        finder.remaining.len(),
         walls.len()
     );
     let mut layout_records: Vec<LayoutRecord<&str>> = vec![];
     let mut wall_idx = 0;
     let mut gallery_id = 1;
-    loop {
+    while !finder.is_empty() {
         let wall = walls.get(wall_idx).unwrap();
-        let Some(met_object) = met_objects.pop() else {
-            break;
-        };
-        if !can_object_fit_in_wall(&met_object, &wall) {
-            // TODO: Put it somewhere so we can try it on other walls.
-            continue;
+        if let Some(met_object) = finder.get_object_fitting_in(wall.width, wall.height, &walls) {
+            let x = wall.width / 2.0;
+            let y = wall.height / 2.0;
+            layout_records.push(LayoutRecord {
+                gallery_id,
+                wall_id: &wall.name,
+                met_object_id: met_object.id,
+                x,
+                y,
+            });
         }
-        let x = wall.width / 2.0;
-        let y = wall.height / 2.0;
-        layout_records.push(LayoutRecord {
-            gallery_id,
-            wall_id: &wall.name,
-            met_object_id: met_object.id,
-            x,
-            y,
-        });
         wall_idx += 1;
         if wall_idx == walls.len() {
             wall_idx = 0;
