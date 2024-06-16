@@ -161,7 +161,7 @@ fn place_paintings_along_wall<'a>(
     if let Some(met_object) = finder.get_object_fitting_in(max_width, max_height, &walls) {
         let x = x_start + max_width / 2.0;
         let mut y = max_height / 2.0;
-        if met_object.height < max_height - PAINTING_Y_OFFSET {
+        if met_object.height < max_height - PAINTING_Y_OFFSET * 2.0 {
             y -= PAINTING_Y_OFFSET;
         }
         layout_records.push(LayoutRecord {
