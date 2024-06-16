@@ -96,3 +96,9 @@ func _process(delta) -> void:
 		save_state()
 		seconds_since_last_save = 0.0
 	sync_galleries()
+
+
+func _notification(what):
+	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		print("Saving state on exit.")
+		save_state()

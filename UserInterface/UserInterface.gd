@@ -64,7 +64,11 @@ func _on_settings_button_pressed() -> void:
 	settings_container.focus()
 
 func _on_quit_button_pressed() -> void:
-	get_tree().quit()
+	get_tree().root.propagate_notification(NOTIFICATION_WM_CLOSE_REQUEST)
+
+func _notification(what):
+	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		get_tree().quit()
 
 func _on_settings_container_exit() -> void:
 	pause_container.visible = true
