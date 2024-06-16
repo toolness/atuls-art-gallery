@@ -1,3 +1,5 @@
+mod layout;
+
 use std::fs::{self, File};
 use std::path::PathBuf;
 use std::process;
@@ -5,12 +7,11 @@ use std::process;
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use gallery::gallery_cache::GalleryCache;
-use gallery::gallery_db::{
-    GalleryDb, LayoutRecord, MetObjectLayoutInfo, PublicDomain2DMetObjectRecord,
-};
+use gallery::gallery_db::{GalleryDb, LayoutRecord, PublicDomain2DMetObjectRecord};
 use gallery::gallery_wall::GalleryWall;
 use gallery::met_api::load_met_api_record;
 use gallery::met_csv::iter_public_domain_2d_met_csv_objects;
+use layout::{place_paintings_along_wall, MetObjectLayoutFitter};
 use rusqlite::Connection;
 
 use std::io::BufReader;
@@ -86,128 +87,17 @@ fn show_layout_command(mut db: GalleryDb, gallery_id: u64) -> Result<()> {
     Ok(())
 }
 
-struct MetObjectFinder {
-    unused: Vec<MetObjectLayoutInfo>,
-    remaining: Vec<MetObjectLayoutInfo>,
-}
-
-impl MetObjectFinder {
-    fn new(remaining: Vec<MetObjectLayoutInfo>) -> Self {
-        MetObjectFinder {
-            unused: vec![],
-            remaining,
-        }
-    }
-
-    fn get_object_fitting_in(
-        &mut self,
-        max_width: f64,
-        max_height: f64,
-        walls: &Vec<GalleryWall>,
-    ) -> Option<MetObjectLayoutInfo> {
-        let idx = self
-            .unused
-            .iter()
-            .position(|met_object| can_object_fit_in(&met_object, max_width, max_height));
-        if let Some(idx) = idx {
-            return Some(self.unused.swap_remove(idx));
-        }
-        while let Some(met_object) = self.remaining.pop() {
-            if can_object_fit_in(&met_object, max_width, max_height) {
-                return Some(met_object);
-            }
-            if can_object_fit_anywhere(&met_object, &walls) {
-                self.unused.push(met_object);
-            } else {
-                println!("Warning: object {} can't fit on any walls.", met_object.id);
-            }
-        }
-
-        None
-    }
-
-    fn is_empty(&self) -> bool {
-        self.unused.is_empty() && self.remaining.is_empty()
-    }
-}
-
-fn can_object_fit_in(object_layout: &MetObjectLayoutInfo, max_width: f64, max_height: f64) -> bool {
-    object_layout.width < max_width && object_layout.height < max_height
-}
-
-fn can_object_fit_anywhere(object_layout: &MetObjectLayoutInfo, walls: &Vec<GalleryWall>) -> bool {
-    for wall in walls {
-        if can_object_fit_in(object_layout, wall.width, wall.height) {
-            return true;
-        }
-    }
-    false
-}
-
-const PAINTING_Y_OFFSET: f64 = 0.5;
-
-const PAINTING_MOUNT_AREA: f64 = 2.0;
-
-fn place_paintings_along_wall<'a>(
-    gallery_id: u64,
-    walls: &Vec<GalleryWall>,
-    wall_name: &'a str,
-    finder: &mut MetObjectFinder,
-    x_start: f64,
-    max_width: f64,
-    max_height: f64,
-    layout_records: &mut Vec<LayoutRecord<&'a str>>,
-) {
-    if let Some(met_object) = finder.get_object_fitting_in(max_width, max_height, &walls) {
-        let x = x_start + max_width / 2.0;
-        let mut y = max_height / 2.0;
-        if met_object.height < max_height - PAINTING_Y_OFFSET * 2.0 {
-            y -= PAINTING_Y_OFFSET;
-        }
-        layout_records.push(LayoutRecord {
-            gallery_id,
-            wall_id: &wall_name,
-            met_object_id: met_object.id,
-            x,
-            y,
-        });
-        let margin_width = max_width / 2.0 - met_object.width / 2.0;
-        if margin_width > PAINTING_MOUNT_AREA {
-            place_paintings_along_wall(
-                gallery_id,
-                walls,
-                wall_name,
-                finder,
-                x_start,
-                margin_width,
-                max_height,
-                layout_records,
-            );
-            place_paintings_along_wall(
-                gallery_id,
-                walls,
-                wall_name,
-                finder,
-                x_start + (max_width / 2.0 + met_object.width / 2.0),
-                margin_width,
-                max_height,
-                layout_records,
-            );
-        }
-    }
-}
-
 fn layout_command(mut db: GalleryDb) -> Result<()> {
     let walls = get_walls()?;
     db.reset_layout_table()?;
     let mut met_objects = db.get_all_met_objects_for_layout()?;
     met_objects.reverse();
-    let mut finder = MetObjectFinder::new(met_objects);
     println!(
         "Laying out {} met objects across galleries with {} walls each.",
-        finder.remaining.len(),
+        met_objects.len(),
         walls.len()
     );
+    let mut finder = MetObjectLayoutFitter::new(met_objects);
     let mut layout_records: Vec<LayoutRecord<&str>> = vec![];
     let mut wall_idx = 0;
     let mut gallery_id = 1;
