@@ -9,6 +9,8 @@ extends Node3D
 
 @onready var player_start_position: Vector3 = player.global_position
 
+@onready var player_start_rotation: Vector3 = player.global_rotation
+
 @onready var gallery_chunks: Array[Moma] = []
 
 const GALLERY_CHUNK_WIDTH = 28
@@ -57,9 +59,9 @@ const AUTOSAVE_INTERVAL := 30.0
 var seconds_since_last_save := 0.0
 
 func save_state() -> void:
-	var pos := player.global_position
 	var state := {
-		"player_position": [pos.x, pos.y, pos.z],
+		"player_position": vec3_to_array(player.global_position),
+		"player_rotation": vec3_to_array(player.global_rotation),
 	}
 	var file := FileAccess.open(SAVE_STATE_FILENAME, FileAccess.WRITE)
 	var json_stringified := JSON.stringify(state)
@@ -68,19 +70,27 @@ func save_state() -> void:
 	file.close()
 
 
+func vec3_to_array(vec: Vector3) -> Array:
+	return [vec.x, vec.y, vec.z]
+
+
+func vec3_from_array(array: Variant, default: Vector3) -> Vector3:
+	if array is Array:
+		var x: float = array[0]
+		var y: float = array[1]
+		var z: float = array[2]
+		return Vector3(x, y, z)
+	return default
+
+
 func load_state() -> void:
-	var pos: Vector3
+	var state: Dictionary = {}
 	if FileAccess.file_exists(SAVE_STATE_FILENAME):
 		var json_stringified := FileAccess.get_file_as_string(SAVE_STATE_FILENAME)
 		# print("Reading state: ", json_stringified)
-		var state = JSON.parse_string(json_stringified)
-		var pos_array = state["player_position"]
-		pos.x = pos_array[0]
-		pos.y = pos_array[1]
-		pos.z = pos_array[2]
-	else:
-		pos = player_start_position
-	player.global_position = pos
+		state = JSON.parse_string(json_stringified)
+	player.global_position = vec3_from_array(state.get("player_position"), player_start_position)
+	player.global_rotation = vec3_from_array(state.get("player_rotation"), player_start_rotation)
 
 
 # Called when the node enters the scene tree for the first time.
