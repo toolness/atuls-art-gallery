@@ -71,12 +71,7 @@ fn get_walls() -> Result<Vec<GalleryWall>> {
         .join("..")
         .join("Levels")
         .join("moma-gallery.walls.json");
-    let mut walls: Vec<GalleryWall> = serde_json::from_str(&fs::read_to_string(walls_json_file)?)?;
-    for wall in walls.iter_mut() {
-        // Convert meters to centimeters
-        wall.width = wall.width * 100.0;
-        wall.height = wall.height * 100.0;
-    }
+    let walls: Vec<GalleryWall> = serde_json::from_str(&fs::read_to_string(walls_json_file)?)?;
     Ok(walls)
 }
 

@@ -80,7 +80,7 @@ fn try_into_public_domain_2d_met_object(
     let Some(accession_year) = csv_record.accession_year else {
         return None;
     };
-    let Some((width, height)) = dimension_parser.parse(&csv_record.dimensions) else {
+    let Some((width, height)) = dimension_parser.parse_cm(&csv_record.dimensions) else {
         return None;
     };
     let lower_medium = csv_record.medium.to_lowercase();
@@ -92,8 +92,8 @@ fn try_into_public_domain_2d_met_object(
                 object_date: csv_record.object_date,
                 title: csv_record.title,
                 medium: csv_record.medium,
-                width,
-                height,
+                width: width / 100.0,   // Convert centimeters to meters
+                height: height / 100.0, // Convert centimeters to meters
             });
         }
     }
@@ -131,10 +131,10 @@ impl DimensionParser {
         }
     }
 
-    /// Return a (width, height) tuple of the dimensions. Note that this
+    /// Return a (width, height) tuple of the dimensions in cm. Note that this
     /// is the opposite order from the format in the data; we're using
     /// (width, height) because it's the common one in computer graphics.
-    pub fn parse<T: AsRef<str>>(&self, value: T) -> Option<(f64, f64)> {
+    pub fn parse_cm<T: AsRef<str>>(&self, value: T) -> Option<(f64, f64)> {
         match self.regex.captures(value.as_ref()) {
             None => None,
             Some(caps) => {
@@ -158,15 +158,15 @@ mod tests {
         let parser = DimensionParser::new();
 
         assert_eq!(
-            parser.parse("9 3/4 x 11 3/8 in. (24.8 x 28.9 cm)"),
+            parser.parse_cm("9 3/4 x 11 3/8 in. (24.8 x 28.9 cm)"),
             Some((28.9, 24.8))
         );
         assert_eq!(
-            parser.parse("9 3/4 x 11 3/8 in. (24 x 28.9 cm)"),
+            parser.parse_cm("9 3/4 x 11 3/8 in. (24 x 28.9 cm)"),
             Some((28.9, 24.0))
         );
         assert_eq!(
-            parser.parse("H. 2 1/2 in. (6.4 cm); Diam. 8 1/8 in. (20.6 cm)"),
+            parser.parse_cm("H. 2 1/2 in. (6.4 cm); Diam. 8 1/8 in. (20.6 cm)"),
             None
         );
     }

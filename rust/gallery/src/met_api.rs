@@ -34,7 +34,7 @@ pub struct MetObjectApiRecord {
 }
 
 impl MetObjectApiRecord {
-    /// Returns physical dimensions, *not* pixels.
+    /// Returns physical dimensions in meters, *not* pixels.
     pub fn overall_width_and_height(&self) -> Option<(f64, f64)> {
         let Some(measurements) = &self.measurements else {
             return None;
@@ -46,7 +46,8 @@ impl MetObjectApiRecord {
                     measurement.element_measurements.height,
                     measurement.element_measurements.depth,
                 ) {
-                    return Some((width, height));
+                    // Convert centimeters to meters.
+                    return Some((width / 100.0, height / 100.0));
                 }
             }
         }
@@ -58,7 +59,7 @@ impl MetObjectApiRecord {
     /// If it's in the cache, returns the cached version. Otherwise, downloads and adds
     /// to cache.
     ///
-    /// Returns (width, height, filename) on success. Dimensions are physical, *not* pixels.
+    /// Returns (width, height, filename) on success. Dimensions are in physical meters, *not* pixels.
     pub fn try_to_download_small_image(
         &self,
         cache: &GalleryCache,

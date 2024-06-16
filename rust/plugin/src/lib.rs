@@ -188,8 +188,8 @@ fn download_records(
                 object_id: obj_record.object_id,
                 title: obj_record.title,
                 date: obj_record.object_date,
-                width: width / 100.0,   // Convert from centimeters to meters
-                height: height / 100.0, // Convert from centimeters to meters
+                width,
+                height,
                 small_image: cache
                     .cache_dir()
                     .join(small_image)
@@ -221,8 +221,8 @@ fn find_and_download_next_valid_record(
                 object_id: obj_record.object_id,
                 title: obj_record.title,
                 date: obj_record.object_date,
-                width: width / 100.0,   // Convert from centimeters to meters
-                height: height / 100.0, // Convert from centimeters to meters
+                width,
+                height,
                 small_image: cache
                     .cache_dir()
                     .join(small_image)
@@ -430,9 +430,8 @@ impl MetObjectsSingleton {
                                 width: object.width,
                                 height: object.height,
                                 small_image: object.small_image.into_godot(),
-                                // Convert from centimeters to meters
-                                x: object.x / 100.0,
-                                y: object.y / 100.0,
+                                x: object.x,
+                                y: object.y,
                             })
                         }),
                     )),
@@ -449,9 +448,8 @@ impl MetObjectsSingleton {
                             width: object.width,
                             height: object.height,
                             small_image: object.small_image.into_godot(),
-                            // Convert from centimeters to meters
-                            x: object.x / 100.0,
-                            y: object.y / 100.0,
+                            x: object.x,
+                            y: object.y,
                         })),
                         None => InnerMetResponse::None,
                     },
