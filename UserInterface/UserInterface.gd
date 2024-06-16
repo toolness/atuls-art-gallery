@@ -119,6 +119,11 @@ func change_scene(next_scene: String, player_transform: Transform3D) -> void:
 
 # Fade the screen out, reload the level and fade back in.
 func restart_current_scene() -> void:
+	var maybe_gallery := get_tree().get_first_node_in_group("InfiniteGallery")
+	if maybe_gallery is InfiniteGallery:
+		var gallery: InfiniteGallery = maybe_gallery
+		gallery.save_state()
+
 	# Store a reference to the player to pass its settings onto the next player.
 	var player = get_tree().get_first_node_in_group("Player")
 	# Stop movement and cache settings.

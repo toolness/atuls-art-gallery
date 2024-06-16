@@ -10,7 +10,7 @@ sdfgi_enabled = true
 sdfgi_read_sky_light = false
 glow_enabled = true
 
-[node name="InfiniteGallery" type="Node3D"]
+[node name="InfiniteGallery" type="Node3D" groups=["InfiniteGallery"]]
 script = ExtResource("1_drnpr")
 gallery_chunk_scene = ExtResource("3_3c1uq")
 
