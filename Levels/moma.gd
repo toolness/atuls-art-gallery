@@ -163,7 +163,7 @@ func populate_with_paintings() -> void:
 		if not is_inside_tree():
 			return
 		for met_object in met_objects:
-			print(gallery_id, " ", child.name, " ", met_object.title, " ", met_object.x, " ", met_object.y)
+			# print(gallery_id, " ", child.name, " ", met_object.title, " ", met_object.x, " ", met_object.y)
 			place_met_object_on_wall(met_object, wall)
 			# Give the rest of the engine time to process the full frame, we're not in a rush and
 			# processing all paintings synchronously will cause stutter.

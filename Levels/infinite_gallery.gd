@@ -7,6 +7,8 @@ extends Node3D
 
 @onready var player: Player = $Player
 
+@onready var player_start_position: Vector3 = player.global_position
+
 @onready var gallery_chunks: Array[Moma] = []
 
 const GALLERY_CHUNK_WIDTH = 28
@@ -48,10 +50,49 @@ func sync_galleries() -> void:
 			instance.init(gallery_id)
 
 
+const SAVE_STATE_FILENAME := "user://save_state.json"
+
+const AUTOSAVE_INTERVAL := 30.0
+
+var seconds_since_last_save := 0.0
+
+func save_state() -> void:
+	var pos := player.global_position
+	var state := {
+		"player_position": [pos.x, pos.y, pos.z],
+	}
+	var file := FileAccess.open(SAVE_STATE_FILENAME, FileAccess.WRITE)
+	var json_stringified := JSON.stringify(state)
+	# print("Writing state: ", json_stringified)
+	file.store_string(json_stringified)
+	file.close()
+
+
+func load_state() -> void:
+	var pos: Vector3
+	if FileAccess.file_exists(SAVE_STATE_FILENAME):
+		var json_stringified := FileAccess.get_file_as_string(SAVE_STATE_FILENAME)
+		# print("Reading state: ", json_stringified)
+		var state = JSON.parse_string(json_stringified)
+		var pos_array = state["player_position"]
+		pos.x = pos_array[0]
+		pos.y = pos_array[1]
+		pos.z = pos_array[2]
+	else:
+		pos = player_start_position
+	player.global_position = pos
+
+
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
+	load_state()
 	sync_galleries()
 
 
-func _process(_delta) -> void:
+func _process(delta) -> void:
+	seconds_since_last_save += delta
+	if seconds_since_last_save >= AUTOSAVE_INTERVAL:
+		print("Autosaving.")
+		save_state()
+		seconds_since_last_save = 0.0
 	sync_galleries()
