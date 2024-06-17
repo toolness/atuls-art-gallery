@@ -19,10 +19,22 @@ var original_albedo_color: Color
 @onready var wall_label: Label3D = $wall_label
 
 
+func _get_side_multiplier(value: float) -> float:
+	if value == 0.0:
+		return 0.0
+	elif value < 0.0:
+		return -1.0
+	return 1.0
+
+
 func configure_wall_label(painting_width: float, painting_height: float, text: String) -> void:
-	var wall_label_y_offset := -wall_label.position.y - 0.5
-	wall_label.position.y = -((painting_height / 2) + wall_label_y_offset)
-	wall_label.position.x = -(painting_width / 2)
+	var aabb_size := painting.get_aabb().size
+	var x := wall_label.position.x
+	var wall_label_x_offset := absf(x) - aabb_size.x / 2
+	wall_label.position.x = _get_side_multiplier(x) * (painting_width / 2 + wall_label_x_offset)
+	var y := wall_label.position.y
+	var wall_label_y_offset := absf(y) - aabb_size.y / 2
+	wall_label.position.y = _get_side_multiplier(y) * (painting_height / 2 + wall_label_y_offset)
 	wall_label.text = text
 
 
