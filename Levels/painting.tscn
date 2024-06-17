@@ -9,7 +9,7 @@ script = ExtResource("1_wlgeq")
 [node name="painting" parent="." instance=ExtResource("2_ysfke")]
 
 [node name="wall_label" type="Label3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.5, -0.55, 0.01)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.55, 0, 0.01)
 layers = 524288
 pixel_size = 0.0008
 double_sided = false
@@ -17,8 +17,9 @@ modulate = Color(0, 0, 0, 1)
 outline_modulate = Color(0, 0, 0, 0)
 text = "A Very Long Title For An Artwork
 1902"
+font_size = 16
 outline_size = 0
 horizontal_alignment = 0
 vertical_alignment = 0
 autowrap_mode = 2
-width = 750.0
+width = 150.0
