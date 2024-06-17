@@ -6,6 +6,8 @@ use gallery::{
 /// Try to push paintings down closer to eye level if possible.
 const PAINTING_Y_OFFSET: f64 = 0.5;
 
+const PAINTING_HORIZ_MARGIN: f64 = 0.5;
+
 const PAINTING_MIN_MOUNT_AREA: f64 = 2.0;
 
 pub struct MetObjectLayoutFitter {
@@ -76,7 +78,11 @@ pub fn place_paintings_along_wall<'a>(
     max_height: f64,
     layout_records: &mut Vec<LayoutRecord<&'a str>>,
 ) {
-    if let Some(met_object) = finder.get_object_fitting_in(max_width, max_height, &walls) {
+    let max_painting_width = max_width - PAINTING_HORIZ_MARGIN * 2.0;
+    if max_painting_width <= 0.0 {
+        return;
+    }
+    if let Some(met_object) = finder.get_object_fitting_in(max_painting_width, max_height, &walls) {
         let x = x_start + max_width / 2.0;
         let mut y = max_height / 2.0;
         if met_object.height < max_height - PAINTING_Y_OFFSET * 2.0 {
