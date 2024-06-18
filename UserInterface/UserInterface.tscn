@@ -71,6 +71,7 @@ mouse_filter = 2
 
 [node name="Reticle" type="TextureRect" parent="HUD/CenterContainer"]
 unique_name_in_owner = true
+visible = false
 layout_mode = 2
 mouse_filter = 2
 stretch_mode = 5

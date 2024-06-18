@@ -54,6 +54,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		cycle_debug_draw()
 	elif event.is_action_pressed("reload_scene"):
 		restart_current_scene()
+	elif event.is_action_pressed("toggle_reticle"):
+		toggle_reticle()
 
 func _on_resume_button_pressed() -> void:
 	paused = false
@@ -74,7 +76,10 @@ func _on_settings_container_exit() -> void:
 	pause_container.visible = true
 	settings_container.visible = false
 	resume_button.grab_focus()
-	
+
+func toggle_reticle() -> void:
+	reticle.visible = not reticle.visible
+
 func hide_reticle(is_hidden:bool) -> void:
 	# Hide the aiming reticle. Useful for the third person camera.
 	reticle.visible = not is_hidden
