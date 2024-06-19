@@ -170,7 +170,7 @@ class Wall:
 		return wall
 
 
-func populate_with_paintings(player_position: Vector3) -> int:
+func populate_with_paintings(player: Player) -> int:
 	var count := 0
 	var walls: Array[Wall] = []
 	# This is a mapping from walls to their distances to the player.
@@ -181,7 +181,7 @@ func populate_with_paintings(player_position: Vector3) -> int:
 		if wall:
 			walls.push_back(wall)
 			var wall_pos := wall.mesh_instance.global_position + wall.aabb.get_center()
-			var distance_from_player = wall_pos.distance_to(player_position)
+			var distance_from_player = wall_pos.distance_to(player.global_position)
 			wall_distances_from_player[wall] = distance_from_player
 
 	var sort_by_distance_from_player := func is_b_after_a(a: Wall, b: Wall) -> bool:
@@ -196,6 +196,10 @@ func populate_with_paintings(player_position: Vector3) -> int:
 		if not is_inside_tree():
 			return count
 		for met_object in met_objects:
+			if player.moving_painting and player.moving_painting.painting.met_object.object_id == met_object.object_id:
+				# The player is currently moving this painting, don't spawn it.
+				print("Not spawning ", met_object.object_id, " because it is being moved by player.")
+				continue
 			# print(gallery_id, " ", child.name, " ", met_object.title, " ", met_object.x, " ", met_object.y)
 			var image := await MetObjects.fetch_small_image(met_object.object_id)
 			if not is_inside_tree():
@@ -217,10 +221,10 @@ func populate_with_paintings(player_position: Vector3) -> int:
 	return count
 
 
-func init(new_gallery_id: int, player_position: Vector3) -> void:
+func init(new_gallery_id: int, player: Player) -> void:
 	gallery_id = new_gallery_id
 	name = GALLERY_BASE_NAME + str(gallery_id)
 	gallery_label.text = str(gallery_id + GALLERY_LABEL_ID_OFFSET)
 	print("Initializing gallery ", gallery_id)
-	var count := await populate_with_paintings(player_position)
+	var count := await populate_with_paintings(player)
 	print("Populated gallery ", gallery_id, " with ", count, " paintings.")
