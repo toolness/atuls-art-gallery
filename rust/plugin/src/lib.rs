@@ -151,11 +151,6 @@ impl MetObject {
     }
 
     #[func]
-    fn can_fit_in(&self, max_width: f64, max_height: f64) -> bool {
-        self.width <= max_width && self.height <= max_height
-    }
-
-    #[func]
     fn open_in_browser(&self) {
         Os::singleton().shell_open(
             format!(
