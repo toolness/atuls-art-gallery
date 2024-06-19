@@ -61,11 +61,16 @@ enum ChannelCommand {
         gallery_id: i64,
         wall_id: String,
     },
+    FetchSmallImage {
+        request_id: u32,
+        object_id: u64,
+    },
 }
 
 enum ChannelResponse {
     Done,
     MetObjectsForGalleryWall(u32, Vec<SimplifiedRecord>),
+    Image(u32, String),
 }
 
 #[derive(Debug)]
@@ -84,12 +89,8 @@ struct SimplifiedRecord {
 enum InnerMetResponse {
     #[default]
     None,
-
-    // This is currently unused, but we might have reason to reuse it someday soon.
-    #[allow(dead_code)]
-    MetObject(Gd<MetObject>),
-
     MetObjects(Array<Gd<MetObject>>),
+    Image(Option<Gd<Image>>),
 }
 
 #[derive(Debug, GodotClass)]
@@ -103,18 +104,24 @@ struct MetResponse {
 #[godot_api]
 impl MetResponse {
     #[func]
-    fn take_optional_met_object(&mut self) -> Option<Gd<MetObject>> {
+    fn take_met_objects(&mut self) -> Array<Gd<MetObject>> {
         match std::mem::take(&mut self.response) {
-            InnerMetResponse::MetObject(response) => Some(response),
-            _ => None,
+            InnerMetResponse::MetObjects(response) => response,
+            _ => {
+                godot_error!("MetResponse is not MetObjects!");
+                Array::new()
+            }
         }
     }
 
     #[func]
-    fn take_met_objects(&mut self) -> Array<Gd<MetObject>> {
+    fn take_optional_image(&mut self) -> Option<Gd<Image>> {
         match std::mem::take(&mut self.response) {
-            InnerMetResponse::MetObjects(response) => response,
-            _ => Array::new(),
+            InnerMetResponse::Image(response) => response,
+            _ => {
+                godot_error!("MetResponse is not Image!");
+                None
+            }
         }
     }
 }
@@ -254,6 +261,23 @@ fn work_thread(
                     break;
                 }
             }
+            Ok(ChannelCommand::FetchSmallImage {
+                request_id,
+                object_id,
+            }) => {
+                let obj_record = load_met_api_record(&cache, object_id)?;
+                if let Some((_width, _height, small_image)) =
+                    obj_record.try_to_download_small_image(&cache)?
+                {
+                    if response_tx
+                        .send(ChannelResponse::Image(request_id, small_image))
+                        .is_err()
+                    {
+                        // The other end hung up, we're effectively done.
+                        break;
+                    }
+                }
+            }
             Err(_) => {
                 // The other end hung up, just quit.
                 break;
@@ -327,6 +351,25 @@ impl MetObjectsSingleton {
         }
     }
 
+    #[func]
+    fn fetch_small_image(&mut self, object_id: u64) -> u32 {
+        let request_id = self.new_request_id();
+        if self
+            .cmd_tx
+            .send(ChannelCommand::FetchSmallImage {
+                request_id,
+                object_id,
+            })
+            .is_ok()
+        {
+            request_id
+        } else {
+            godot_print!("cmd_tx.send() failed!");
+            self.handler = None;
+            NULL_REQUEST_ID
+        }
+    }
+
     fn new_request_id(&mut self) -> u32 {
         let request_id = self.next_request_id;
         self.next_request_id += 1;
@@ -357,6 +400,13 @@ impl MetObjectsSingleton {
                             })
                         }),
                     )),
+                }));
+            }
+            Ok(ChannelResponse::Image(request_id, small_image)) => {
+                let image = Image::load_from_file(GString::from(small_image));
+                return Some(Gd::from_object(MetResponse {
+                    request_id,
+                    response: InnerMetResponse::Image(image),
                 }));
             }
             Err(TryRecvError::Empty) => {}
