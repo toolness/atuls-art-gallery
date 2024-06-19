@@ -46,10 +46,11 @@ func make_painting() -> Painting:
 
 func place_met_object_on_wall(
 	met_object: MetObject,
-	wall: Wall
+	wall: Wall,
+	texture: ImageTexture
 ) -> void:
 	var painting := make_painting()
-	painting.init_with_met_object(met_object)
+	painting.init_with_met_object(met_object, texture)
 	var width_offset := wall.horizontal_direction * met_object.x
 	var height_offset := Vector3.UP * met_object.y
 	var painting_mount_point := wall.get_base_position() + width_offset + height_offset
@@ -151,9 +152,8 @@ class Wall:
 		return wall
 
 
-func populate_with_paintings() -> void:
-	var rng := RandomNumberGenerator.new()
-	rng.seed = hash(gallery_id)
+func populate_with_paintings() -> int:
+	var count := 0
 	for child in gallery.get_children():
 		var wall := Wall.try_from_object(child)
 		if not wall:
@@ -161,20 +161,32 @@ func populate_with_paintings() -> void:
 
 		var met_objects := await MetObjects.get_met_objects_for_gallery_wall(gallery_id, child.name)
 		if not is_inside_tree():
-			return
+			return count
 		for met_object in met_objects:
 			# print(gallery_id, " ", child.name, " ", met_object.title, " ", met_object.x, " ", met_object.y)
-			place_met_object_on_wall(met_object, wall)
+			var image := await MetObjects.fetch_small_image(met_object.object_id)
+			if not is_inside_tree():
+				# We despawned, exit.
+				return count
+			if not image:
+				# Oof, fetching the image failed.
+				continue
+			image.generate_mipmaps()
+			var texture := ImageTexture.create_from_image(image)
+			place_met_object_on_wall(met_object, wall, texture)
+			count += 1
 			# Give the rest of the engine time to process the full frame, we're not in a rush and
 			# processing all paintings synchronously will cause stutter.
+			await get_tree().process_frame
 			if not is_inside_tree():
 				# We've been removed from the scene tree, bail.
-				return
-			await get_tree().process_frame
+				return count
+	return count
 
 
 func init(new_gallery_id: int) -> void:
 	gallery_id = new_gallery_id
 	gallery_label.text = str(gallery_id + GALLERY_LABEL_ID_OFFSET)
 	print("Initializing gallery ", gallery_id)
-	await populate_with_paintings()
+	var count := await populate_with_paintings()
+	print("Populated gallery ", gallery_id, " with ", count, " paintings.")

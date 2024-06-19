@@ -9,7 +9,7 @@ use std::{
 use anyhow::Result;
 use gallery::{gallery_cache::GalleryCache, gallery_db::GalleryDb, met_api::load_met_api_record};
 use godot::{
-    engine::{Engine, Image, ImageTexture, Os, ProjectSettings},
+    engine::{Engine, Image, Os, ProjectSettings},
     prelude::*,
 };
 use rusqlite::Connection;
@@ -70,7 +70,7 @@ enum ChannelCommand {
 enum ChannelResponse {
     Done,
     MetObjectsForGalleryWall(u32, Vec<SimplifiedRecord>),
-    Image(u32, String),
+    Image(u32, Option<PathBuf>),
 }
 
 #[derive(Debug)]
@@ -80,7 +80,6 @@ struct SimplifiedRecord {
     date: String,
     width: f64,
     height: f64,
-    small_image: String,
     x: f64,
     y: f64,
 }
@@ -143,20 +142,10 @@ struct MetObject {
     x: f64,
     #[var]
     y: f64,
-    small_image: String,
 }
 
 #[godot_api]
 impl MetObject {
-    #[func]
-    fn load_small_image_texture(&self) -> Option<Gd<ImageTexture>> {
-        let Some(mut image) = Image::load_from_file(GString::from(&self.small_image)) else {
-            return None;
-        };
-        image.generate_mipmaps();
-        ImageTexture::create_from_image(image)
-    }
-
     #[func]
     fn open_in_browser(&self) {
         Os::singleton().shell_open(
@@ -169,8 +158,7 @@ impl MetObject {
     }
 }
 
-fn download_records(
-    cache: &GalleryCache,
+fn get_met_objects_for_gallery_wall(
     db: &mut GalleryDb,
     gallery_id: i64,
     wall_id: String,
@@ -178,25 +166,15 @@ fn download_records(
     let mut result = vec![];
     let objects = db.get_met_objects_for_gallery_wall(gallery_id, wall_id)?;
     for (object, (x, y)) in objects {
-        let obj_record = load_met_api_record(&cache, object.object_id)?;
-        if let Some((width, height, small_image)) =
-            obj_record.try_to_download_small_image(&cache)?
-        {
-            result.push(SimplifiedRecord {
-                object_id: obj_record.object_id,
-                title: obj_record.title,
-                date: obj_record.object_date,
-                width,
-                height,
-                small_image: cache
-                    .cache_dir()
-                    .join(small_image)
-                    .to_string_lossy()
-                    .to_string(),
-                x,
-                y,
-            });
-        }
+        result.push(SimplifiedRecord {
+            object_id: object.object_id,
+            title: object.title,
+            date: object.object_date,
+            width: object.width,
+            height: object.height,
+            x,
+            y,
+        });
     }
     Ok(result)
 }
@@ -250,7 +228,7 @@ fn work_thread(
                 wall_id,
             }) => {
                 logger.log(format!("work_thread received 'GetMetObjectsForGalleryWall' command, request_id={request_id}, gallery_id={gallery_id}, wall_id={wall_id}."));
-                let records = download_records(&cache, &mut db, gallery_id, wall_id)?;
+                let records = get_met_objects_for_gallery_wall(&mut db, gallery_id, wall_id)?;
                 if response_tx
                     .send(ChannelResponse::MetObjectsForGalleryWall(
                         request_id, records,
@@ -265,17 +243,20 @@ fn work_thread(
                 request_id,
                 object_id,
             }) => {
+                logger.log(format!("work_thread received 'FetchSmallImage' command, request_id={request_id}, object_id={object_id}."));
                 let obj_record = load_met_api_record(&cache, object_id)?;
-                if let Some((_width, _height, small_image)) =
-                    obj_record.try_to_download_small_image(&cache)?
-                {
-                    if response_tx
-                        .send(ChannelResponse::Image(request_id, small_image))
-                        .is_err()
-                    {
-                        // The other end hung up, we're effectively done.
-                        break;
+                let small_image = match obj_record.try_to_download_small_image(&cache)? {
+                    Some((_width, _height, small_image)) => {
+                        Some(cache.cache_dir().join(small_image))
                     }
+                    None => None,
+                };
+                if response_tx
+                    .send(ChannelResponse::Image(request_id, small_image))
+                    .is_err()
+                {
+                    // The other end hung up, we're effectively done.
+                    break;
                 }
             }
             Err(_) => {
@@ -394,7 +375,6 @@ impl MetObjectsSingleton {
                                 date: object.date.into_godot(),
                                 width: object.width,
                                 height: object.height,
-                                small_image: object.small_image,
                                 x: object.x,
                                 y: object.y,
                             })
@@ -403,7 +383,13 @@ impl MetObjectsSingleton {
                 }));
             }
             Ok(ChannelResponse::Image(request_id, small_image)) => {
-                let image = Image::load_from_file(GString::from(small_image));
+                let image = small_image
+                    .map(|small_image| {
+                        Image::load_from_file(GString::from(
+                            small_image.to_string_lossy().into_owned(),
+                        ))
+                    })
+                    .flatten();
                 return Some(Gd::from_object(MetResponse {
                     request_id,
                     response: InnerMetResponse::Image(image),

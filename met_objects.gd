@@ -10,14 +10,25 @@ const GALLERY_ID_DB_OFFSET = 2
 var requests = {}
 
 
-class MetObjectRequest:
-	var response: MetObject
-	signal responded
-
-
 class MetObjectsRequest:
 	var response: Array[MetObject]
 	signal responded
+
+
+class ImageRequest:
+	var response: Image
+	signal responded
+
+
+func fetch_small_image(object_id: int) -> Image:
+	var request := ImageRequest.new()
+	var request_id := RustMetObjects.fetch_small_image(object_id)
+	if request_id == NULL_REQUEST_ID:
+		# Oof, something went wrong.
+		return null
+	requests[request_id] = request
+	await request.responded
+	return request.response
 
 
 func get_met_objects_for_gallery_wall(gallery_id: int, wall_id: String) -> Array[MetObject]:
@@ -44,9 +55,9 @@ func _process(_delta) -> void:
 			return
 		var request = requests[obj.request_id]
 		requests.erase(obj.request_id)
-		if request is MetObjectRequest:
-			var r: MetObjectRequest = request
-			r.response = obj.take_optional_met_object()
+		if request is ImageRequest:
+			var r: ImageRequest = request
+			r.response = obj.take_optional_image()
 			r.responded.emit()
 		elif request is MetObjectsRequest:
 			var r: MetObjectsRequest = request

@@ -38,14 +38,14 @@ func configure_wall_label(painting_width: float, painting_height: float, text: S
 	wall_label.text = text
 
 
-func init_with_met_object(object: MetObject) -> void:
+func init_with_met_object(object: MetObject, texture: ImageTexture) -> void:
 	met_object = object
 	configure_wall_label(object.width, object.height, object.title + "\n" + object.date)
 	painting.set_scale(Vector3(object.width, object.height, 1.0))
 	var material: StandardMaterial3D = painting.mesh.surface_get_material(PAINTING_SURFACE_IDX)
 	painting_surface_material = material.duplicate()
 	painting_surface_material.albedo_color = Color.TRANSPARENT
-	painting_surface_material.albedo_texture = object.load_small_image_texture()
+	painting_surface_material.albedo_texture = texture
 	painting.set_surface_override_material(PAINTING_SURFACE_IDX, painting_surface_material)
 
 
