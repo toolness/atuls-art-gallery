@@ -100,6 +100,10 @@ func load_state() -> void:
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
+	# Even if we set the reference gallery to not be visible, raycasts still intersect with
+	# it, which is weird, so just remove it.
+	remove_child(%Moma_for_reference_only)
+
 	load_state()
 	sync_galleries()
 

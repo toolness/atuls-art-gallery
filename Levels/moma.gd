@@ -21,6 +21,8 @@ const GALLERY_LABEL_ID_OFFSET = 1
 
 const GALLERY_BASE_NAME = "MomaGallery_"
 
+const GALLERY_PATTERN = "MomaGallery_*"
+
 const PAINTING_BASE_NAME = "MomaPainting_"
 
 const PAINTING_PATTERN = "MomaPainting_*"
@@ -82,6 +84,11 @@ class MovingPainting:
 		painting.global_position = point - offset.rotated(Vector3.UP, wall.y_rotation)
 		painting.rotation = Vector3.ZERO
 		painting.rotate_y(wall.y_rotation)
+		var parent := painting.get_parent()
+		if parent != wall.gallery:
+			print("Moving painting from ", parent.name, " to ", wall.gallery.name)
+			parent.remove_child(painting)
+			wall.gallery.add_child(painting)
 
 	static func try_to_start_moving(raycast: RayCast3D) -> MovingPainting:
 		var _painting := Moma.try_to_find_painting_from_collision(raycast.get_collider())
@@ -113,6 +120,7 @@ class Wall:
 	var mesh_instance: MeshInstance3D
 	var aabb: AABB
 	var normal: Vector3
+	var gallery: Moma
 
 	func _try_to_configure(object: Object) -> bool:
 		if not is_instance_of(object, MeshInstance3D):
@@ -148,6 +156,8 @@ class Wall:
 		else:
 			# This isn't a big enough wall to mount anything on.
 			return false
+		gallery = mesh_instance.find_parent(GALLERY_PATTERN)
+		assert(gallery is Moma)
 		return true
 
 	func get_base_position() -> Vector3:
