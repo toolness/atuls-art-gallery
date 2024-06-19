@@ -71,6 +71,14 @@ grow_horizontal = 2
 grow_vertical = 2
 theme = ExtResource("1_ga3o8")
 script = ExtResource("2_yf2ij")
+min_fov = null
+max_fov = null
+default_fov = null
+very_low_sens = null
+low_sens = null
+medium_sens = null
+high_sens = null
+very_high_sens = null
 
 [node name="VBoxContainer" type="VBoxContainer" parent="."]
 layout_mode = 2
@@ -102,6 +110,7 @@ size_flags_horizontal = 3
 text = "FullScreen"
 
 [node name="FullscreenCheckButton" type="CheckButton" parent="VBoxContainer/TabContainer/Video/FullscreenPanel/FullscreenContainer"]
+unique_name_in_owner = true
 layout_mode = 2
 mouse_default_cursor_shape = 2
 
@@ -347,6 +356,7 @@ shortcut = SubResource("Shortcut_ljjvh")
 shortcut_in_tooltip = false
 text = "Back"
 
+[connection signal="visibility_changed" from="." to="." method="_on_visibility_changed"]
 [connection signal="toggled" from="VBoxContainer/TabContainer/Video/FullscreenPanel/FullscreenContainer/FullscreenCheckButton" to="." method="_on_fullscreen_check_button_toggled"]
 [connection signal="item_selected" from="VBoxContainer/TabContainer/Video/SSAAPanel/SSAAContainer/SSAAOptionButton" to="." method="_on_ssaa_option_button_item_selected"]
 [connection signal="item_selected" from="VBoxContainer/TabContainer/Video/MSAAPanel/MSAAContainer/MSAAOptionButton" to="." method="_on_msaa_option_button_item_selected"]

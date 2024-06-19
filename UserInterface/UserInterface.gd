@@ -3,7 +3,7 @@ class_name UI
 
 @onready var pause_screen: Control = $PauseScreen
 @onready var pause_container: CenterContainer = %PauseContainer
-@onready var settings_container: MarginContainer = %SettingsContainer
+@onready var settings_container: SettingsContainer = %SettingsContainer
 @onready var resume_button: Button = %ResumeButton
 @onready var color_rect_fader: ColorRect = $ColorRectFader
 
@@ -56,6 +56,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		restart_current_scene()
 	elif event.is_action_pressed("toggle_reticle"):
 		toggle_reticle()
+	elif event.is_action_pressed("toggle_fullscreen"):
+		settings_container.toggle_fullscreen()
 
 func _on_resume_button_pressed() -> void:
 	paused = false

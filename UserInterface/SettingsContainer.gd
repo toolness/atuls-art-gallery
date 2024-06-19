@@ -1,3 +1,5 @@
+class_name SettingsContainer
+
 extends MarginContainer
 
 signal exit()
@@ -24,12 +26,15 @@ var _player: Player
 @onready var shadow_option_button: OptionButton = %ShadowOptionButton
 @onready var ssaa_option_button: OptionButton = %SSAAOptionButton
 @onready var msaa_option_button: OptionButton = %MSAAOptionButton
+@onready var fullscreen_check_button: CheckButton = %FullscreenCheckButton
 
 @onready var master_slider: HSlider = %MasterSlider
 @onready var music_slider: HSlider = %MusicSlider
 @onready var sfx_slider: HSlider = %SFXSlider
 
 @onready var button: Button = $VBoxContainer/Button
+
+@onready var is_fullscreen := DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN
 
 func focus() -> void:
 	button.grab_focus()
@@ -53,7 +58,9 @@ func _ready() -> void:
 	# 4x AA
 	msaa_option_button.select(msaa_option_button.selected)
 	_on_msaa_option_button_item_selected(msaa_option_button.selected)
-	
+
+	fullscreen_check_button.set_pressed_no_signal(is_fullscreen)
+
 	# Set all audio  sliders to full volume
 	master_slider.value = db_to_linear(AudioServer.get_bus_volume_db(AudioServer.get_bus_index("Master")))
 	music_slider.value = db_to_linear(AudioServer.get_bus_volume_db(AudioServer.get_bus_index("Music")))
@@ -84,12 +91,18 @@ func _on_option_button_item_selected(index: int) -> void:
 		4:
 			_player.mouse_sensitivity = very_high_sens
 
-func _on_fullscreen_check_button_toggled(button_pressed: bool) -> void:
-	if button_pressed:
+func toggle_fullscreen() -> void:
+	_update_fullscreen_state(not is_fullscreen)
+
+func _update_fullscreen_state(new_value: bool):
+	is_fullscreen = new_value
+	if is_fullscreen:
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN)
 	else:
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
 
+func _on_fullscreen_check_button_toggled(button_pressed: bool) -> void:
+	_update_fullscreen_state(button_pressed)
 
 func _on_shadow_option_button_item_selected(index: int) -> void:
 	match index:
@@ -162,3 +175,8 @@ func update_player(player_in: Player) -> void:
 	_on_fov_slider_value_changed(fov_slider.value)
 	_on_option_button_item_selected(sensitivity_dropdown.selected)
 	
+
+
+func _on_visibility_changed():
+	if is_visible_in_tree():
+		fullscreen_check_button.set_pressed_no_signal(is_fullscreen)
