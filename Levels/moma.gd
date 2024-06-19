@@ -12,13 +12,13 @@ const MIN_WALL_MOUNT_SIZE = 2
 
 const GALLERY_LABEL_ID_OFFSET = 101
 
-const PAINTING_BASE_NAME = "MomaPainting"
+const GALLERY_BASE_NAME = "MomaGallery_"
 
-const PAINTING_PATTERN = "MomaPainting*"
+const PAINTING_BASE_NAME = "MomaPainting_"
+
+const PAINTING_PATTERN = "MomaPainting_*"
 
 var gallery_id: int
-
-var latest_painting_id := 0
 
 static func try_to_find_painting_from_collision(collision: Object) -> Painting:
 	if collision and collision is Node3D:
@@ -36,10 +36,9 @@ static func try_to_find_wall_from_collision(collision: Object) -> Wall:
 	return null
 
 
-func make_painting() -> Painting:
+func make_painting(painting_id: int) -> Painting:
 	var painting: Painting = painting_scene.instantiate()
-	latest_painting_id += 1
-	painting.name = PAINTING_BASE_NAME + str(latest_painting_id)
+	painting.name = PAINTING_BASE_NAME + str(painting_id)
 	add_child(painting)
 	return painting
 
@@ -49,7 +48,7 @@ func place_met_object_on_wall(
 	wall: Wall,
 	texture: ImageTexture
 ) -> void:
-	var painting := make_painting()
+	var painting := make_painting(met_object.object_id)
 	painting.init_with_met_object(met_object, texture)
 	var width_offset := wall.horizontal_direction * met_object.x
 	var height_offset := Vector3.UP * met_object.y
@@ -186,6 +185,7 @@ func populate_with_paintings() -> int:
 
 func init(new_gallery_id: int) -> void:
 	gallery_id = new_gallery_id
+	name = GALLERY_BASE_NAME + str(gallery_id)
 	gallery_label.text = str(gallery_id + GALLERY_LABEL_ID_OFFSET)
 	print("Initializing gallery ", gallery_id)
 	var count := await populate_with_paintings()
