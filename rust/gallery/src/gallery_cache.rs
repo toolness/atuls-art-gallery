@@ -1,13 +1,22 @@
 use anyhow::{anyhow, Result};
-use std::{fs::File, path::PathBuf};
+use std::{fs::File, path::PathBuf, time::Duration};
+use ureq::{Agent, AgentBuilder};
+
+const TIMEOUT_SECS: u64 = 10;
 
 pub struct GalleryCache {
     cache_dir: PathBuf,
+    agent: Agent,
 }
 
 impl GalleryCache {
     pub fn new(cache_dir: PathBuf) -> Self {
-        Self { cache_dir }
+        Self {
+            cache_dir,
+            agent: AgentBuilder::new()
+                .timeout(Duration::from_secs(TIMEOUT_SECS))
+                .build(),
+        }
     }
 
     pub fn cache_dir(&self) -> &PathBuf {
@@ -28,7 +37,7 @@ impl GalleryCache {
             return Ok(());
         }
         println!("Caching {} -> {}...", url.as_ref(), filename_path.display());
-        let response = ureq::get(url.as_ref()).call()?;
+        let response = self.agent.get(url.as_ref()).call()?;
         if response.status() != 200 {
             return Err(anyhow!("Got HTTP {}", response.status()));
         }
@@ -44,7 +53,7 @@ impl GalleryCache {
             return Ok(());
         }
         println!("Caching {} -> {}...", url.as_ref(), filename_path.display());
-        let response = ureq::get(url.as_ref()).call()?;
+        let response = self.agent.get(url.as_ref()).call()?;
         if response.status() != 200 {
             return Err(anyhow!("Got HTTP {}", response.status()));
         }
