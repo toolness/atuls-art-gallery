@@ -122,7 +122,7 @@ fn layout_command(mut db: GalleryDb) -> Result<()> {
             gallery_id += 1;
         }
     }
-    db.add_layout_records(&layout_records)?;
+    db.upsert_layout_records(&layout_records)?;
     println!("Created a layout with {} galleries.", gallery_id);
     Ok(())
 }
@@ -191,7 +191,7 @@ fn main() {
 mod tests {
     use std::{fs::File, io::BufReader, path::PathBuf};
 
-    use gallery::gallery_cache::GalleryCache;
+    use gallery::{gallery_cache::GalleryCache, gallery_db::LayoutRecord};
     use rusqlite::Connection;
 
     use crate::met_csv::iter_public_domain_2d_met_csv_objects;
@@ -217,7 +217,62 @@ mod tests {
 
         let rows = db.get_all_met_objects_for_layout().unwrap();
         assert!(rows.len() > 0);
+        let met_object_id = rows.get(0).unwrap().id;
 
-        db.get_met_objects_for_gallery_wall(5, "wall_1").unwrap();
+        // Add a painting to the layout.
+        db.upsert_layout_records(&vec![LayoutRecord {
+            gallery_id: 5,
+            wall_id: "wall_1",
+            met_object_id,
+            x: 1.0,
+            y: 6.0,
+        }])
+        .unwrap();
+
+        // Make sure it got placed where we placed it.
+        let (record, (x, y)) = db
+            .get_met_objects_for_gallery_wall(5, "wall_1")
+            .unwrap()
+            .pop()
+            .unwrap();
+        assert_eq!(record.object_id, met_object_id);
+        assert_eq!(x, 1.0);
+        assert_eq!(y, 6.0);
+
+        // Make sure there's nothing in the place we want to move it to.
+        assert_eq!(
+            db.get_met_objects_for_gallery_wall(6, "wall_2")
+                .unwrap()
+                .len(),
+            0
+        );
+
+        // Move the painting.
+        db.upsert_layout_records(&vec![LayoutRecord {
+            gallery_id: 6,
+            wall_id: "wall_2",
+            met_object_id,
+            x: 4.0,
+            y: 9.0,
+        }])
+        .unwrap();
+
+        // Make sure there's nothing in the place we moved it from.
+        assert_eq!(
+            db.get_met_objects_for_gallery_wall(5, "wall_1")
+                .unwrap()
+                .len(),
+            0
+        );
+
+        // Make sure it actually got moved to where we moved it.
+        let (record, (x, y)) = db
+            .get_met_objects_for_gallery_wall(6, "wall_2")
+            .unwrap()
+            .pop()
+            .unwrap();
+        assert_eq!(record.object_id, met_object_id);
+        assert_eq!(x, 4.0);
+        assert_eq!(y, 9.0);
     }
 }

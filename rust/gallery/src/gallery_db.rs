@@ -34,7 +34,7 @@ impl GalleryDb {
         Ok(())
     }
 
-    pub fn add_layout_records<T: AsRef<str>>(
+    pub fn upsert_layout_records<T: AsRef<str>>(
         &mut self,
         records: &Vec<LayoutRecord<T>>,
     ) -> Result<()> {
@@ -44,6 +44,11 @@ impl GalleryDb {
             tx.execute(
             "
                 INSERT INTO layout (gallery_id, wall_id, met_object_id, x, y) VALUES (?1, ?2, ?3, ?4, ?5)
+                    ON CONFLICT(met_object_id) DO UPDATE SET
+                        gallery_id=excluded.gallery_id,
+                        wall_id=excluded.wall_id,
+                        x=excluded.x,
+                        y=excluded.y
                 ",
         (
                     &record.gallery_id,
