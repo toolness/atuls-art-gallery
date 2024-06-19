@@ -49,7 +49,7 @@ func sync_galleries() -> void:
 			print("Spawning new gallery with id ", gallery_id, " at ", instance.position.x)
 			add_child(instance)
 			gallery_chunks.push_front(instance)
-			instance.init(gallery_id)
+			instance.init(gallery_id, player.global_position)
 
 
 const SAVE_STATE_FILENAME := "user://save_state.json"

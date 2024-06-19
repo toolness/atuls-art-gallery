@@ -105,6 +105,7 @@ class MovingPainting:
 
 
 class Wall:
+	var name: String
 	var width: float
 	var height: float
 	var y_rotation: float
@@ -117,6 +118,7 @@ class Wall:
 		if not is_instance_of(object, MeshInstance3D):
 			return false
 		mesh_instance = object
+		name = mesh_instance.name
 		aabb = mesh_instance.get_aabb()
 		height = aabb.size.y
 		if height < MIN_WALL_MOUNT_SIZE:
@@ -158,14 +160,29 @@ class Wall:
 		return wall
 
 
-func populate_with_paintings() -> int:
+func populate_with_paintings(player_position: Vector3) -> int:
 	var count := 0
+	var walls: Array[Wall] = []
+	# This is a mapping from walls to their distances to the player.
+	var wall_distances_from_player := {}
+
 	for child in gallery.get_children():
 		var wall := Wall.try_from_object(child)
-		if not wall:
-			continue
+		if wall:
+			walls.push_back(wall)
+			var wall_pos := wall.mesh_instance.global_position + wall.aabb.get_center()
+			var distance_from_player = wall_pos.distance_to(player_position)
+			wall_distances_from_player[wall] = distance_from_player
 
-		var met_objects := await MetObjects.get_met_objects_for_gallery_wall(gallery_id, child.name)
+	var sort_by_distance_from_player := func is_b_after_a(a: Wall, b: Wall) -> bool:
+		var a_dist: float = wall_distances_from_player[a]
+		var b_dist: float = wall_distances_from_player[b]
+		return b_dist > a_dist
+
+	walls.sort_custom(sort_by_distance_from_player)
+
+	for wall in walls:
+		var met_objects := await MetObjects.get_met_objects_for_gallery_wall(gallery_id, wall.name)
 		if not is_inside_tree():
 			return count
 		for met_object in met_objects:
@@ -190,10 +207,10 @@ func populate_with_paintings() -> int:
 	return count
 
 
-func init(new_gallery_id: int) -> void:
+func init(new_gallery_id: int, player_position: Vector3) -> void:
 	gallery_id = new_gallery_id
 	name = GALLERY_BASE_NAME + str(gallery_id)
 	gallery_label.text = str(gallery_id + GALLERY_LABEL_ID_OFFSET)
 	print("Initializing gallery ", gallery_id)
-	var count := await populate_with_paintings()
+	var count := await populate_with_paintings(player_position)
 	print("Populated gallery ", gallery_id, " with ", count, " paintings.")
