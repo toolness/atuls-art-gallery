@@ -52,8 +52,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		paused = true
 	elif event.is_action_pressed("cycle_debug_draw"):
 		cycle_debug_draw()
+	elif event.is_action_pressed("reset_and_reload_scene"):
+		reload_current_scene(true)
 	elif event.is_action_pressed("reload_scene"):
-		restart_current_scene()
+		reload_current_scene(false)
 	elif event.is_action_pressed("toggle_reticle"):
 		toggle_reticle()
 	elif event.is_action_pressed("toggle_fullscreen"):
@@ -124,13 +126,17 @@ func change_scene(next_scene: String, player_transform: Transform3D) -> void:
 		)
 	fade_in(tween)
 
-# Fade the screen out, reload the level and fade back in.
-func restart_current_scene() -> void:
-	var maybe_gallery := get_tree().get_first_node_in_group("InfiniteGallery")
-	if maybe_gallery is InfiniteGallery:
-		var gallery: InfiniteGallery = maybe_gallery
-		gallery.save_state()
+func _get_gallery() -> InfiniteGallery:
+	var gallery := get_tree().get_first_node_in_group("InfiniteGallery")
+	assert(gallery is InfiniteGallery)
+	return gallery
 
+# Fade the screen out, reload the level and fade back in.
+func reload_current_scene(hard_reset: bool) -> void:
+	if hard_reset:
+		_get_gallery().delete_state()
+	else:
+		_get_gallery().save_state()
 	# Store a reference to the player to pass its settings onto the next player.
 	var player = get_tree().get_first_node_in_group("Player")
 	# Stop movement and cache settings.

@@ -58,6 +58,11 @@ const AUTOSAVE_INTERVAL := 30.0
 
 var seconds_since_last_save := 0.0
 
+func delete_state() -> void:
+	print("Deleting state.")
+	if FileAccess.file_exists(SAVE_STATE_FILENAME):
+		DirAccess.remove_absolute(SAVE_STATE_FILENAME)
+
 func save_state() -> void:
 	var state := {
 		"player_position": vec3_to_array(player.global_position),
