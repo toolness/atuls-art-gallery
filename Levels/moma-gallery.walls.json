@@ -1,122 +1,122 @@
 [
   {
     "height": 4,
-    "name": "Plane_001",
+    "name": "Wall-01-east-1",
     "width": 3.00001001358032
   },
   {
     "height": 4,
-    "name": "Plane_002",
+    "name": "Wall-01-east-2",
     "width": 3.00001001358032
   },
   {
     "height": 3.99999976158142,
-    "name": "Plane_004",
+    "name": "Wall-01-north-2",
     "width": 4.00001001358032
   },
   {
     "height": 3.99999976158142,
-    "name": "Plane_005",
+    "name": "Wall-01-north-1",
     "width": 10.0000095367432
   },
   {
     "height": 3.99999952316284,
-    "name": "Plane_006",
+    "name": "Wall-01-west",
     "width": 8
   },
   {
     "height": 3.99999976158142,
-    "name": "Plane_007",
+    "name": "Wall-01-south",
     "width": 16
   },
   {
     "height": 3.99999976158142,
-    "name": "Plane_009",
+    "name": "Wall-02-south-2",
     "width": 4.00001001358032
   },
   {
     "height": 3.99999976158142,
-    "name": "Plane_010",
+    "name": "Wall-02-south-1",
     "width": 4.00001001358032
   },
   {
     "height": 4,
-    "name": "Plane_014",
+    "name": "Wall-02-west-1",
     "width": 3
   },
   {
     "height": 4,
-    "name": "Plane_015",
+    "name": "Wall-02-west-2",
     "width": 3
   },
   {
     "height": 3.99999952316284,
-    "name": "Plane_017",
+    "name": "Wall-02-east",
     "width": 8.00000953674316
   },
   {
     "height": 3.99999952316284,
-    "name": "Plane_018",
+    "name": "Wall-02-north",
     "width": 10.0000095367432
   },
   {
     "height": 4,
-    "name": "Plane_022",
+    "name": "Wall-03-east-1",
     "width": 3.00001001358032
   },
   {
     "height": 4,
-    "name": "Plane_023",
+    "name": "Wall-03-east-2",
     "width": 3.00001001358032
   },
   {
     "height": 3.99999976158142,
-    "name": "Plane_025",
+    "name": "Wall-03-south-2",
     "width": 4
   },
   {
     "height": 3.99999976158142,
-    "name": "Plane_026",
+    "name": "Wall-03-south-1",
     "width": 10
   },
   {
     "height": 3.99999952316284,
-    "name": "Plane_027",
+    "name": "Wall-03-west",
     "width": 8
   },
   {
     "height": 3.99999976158142,
-    "name": "Plane_028",
+    "name": "Wall-03-north",
     "width": 16
   },
   {
     "height": 3.99999976158142,
-    "name": "Plane_031",
+    "name": "Wall-04-north-1",
     "width": 4.00001001358032
   },
   {
     "height": 3.99999976158142,
-    "name": "Plane_032",
+    "name": "Wall-04-north-2",
     "width": 4.00001001358032
   },
   {
     "height": 4,
-    "name": "Plane_034",
+    "name": "Wall-04-west-2",
     "width": 3
   },
   {
     "height": 4,
-    "name": "Plane_035",
+    "name": "Wall-04-west-1",
     "width": 3
   },
   {
     "height": 3.99999952316284,
-    "name": "Plane_037",
+    "name": "Wall-04-east",
     "width": 8.00000953674316
   },
   {
     "height": 3.99999952316284,
-    "name": "Plane_038",
+    "name": "Wall-04-south",
     "width": 10.0000095367432
   }
 ]
