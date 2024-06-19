@@ -5,7 +5,11 @@ use std::{
 };
 
 use anyhow::Result;
-use gallery::{gallery_cache::GalleryCache, gallery_db::GalleryDb, met_api::load_met_api_record};
+use gallery::{
+    gallery_cache::GalleryCache,
+    gallery_db::{GalleryDb, LayoutRecord},
+    met_api::load_met_api_record,
+};
 use godot::{
     engine::{Engine, Image, Os, ProjectSettings},
     prelude::*,
@@ -54,6 +58,13 @@ struct MetObjectsSingleton {
 
 enum ChannelCommand {
     End,
+    MoveMetObject {
+        met_object_id: u64,
+        gallery_id: i64,
+        wall_id: String,
+        x: f64,
+        y: f64,
+    },
     GetMetObjectsForGalleryWall {
         request_id: u32,
         gallery_id: i64,
@@ -193,6 +204,22 @@ fn work_thread(
                 println!("work_thread received 'end' command.");
                 break;
             }
+            Ok(ChannelCommand::MoveMetObject {
+                met_object_id,
+                gallery_id,
+                wall_id,
+                x,
+                y,
+            }) => {
+                println!("work_thread received 'MoveMetObject' command.");
+                db.upsert_layout_records(&vec![LayoutRecord {
+                    gallery_id,
+                    wall_id,
+                    met_object_id,
+                    x,
+                    y,
+                }])?;
+            }
             Ok(ChannelCommand::GetMetObjectsForGalleryWall {
                 request_id,
                 gallery_id,
@@ -280,6 +307,31 @@ const NULL_REQUEST_ID: u32 = 0;
 
 #[godot_api]
 impl MetObjectsSingleton {
+    #[func]
+    fn move_met_object(
+        &mut self,
+        met_object_id: u64,
+        gallery_id: i64,
+        wall_id: String,
+        x: f64,
+        y: f64,
+    ) {
+        if self
+            .cmd_tx
+            .send(ChannelCommand::MoveMetObject {
+                met_object_id,
+                gallery_id,
+                wall_id,
+                x,
+                y,
+            })
+            .is_err()
+        {
+            godot_print!("cmd_tx.send() failed!");
+            self.handler = None;
+        }
+    }
+
     #[func]
     fn get_met_objects_for_gallery_wall(&mut self, gallery_id: i64, wall_id: String) -> u32 {
         let request_id = self.new_request_id();

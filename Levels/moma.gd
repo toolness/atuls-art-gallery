@@ -77,10 +77,10 @@ class MovingPainting:
 	func finish_moving() -> void:
 		painting.finish_interactive_placement()
 		print("New painting position is object_id=", painting.met_object.object_id, " gallery_id=", gallery_id, " wall_id=", wall_id, " x=", wall_x, " y=", wall_y)
-		# TODO: Write the new position to the database.
+		RustMetObjects.move_met_object(painting.met_object.object_id, gallery_id, wall_id, wall_x, wall_y)
 
 	func _populate_wall_info(wall: Wall):
-		var relative_position = painting.global_position - wall.get_base_position()
+		var relative_position = painting.global_position - wall.get_global_base_position()
 		wall_x = relative_position.dot(wall.horizontal_direction)
 		wall_y = relative_position.y
 		wall_id = wall.name
@@ -177,6 +177,9 @@ class Wall:
 
 	func get_base_position() -> Vector3:
 		return mesh_instance.position + mesh_instance.get_aabb().position
+
+	func get_global_base_position() -> Vector3:
+		return mesh_instance.global_position + mesh_instance.get_aabb().position
 
 	static func try_from_object(object: Object) -> Wall:
 		var wall: Wall = Wall.new()
