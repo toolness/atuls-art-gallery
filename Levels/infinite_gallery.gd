@@ -15,6 +15,8 @@ extends Node3D
 
 const GALLERY_CHUNK_WIDTH = 28
 
+const GALLERY_SPAWN_RADIUS = 1
+
 
 func get_gallery_id(x: float) -> int:
 	return floori(x / float(GALLERY_CHUNK_WIDTH))
@@ -22,8 +24,8 @@ func get_gallery_id(x: float) -> int:
 
 func sync_galleries() -> void:
 	var middle_gallery_id := get_gallery_id(player.position.x)
-	var min_gallery_id := middle_gallery_id - 1
-	var max_gallery_id := middle_gallery_id + 1
+	var min_gallery_id := middle_gallery_id - GALLERY_SPAWN_RADIUS
+	var max_gallery_id := middle_gallery_id + GALLERY_SPAWN_RADIUS
 
 	# Get rid of galleries that are far from the player.
 	var new_gallery_chunks: Array[Moma] = []
@@ -37,7 +39,7 @@ func sync_galleries() -> void:
 	gallery_chunks = new_gallery_chunks
 
 	# Spawn galleries that are near the player.
-	for gallery_id: int in [min_gallery_id, middle_gallery_id, max_gallery_id]:
+	for gallery_id: int in range(min_gallery_id, max_gallery_id + 1):
 		var found := false
 		for gallery_chunk in gallery_chunks:
 			if gallery_chunk.gallery_id == gallery_id:
