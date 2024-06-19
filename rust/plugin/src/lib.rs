@@ -136,14 +136,14 @@ struct MetObject {
     x: f64,
     #[var]
     y: f64,
-    small_image: GString,
+    small_image: String,
 }
 
 #[godot_api]
 impl MetObject {
     #[func]
     fn load_small_image_texture(&self) -> Option<Gd<ImageTexture>> {
-        let Some(mut image) = Image::load_from_file(self.small_image.clone()) else {
+        let Some(mut image) = Image::load_from_file(GString::from(&self.small_image)) else {
             return None;
         };
         image.generate_mipmaps();
@@ -351,7 +351,7 @@ impl MetObjectsSingleton {
                                 date: object.date.into_godot(),
                                 width: object.width,
                                 height: object.height,
-                                small_image: object.small_image.into_godot(),
+                                small_image: object.small_image,
                                 x: object.x,
                                 y: object.y,
                             })
