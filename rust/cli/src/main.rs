@@ -19,6 +19,8 @@ use std::io::BufReader;
 
 const TRANSACTION_BATCH_SIZE: usize = 250;
 
+const LAYOUT_START_GALLERY_ID: i64 = 1;
+
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 struct Args {
@@ -101,7 +103,7 @@ fn layout_command(mut db: GalleryDb) -> Result<()> {
     let mut finder = MetObjectLayoutFitter::new(met_objects);
     let mut layout_records: Vec<LayoutRecord<&str>> = vec![];
     let mut wall_idx = 0;
-    let mut gallery_id = 1;
+    let mut gallery_id = LAYOUT_START_GALLERY_ID;
     while !finder.is_empty() {
         let wall = walls.get(wall_idx).unwrap();
         place_paintings_along_wall(

@@ -5,8 +5,6 @@ const MAX_REQUESTS_PER_FRAME = 10
 
 const NULL_REQUEST_ID = 0
 
-const GALLERY_ID_DB_OFFSET = 2
-
 var requests = {}
 
 
@@ -32,11 +30,8 @@ func fetch_small_image(object_id: int) -> Image:
 
 
 func get_met_objects_for_gallery_wall(gallery_id: int, wall_id: String) -> Array[MetObject]:
-	var db_gallery_id := gallery_id + GALLERY_ID_DB_OFFSET
-	if db_gallery_id < 0:
-		return []
 	var request := MetObjectsRequest.new()
-	var request_id := RustMetObjects.get_met_objects_for_gallery_wall(db_gallery_id, wall_id)
+	var request_id := RustMetObjects.get_met_objects_for_gallery_wall(gallery_id, wall_id)
 	if request_id == NULL_REQUEST_ID:
 		# Oof, something went wrong.
 		return []

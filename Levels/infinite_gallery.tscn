@@ -18,9 +18,7 @@ gallery_chunk_scene = ExtResource("3_3c1uq")
 environment = SubResource("Environment_ckp8a")
 
 [node name="Player" parent="." instance=ExtResource("2_4hb5h")]
-transform = Transform3D(-7.39508e-06, 0, -1, 0, 1, 0, 1, 0, -7.39508e-06, -5, 2, 3)
+transform = Transform3D(-7.39508e-06, 0, -1, 0, 1, 0, 1, 0, -7.39508e-06, 26.5, 2, 4.00023)
 jump_height = 0.5
 
-[node name="Moma" parent="." instance=ExtResource("3_3c1uq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28, 0, 0)
-visible = false
+[node name="Moma_for_reference_only" parent="." instance=ExtResource("3_3c1uq")]

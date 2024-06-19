@@ -10,7 +10,14 @@ extends Node3D
 
 const MIN_WALL_MOUNT_SIZE = 2
 
-const GALLERY_LABEL_ID_OFFSET = 101
+# The label is on the border between this gallery and
+# the one next to it--let's make it be a label for the
+# one next to it. This is because we start the player
+# just beyond the edge of the gallery they start in,
+# looking into the next gallery, and we want the
+# gallery ID to reflect the gallery they're looking
+# into.
+const GALLERY_LABEL_ID_OFFSET = 1
 
 const GALLERY_BASE_NAME = "MomaGallery_"
 
