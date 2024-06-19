@@ -69,9 +69,22 @@ func place_met_object_on_wall(
 class MovingPainting:
 	var painting: Painting
 	var offset: Vector3
+	var wall_x: float
+	var wall_y: float
+	var wall_id: String
+	var gallery_id: int
 
 	func finish_moving() -> void:
 		painting.finish_interactive_placement()
+		print("New painting position is object_id=", painting.met_object.object_id, " gallery_id=", gallery_id, " wall_id=", wall_id, " x=", wall_x, " y=", wall_y)
+		# TODO: Write the new position to the database.
+
+	func _populate_wall_info(wall: Wall):
+		var relative_position = painting.global_position - wall.get_base_position()
+		wall_x = relative_position.dot(wall.horizontal_direction)
+		wall_y = relative_position.y
+		wall_id = wall.name
+		gallery_id = wall.gallery.gallery_id
 
 	func move_along_wall(raycast: RayCast3D) -> void:
 		var wall := Moma.try_to_find_wall_from_collision(raycast.get_collider())
@@ -89,6 +102,7 @@ class MovingPainting:
 			print("Moving painting from ", parent.name, " to ", wall.gallery.name)
 			parent.remove_child(painting)
 			wall.gallery.add_child(painting)
+		_populate_wall_info(wall)
 
 	static func try_to_start_moving(raycast: RayCast3D) -> MovingPainting:
 		var _painting := Moma.try_to_find_painting_from_collision(raycast.get_collider())
@@ -108,6 +122,7 @@ class MovingPainting:
 		var moving_painting := MovingPainting.new()
 		moving_painting.painting = _painting
 		moving_painting.offset = (point - _painting.global_position).rotated(Vector3.UP, -wall.y_rotation)
+		moving_painting._populate_wall_info(wall)
 		return moving_painting
 
 
