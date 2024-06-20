@@ -220,8 +220,8 @@ fn work_thread(
     let cache = GalleryCache::new(cache_dir.clone());
     let db_path = cache.get_cached_path("gallery.sqlite");
     let mut db = GalleryDb::new(Connection::open(db_path)?);
+    println!("work_thread waiting for command.");
     loop {
-        println!("work_thread waiting for command.");
         match cmd_rx.recv() {
             Ok(ChannelCommand::End) => {
                 println!("work_thread received 'end' command.");
@@ -234,7 +234,7 @@ fn work_thread(
                 x,
                 y,
             }) => {
-                println!("work_thread received 'MoveMetObject' command.");
+                //println!("work_thread received 'MoveMetObject' command.");
                 db.upsert_layout_records(&vec![LayoutRecord {
                     gallery_id,
                     wall_id,
@@ -248,7 +248,7 @@ fn work_thread(
                 gallery_id,
                 wall_id,
             }) => {
-                println!("work_thread received 'GetMetObjectsForGalleryWall' command, request_id={request_id}, gallery_id={gallery_id}, wall_id={wall_id}.");
+                //println!("work_thread received 'GetMetObjectsForGalleryWall' command, request_id={request_id}, gallery_id={gallery_id}, wall_id={wall_id}.");
                 let records = get_met_objects_for_gallery_wall(&mut db, gallery_id, wall_id)?;
                 if response_tx
                     .send(ChannelResponse::MetObjectsForGalleryWall(
@@ -264,7 +264,7 @@ fn work_thread(
                 request_id,
                 object_id,
             }) => {
-                println!("work_thread received 'FetchSmallImage' command, request_id={request_id}, object_id={object_id}.");
+                //println!("work_thread received 'FetchSmallImage' command, request_id={request_id}, object_id={object_id}.");
                 let small_image = fetch_small_image(&cache, object_id);
                 if response_tx
                     .send(ChannelResponse::Image(request_id, small_image))
