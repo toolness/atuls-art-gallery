@@ -42,9 +42,18 @@ impl GalleryCache {
             return Err(anyhow!("Got HTTP {}", response.status()));
         }
         let mut response_body = response.into_reader();
-        let mut outfile = File::create(filename_path)?;
-        std::io::copy(&mut response_body, &mut outfile)?;
-        Ok(())
+        let mut outfile = File::create(filename_path.clone())?;
+        match std::io::copy(&mut response_body, &mut outfile) {
+            Ok(_) => Ok(()),
+            Err(err) => {
+                // Note: I haven't actually tested this manually, hopefully it works!
+                drop(outfile);
+                if filename_path.exists() {
+                    let _ = std::fs::remove_file(filename_path);
+                }
+                Err(err.into())
+            }
+        }
     }
 
     pub fn cache_json_url<T: AsRef<str>, U: AsRef<str>>(&self, url: T, filename: U) -> Result<()> {

@@ -188,6 +188,29 @@ fn get_met_objects_for_gallery_wall(
     Ok(result)
 }
 
+fn fetch_small_image(cache: &GalleryCache, met_object_id: u64) -> Option<PathBuf> {
+    match load_met_api_record(&cache, met_object_id) {
+        Ok(obj_record) => match obj_record.try_to_download_small_image(&cache) {
+            Ok(Some((_width, _height, small_image))) => Some(cache.cache_dir().join(small_image)),
+            Ok(None) => None,
+            Err(err) => {
+                eprintln!(
+                    "Unable to download small image for met object ID {}: {:?}",
+                    met_object_id, err
+                );
+                None
+            }
+        },
+        Err(err) => {
+            eprintln!(
+                "Unable to load Met API record for met object ID {}: {:?}",
+                met_object_id, err
+            );
+            None
+        }
+    }
+}
+
 fn work_thread(
     root_dir: PathBuf,
     cmd_rx: Receiver<ChannelCommand>,
@@ -242,13 +265,7 @@ fn work_thread(
                 object_id,
             }) => {
                 println!("work_thread received 'FetchSmallImage' command, request_id={request_id}, object_id={object_id}.");
-                let obj_record = load_met_api_record(&cache, object_id)?;
-                let small_image = match obj_record.try_to_download_small_image(&cache)? {
-                    Some((_width, _height, small_image)) => {
-                        Some(cache.cache_dir().join(small_image))
-                    }
-                    None => None,
-                };
+                let small_image = fetch_small_image(&cache, object_id);
                 if response_tx
                     .send(ChannelResponse::Image(request_id, small_image))
                     .is_err()
