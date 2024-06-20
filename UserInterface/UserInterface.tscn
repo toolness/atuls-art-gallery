@@ -191,14 +191,6 @@ text = "Quit Game"
 [node name="SettingsContainer" parent="PauseScreen" instance=ExtResource("5_qrem4")]
 unique_name_in_owner = true
 layout_mode = 1
-min_fov = null
-max_fov = null
-default_fov = null
-very_low_sens = null
-low_sens = null
-medium_sens = null
-high_sens = null
-very_high_sens = null
 
 [node name="ColorRectFader" type="ColorRect" parent="."]
 visible = false
