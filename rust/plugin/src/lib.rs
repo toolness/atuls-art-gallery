@@ -304,17 +304,23 @@ impl IObject for MetObjectsSingleton {
         }
         let (cmd_tx, cmd_rx) = channel::<ChannelCommand>();
         let (response_tx, response_rx) = channel::<ChannelResponse>();
-        let handler = thread::spawn(move || {
-            let root_dir = PathBuf::from(root_dir);
-            if let Err(err) = work_thread(root_dir.clone(), cmd_rx, response_tx) {
-                eprintln!("Thread errored: {err:?}");
-            }
-        });
+        let is_running_in_editor = Engine::singleton().is_editor_hint();
+        let handler = if is_running_in_editor {
+            godot_print!("Running in editor, not spawning work thread.");
+            None
+        } else {
+            Some(thread::spawn(move || {
+                let root_dir = PathBuf::from(root_dir);
+                if let Err(err) = work_thread(root_dir.clone(), cmd_rx, response_tx) {
+                    eprintln!("Thread errored: {err:?}");
+                }
+            }))
+        };
         Self {
             base,
             cmd_tx,
             response_rx,
-            handler: Some(handler),
+            handler,
             next_request_id: 1,
         }
     }
