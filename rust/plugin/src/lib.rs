@@ -410,7 +410,7 @@ impl MetObjectsSingleton {
         }
         match self.response_rx.try_recv() {
             Ok(ChannelResponse::Done) => {
-                godot_print!("No more objects!");
+                godot_print!("Work thread exited.");
                 self.handler = None;
             }
             Ok(ChannelResponse::MetObjectsForGalleryWall(request_id, objects)) => {
