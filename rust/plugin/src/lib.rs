@@ -1,6 +1,6 @@
 use std::{
     path::PathBuf,
-    sync::mpsc::{channel, Receiver, Sender, TryRecvError},
+    sync::mpsc::{channel, Receiver, SendError, Sender, TryRecvError},
     thread::{self, JoinHandle},
 };
 
@@ -330,6 +330,30 @@ const NULL_REQUEST_ID: u32 = 0;
 
 #[godot_api]
 impl MetObjectsSingleton {
+    fn handle_send_error(&mut self, err: SendError<ChannelCommand>) {
+        if self.handler.is_some() {
+            godot_error!("sending command failed: {:?}", err);
+            self.handler = None;
+        }
+    }
+
+    fn send(&mut self, command: ChannelCommand) {
+        let result = self.cmd_tx.send(command);
+        if let Err(err) = result {
+            self.handle_send_error(err);
+        }
+    }
+
+    fn send_request(&mut self, request_id: u32, command: ChannelCommand) -> u32 {
+        let result = self.cmd_tx.send(command);
+        if let Err(err) = result {
+            self.handle_send_error(err);
+            request_id
+        } else {
+            NULL_REQUEST_ID
+        }
+    }
+
     #[func]
     fn move_met_object(
         &mut self,
@@ -339,59 +363,38 @@ impl MetObjectsSingleton {
         x: f64,
         y: f64,
     ) {
-        if self
-            .cmd_tx
-            .send(ChannelCommand::MoveMetObject {
-                met_object_id,
-                gallery_id,
-                wall_id,
-                x,
-                y,
-            })
-            .is_err()
-        {
-            godot_print!("cmd_tx.send() failed!");
-            self.handler = None;
-        }
+        self.send(ChannelCommand::MoveMetObject {
+            met_object_id,
+            gallery_id,
+            wall_id,
+            x,
+            y,
+        });
     }
 
     #[func]
     fn get_met_objects_for_gallery_wall(&mut self, gallery_id: i64, wall_id: String) -> u32 {
         let request_id = self.new_request_id();
-        if self
-            .cmd_tx
-            .send(ChannelCommand::GetMetObjectsForGalleryWall {
+        self.send_request(
+            request_id,
+            ChannelCommand::GetMetObjectsForGalleryWall {
                 request_id,
                 gallery_id,
                 wall_id,
-            })
-            .is_ok()
-        {
-            request_id
-        } else {
-            godot_print!("cmd_tx.send() failed!");
-            self.handler = None;
-            NULL_REQUEST_ID
-        }
+            },
+        )
     }
 
     #[func]
     fn fetch_small_image(&mut self, object_id: u64) -> u32 {
         let request_id = self.new_request_id();
-        if self
-            .cmd_tx
-            .send(ChannelCommand::FetchSmallImage {
+        self.send_request(
+            request_id,
+            ChannelCommand::FetchSmallImage {
                 request_id,
                 object_id,
-            })
-            .is_ok()
-        {
-            request_id
-        } else {
-            godot_print!("cmd_tx.send() failed!");
-            self.handler = None;
-            NULL_REQUEST_ID
-        }
+            },
+        )
     }
 
     fn new_request_id(&mut self) -> u32 {
@@ -402,6 +405,9 @@ impl MetObjectsSingleton {
 
     #[func]
     fn poll(&mut self) -> Option<Gd<MetResponse>> {
+        if self.handler.is_none() {
+            return None;
+        }
         match self.response_rx.try_recv() {
             Ok(ChannelResponse::Done) => {
                 godot_print!("No more objects!");
