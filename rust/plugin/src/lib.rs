@@ -289,21 +289,40 @@ fn work_thread(
     Ok(())
 }
 
+fn normalize_path(path: String) -> PathBuf {
+    if cfg!(windows) {
+        // Godot always uses '/' as a path separator. There doesn't seem to
+        // be any built-in tooling to convert to an OS-specific path, so we'll
+        // just do this manually. (Fortunately slashes are illegal characters in
+        // Windows file names, so we don't need to worry about this accidentally
+        // changing the name of a directory.)
+        path.replace("/", "\\").into()
+    } else {
+        path.into()
+    }
+}
+
+fn get_root_dir() -> PathBuf {
+    let os = Os::singleton();
+    if os.has_feature("editor".into()) {
+        // Running from an editor binary.
+        normalize_path(
+            ProjectSettings::singleton()
+                .globalize_path(GString::from("res://"))
+                .to_string(),
+        )
+    } else {
+        // Running from an exported project.
+        let executable_path = normalize_path(os.get_executable_path().to_string());
+        executable_path.parent().unwrap().to_path_buf()
+    }
+}
+
 #[godot_api]
 impl IObject for MetObjectsSingleton {
     fn init(base: Base<Object>) -> Self {
-        let project_settings = ProjectSettings::singleton();
-        let mut root_dir = project_settings
-            .globalize_path(GString::from("res://"))
-            .to_string();
-        if cfg!(windows) {
-            // Godot always uses '/' as a path separator. There doesn't seem to
-            // be any built-in tooling to convert to an OS-specific path, so we'll
-            // just do this manually. (Fortunately slashes are illegal characters in
-            // Windows file names, so we don't need to worry about this accidentally
-            // changing the name of a directory.)
-            root_dir = root_dir.replace("/", "\\");
-        }
+        let root_dir = get_root_dir();
+        godot_print!("Root dir is {}.", root_dir.display());
         let (cmd_tx, cmd_rx) = channel::<ChannelCommand>();
         let (response_tx, response_rx) = channel::<ChannelResponse>();
         let is_running_in_editor = Engine::singleton().is_editor_hint();
@@ -313,7 +332,6 @@ impl IObject for MetObjectsSingleton {
         } else {
             godot_print!("Spawning work thread.");
             Some(thread::spawn(move || {
-                let root_dir = PathBuf::from(root_dir);
                 if let Err(err) = work_thread(root_dir.clone(), cmd_rx, response_tx.clone()) {
                     eprintln!("Thread errored: {err:?}");
                     let _ = response_tx.send(ChannelResponse::FatalError(format!("{err:?}")));
