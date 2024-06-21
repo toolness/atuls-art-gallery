@@ -28,6 +28,10 @@ struct Args {
     #[arg(short, long, default_value_t = false)]
     verbose: bool,
 
+    /// Path to database
+    #[arg(short, long)]
+    db_path: Option<PathBuf>,
+
     #[command(subcommand)]
     command: Commands,
 }
@@ -59,7 +63,11 @@ fn run() -> Result<()> {
     let manifest_dir: PathBuf = env!("CARGO_MANIFEST_DIR").into();
     let cache_dir = manifest_dir.join("..").join("cache");
     let cache = GalleryCache::new(cache_dir);
-    let db_path = cache.get_cached_path("gallery.sqlite");
+    let db_path = if let Some(db_path) = &args.db_path {
+        db_path.clone()
+    } else {
+        cache.get_cached_path("gallery.sqlite")
+    };
     let db = GalleryDb::new(Connection::open(db_path)?);
     match args.command {
         Commands::Csv { max, download } => csv_command(args, cache, db, max, download),
