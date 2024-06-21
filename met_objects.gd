@@ -40,7 +40,18 @@ func get_met_objects_for_gallery_wall(gallery_id: int, wall_id: String) -> Array
 	return request.response
 
 
+var fatal_error_message: String
+
+
 func _process(_delta) -> void:
+	if fatal_error_message:
+		return
+	fatal_error_message = RustMetObjects.take_fatal_error()
+	if fatal_error_message:
+		UserInterface.show_fatal_error(fatal_error_message)
+		# TODO: It would be nice to let all requests know that an error occurred.
+		requests.clear()
+		return
 	for i in range(MAX_REQUESTS_PER_FRAME):
 		var obj := RustMetObjects.poll()
 		if not obj:

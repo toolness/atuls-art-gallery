@@ -191,14 +191,6 @@ text = "Quit Game"
 [node name="SettingsContainer" parent="PauseScreen" instance=ExtResource("5_qrem4")]
 unique_name_in_owner = true
 layout_mode = 1
-min_fov = 60.0
-max_fov = 100.0
-default_fov = 75.0
-very_low_sens = 0.00025
-low_sens = 0.0005
-medium_sens = 0.00075
-high_sens = 0.001
-very_high_sens = 0.00125
 
 [node name="ColorRectFader" type="ColorRect" parent="."]
 visible = false
@@ -209,6 +201,11 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 color = Color(0, 0, 0, 1)
+
+[node name="ErrorDialog" type="AcceptDialog" parent="."]
+unique_name_in_owner = true
+title = "Fatal error"
+initial_position = 1
 
 [connection signal="pressed" from="PauseScreen/PauseContainer/VBoxContainer/ResumeButton" to="." method="_on_resume_button_pressed"]
 [connection signal="pressed" from="PauseScreen/PauseContainer/VBoxContainer/SettingsButton" to="." method="_on_settings_button_pressed"]

@@ -71,14 +71,6 @@ grow_horizontal = 2
 grow_vertical = 2
 theme = ExtResource("1_ga3o8")
 script = ExtResource("2_yf2ij")
-min_fov = null
-max_fov = null
-default_fov = null
-very_low_sens = null
-low_sens = null
-medium_sens = null
-high_sens = null
-very_high_sens = null
 
 [node name="VBoxContainer" type="VBoxContainer" parent="."]
 layout_mode = 2

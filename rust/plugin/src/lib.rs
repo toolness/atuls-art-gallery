@@ -53,6 +53,7 @@ struct MetObjectsSingleton {
     cmd_tx: Sender<ChannelCommand>,
     response_rx: Receiver<ChannelResponse>,
     handler: Option<JoinHandle<()>>,
+    fatal_error: Option<String>,
     next_request_id: u32,
 }
 
@@ -78,6 +79,7 @@ enum ChannelCommand {
 
 enum ChannelResponse {
     Done,
+    FatalError(String),
     MetObjectsForGalleryWall(u32, Vec<SimplifiedRecord>),
     Image(u32, Option<PathBuf>),
 }
@@ -309,10 +311,12 @@ impl IObject for MetObjectsSingleton {
             godot_print!("Running in editor, not spawning work thread.");
             None
         } else {
+            godot_print!("Spawning work thread.");
             Some(thread::spawn(move || {
                 let root_dir = PathBuf::from(root_dir);
-                if let Err(err) = work_thread(root_dir.clone(), cmd_rx, response_tx) {
+                if let Err(err) = work_thread(root_dir.clone(), cmd_rx, response_tx.clone()) {
                     eprintln!("Thread errored: {err:?}");
+                    let _ = response_tx.send(ChannelResponse::FatalError(format!("{err:?}")));
                 }
             }))
         };
@@ -322,6 +326,7 @@ impl IObject for MetObjectsSingleton {
             response_rx,
             handler,
             next_request_id: 1,
+            fatal_error: None,
         }
     }
 }
@@ -333,7 +338,6 @@ impl MetObjectsSingleton {
     fn handle_send_error(&mut self, err: SendError<ChannelCommand>) {
         if self.handler.is_some() {
             godot_error!("sending command failed: {:?}", err);
-            self.handler = None;
         }
     }
 
@@ -404,13 +408,23 @@ impl MetObjectsSingleton {
     }
 
     #[func]
+    fn take_fatal_error(&mut self) -> String {
+        self.fatal_error.take().unwrap_or_default()
+    }
+
+    #[func]
     fn poll(&mut self) -> Option<Gd<MetResponse>> {
         if self.handler.is_none() {
             return None;
         }
         match self.response_rx.try_recv() {
             Ok(ChannelResponse::Done) => {
-                godot_print!("Work thread exited.");
+                godot_print!("Work thread exited cleanly.");
+                self.handler = None;
+            }
+            Ok(ChannelResponse::FatalError(message)) => {
+                godot_error!("Work thread encountered fatal error: {message}");
+                self.fatal_error = Some(message);
                 self.handler = None;
             }
             Ok(ChannelResponse::MetObjectsForGalleryWall(request_id, objects)) => {

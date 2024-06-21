@@ -9,6 +9,8 @@ class_name UI
 
 @onready var reticle: TextureRect = %Reticle
 
+@onready var error_dialog: AcceptDialog = %ErrorDialog
+
 var paused := false:
 	set(value):
 		paused = value
@@ -155,3 +157,8 @@ func reload_current_scene(hard_reset: bool) -> void:
 		new_player.zoom = zoom
 		)
 	fade_in(tween)
+
+func show_fatal_error(message: String):
+	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+	error_dialog.dialog_text = "Alas, a fatal error occurred:\n\n" + message
+	error_dialog.popup_centered()
