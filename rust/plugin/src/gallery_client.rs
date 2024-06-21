@@ -5,7 +5,7 @@ use std::{
 };
 
 use godot::{
-    engine::{Engine, Image, Os, ProjectSettings},
+    engine::{Image, Os, ProjectSettings},
     prelude::*,
 };
 
@@ -64,24 +64,18 @@ impl IRefCounted for GalleryClient {
         godot_print!("Root dir is {}.", root_dir.display());
         let (cmd_tx, cmd_rx) = channel::<ChannelCommand>();
         let (response_tx, response_rx) = channel::<ChannelResponse>();
-        let is_running_in_editor = Engine::singleton().is_editor_hint();
-        let handler = if is_running_in_editor {
-            godot_print!("Running in editor, not spawning work thread.");
-            None
-        } else {
-            godot_print!("Spawning work thread.");
-            Some(thread::spawn(move || {
-                if let Err(err) = work_thread(root_dir.clone(), cmd_rx, response_tx.clone()) {
-                    eprintln!("Thread errored: {err:?}");
-                    let _ = response_tx.send(ChannelResponse::FatalError(format!("{err:?}")));
-                }
-            }))
-        };
+        godot_print!("Spawning work thread.");
+        let handler = thread::spawn(move || {
+            if let Err(err) = work_thread(root_dir.clone(), cmd_rx, response_tx.clone()) {
+                eprintln!("Thread errored: {err:?}");
+                let _ = response_tx.send(ChannelResponse::FatalError(format!("{err:?}")));
+            }
+        });
         Self {
             base,
             cmd_tx,
             response_rx,
-            handler,
+            handler: Some(handler),
             next_request_id: 1,
             fatal_error: None,
         }
