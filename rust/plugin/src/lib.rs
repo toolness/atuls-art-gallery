@@ -352,9 +352,9 @@ impl MetObjectsSingleton {
         let result = self.cmd_tx.send(command);
         if let Err(err) = result {
             self.handle_send_error(err);
-            request_id
-        } else {
             NULL_REQUEST_ID
+        } else {
+            request_id
         }
     }
 
