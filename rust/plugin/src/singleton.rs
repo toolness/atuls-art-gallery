@@ -17,6 +17,8 @@ use crate::{
 
 pub const SINGLETON_NAME: &'static str = "RustMetObjects";
 
+const NULL_REQUEST_ID: u32 = 0;
+
 #[derive(GodotClass)]
 #[class(base=Object)]
 pub struct MetObjectsSingleton {
@@ -87,8 +89,6 @@ impl IObject for MetObjectsSingleton {
         }
     }
 }
-
-const NULL_REQUEST_ID: u32 = 0;
 
 #[godot_api]
 impl MetObjectsSingleton {
