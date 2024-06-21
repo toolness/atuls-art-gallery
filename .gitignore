@@ -6,3 +6,5 @@
 
 # Baked lightmaps
 *.lmbake
+
+initial-db.sqlite
