@@ -15,14 +15,12 @@ use crate::{
     worker_thread::{work_thread, ChannelCommand, ChannelResponse},
 };
 
-pub const SINGLETON_NAME: &'static str = "RustMetObjects";
-
 const NULL_REQUEST_ID: u32 = 0;
 
 #[derive(GodotClass)]
-#[class(base=Object)]
-pub struct MetObjectsSingleton {
-    base: Base<Object>,
+#[class(base=RefCounted)]
+pub struct GalleryClient {
+    base: Base<RefCounted>,
     cmd_tx: Sender<ChannelCommand>,
     response_rx: Receiver<ChannelResponse>,
     handler: Option<JoinHandle<()>>,
@@ -60,9 +58,9 @@ fn get_root_dir() -> PathBuf {
 }
 
 #[godot_api]
-impl IObject for MetObjectsSingleton {
-    fn init(base: Base<Object>) -> Self {
-        let root_dir = get_root_dir();
+impl IRefCounted for GalleryClient {
+    fn init(base: Base<RefCounted>) -> Self {
+        let root_dir: PathBuf = get_root_dir();
         godot_print!("Root dir is {}.", root_dir.display());
         let (cmd_tx, cmd_rx) = channel::<ChannelCommand>();
         let (response_tx, response_rx) = channel::<ChannelResponse>();
@@ -91,7 +89,7 @@ impl IObject for MetObjectsSingleton {
 }
 
 #[godot_api]
-impl MetObjectsSingleton {
+impl GalleryClient {
     fn handle_send_error(&mut self, err: SendError<ChannelCommand>) {
         if self.handler.is_some() {
             godot_error!("sending command failed: {:?}", err);
@@ -225,9 +223,9 @@ impl MetObjectsSingleton {
     }
 }
 
-impl Drop for MetObjectsSingleton {
+impl Drop for GalleryClient {
     fn drop(&mut self) {
-        godot_print!("drop MetObjectsSingleton!");
+        godot_print!("drop GalleryClient!");
         if let Some(handler) = self.handler.take() {
             if let Err(err) = self.cmd_tx.send(ChannelCommand::End) {
                 godot_print!("Error sending end signal to thread: {:?}", err);

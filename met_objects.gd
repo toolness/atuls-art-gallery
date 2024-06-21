@@ -20,7 +20,7 @@ class ImageRequest:
 
 func fetch_small_image(object_id: int) -> Image:
 	var request := ImageRequest.new()
-	var request_id := RustMetObjects.fetch_small_image(object_id)
+	var request_id := gallery_client.fetch_small_image(object_id)
 	if request_id == NULL_REQUEST_ID:
 		# Oof, something went wrong.
 		return null
@@ -31,7 +31,7 @@ func fetch_small_image(object_id: int) -> Image:
 
 func get_met_objects_for_gallery_wall(gallery_id: int, wall_id: String) -> Array[MetObject]:
 	var request := MetObjectsRequest.new()
-	var request_id := RustMetObjects.get_met_objects_for_gallery_wall(gallery_id, wall_id)
+	var request_id := gallery_client.get_met_objects_for_gallery_wall(gallery_id, wall_id)
 	if request_id == NULL_REQUEST_ID:
 		# Oof, something went wrong.
 		return []
@@ -42,18 +42,24 @@ func get_met_objects_for_gallery_wall(gallery_id: int, wall_id: String) -> Array
 
 var fatal_error_message: String
 
+var gallery_client: GalleryClient
+
+
+func _ready() -> void:
+	gallery_client = GalleryClient.new()
+
 
 func _process(_delta) -> void:
 	if fatal_error_message:
 		return
-	fatal_error_message = RustMetObjects.take_fatal_error()
+	fatal_error_message = gallery_client.take_fatal_error()
 	if fatal_error_message:
 		UserInterface.show_fatal_error(fatal_error_message)
 		# TODO: It would be nice to let all requests know that an error occurred.
 		requests.clear()
 		return
 	for i in range(MAX_REQUESTS_PER_FRAME):
-		var obj := RustMetObjects.poll()
+		var obj := gallery_client.poll()
 		if not obj:
 			return
 		if not requests.has(obj.request_id):
