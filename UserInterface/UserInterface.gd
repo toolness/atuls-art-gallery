@@ -6,6 +6,7 @@ class_name UI
 @onready var settings_container: SettingsContainer = %SettingsContainer
 @onready var resume_button: Button = %ResumeButton
 @onready var color_rect_fader: ColorRect = $ColorRectFader
+@onready var inspect_mode_hints: Control = %InspectModeHints
 
 @onready var reticle: Reticle = %Reticle
 
@@ -85,6 +86,7 @@ func _on_settings_container_exit() -> void:
 
 func toggle_reticle() -> void:
 	reticle.visible = not reticle.visible
+	inspect_mode_hints.visible = reticle.visible
 
 func hide_reticle(is_hidden:bool) -> void:
 	# Hide the aiming reticle. Useful for the third person camera.

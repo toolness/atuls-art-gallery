@@ -126,10 +126,38 @@ theme_override_colors/default_color = Color(0.803922, 0.803922, 0.803922, 1)
 bbcode_enabled = true
 text = "[color=bd2424]WASD[/color][color=746c61]:[/color] move
 [color=cc612c]Mouse[/color][color=746c61]:[/color] look
-[color=ebbb4f]L[/color][color=746c61]:[/color] Toggle labels
-[color=30aa36]scroll[/color][color=746c61]:[/color] zoom
-[color=608dd0]right click[/color][color=746c61]:[/color] inspect
+[color=30aa36]tab[/color][color=746c61]:[/color] inspect mode
 [color=9052a1]esc[/color][color=746c61]:[/color] pause"
+fit_content = true
+
+[node name="InspectModeHints" type="MarginContainer" parent="HUD"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 32
+theme_override_constants/margin_top = 32
+theme_override_constants/margin_right = 32
+theme_override_constants/margin_bottom = 32
+
+[node name="PanelContainer" type="PanelContainer" parent="HUD/InspectModeHints"]
+custom_minimum_size = Vector2(325, 2.08165e-12)
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 8
+theme_override_styles/panel = SubResource("StyleBoxFlat_t4yve")
+
+[node name="RichTextLabel" type="RichTextLabel" parent="HUD/InspectModeHints/PanelContainer"]
+layout_mode = 2
+theme_override_colors/default_color = Color(0.803922, 0.803922, 0.803922, 1)
+bbcode_enabled = true
+text = "[color=ebbb4f]Left click[/color][color=746c61]:[/color] move art
+[color=608dd0]Right click[/color][color=746c61]:[/color] learn more
+[color=30aa36]tab[/color][color=746c61]:[/color] exit inspect mode"
 fit_content = true
 
 [node name="PauseScreen" type="Control" parent="."]
