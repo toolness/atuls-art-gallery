@@ -1,6 +1,7 @@
 use std::{
+    collections::VecDeque,
     path::PathBuf,
-    sync::mpsc::{Receiver, Sender},
+    sync::mpsc::{Receiver, RecvError, Sender, TryRecvError},
 };
 
 use anyhow::anyhow;
@@ -94,6 +95,52 @@ fn fetch_small_image(cache: &GalleryCache, met_object_id: u64) -> Option<PathBuf
     }
 }
 
+fn fill_queue(
+    queue: &mut VecDeque<Result<ChannelCommand, RecvError>>,
+    cmd_rx: &Receiver<ChannelCommand>,
+) {
+    // Note that if we receive an explicit 'End' command, we push an 'End' command
+    // to the front of the stack, meaning we'll ignore any other commands that had
+    // been queued up. This is intentional: if the user suddenly decides to quit,
+    // we want to quit ASAP, effectively aborting all in-flight requests.
+    if queue.len() == 0 {
+        // We don't have anything in the queue, so wait until we do.
+        match cmd_rx.recv() {
+            Ok(ChannelCommand::End) => {
+                queue.push_front(Ok(ChannelCommand::End));
+                return;
+            }
+            Err(RecvError) => {
+                queue.push_front(Err(RecvError));
+                return;
+            }
+            Ok(command) => {
+                queue.push_back(Ok(command));
+            }
+        }
+    }
+    // Now go through anything else in the channel, without blocking. This
+    // allows us to see if the client has hung up or wants us to quit ASAP.
+    loop {
+        match cmd_rx.try_recv() {
+            Err(TryRecvError::Empty) => {
+                return;
+            }
+            Err(TryRecvError::Disconnected) => {
+                queue.push_front(Err(RecvError));
+                return;
+            }
+            Ok(ChannelCommand::End) => {
+                queue.push_front(Ok(ChannelCommand::End));
+                return;
+            }
+            Ok(command) => {
+                queue.push_back(Ok(command));
+            }
+        }
+    }
+}
+
 pub fn work_thread(
     root_dir: PathBuf,
     cmd_rx: Receiver<ChannelCommand>,
@@ -106,13 +153,18 @@ pub fn work_thread(
         return Err(anyhow!("DB does not exist: {}", db_path.display()));
     }
     let mut db = GalleryDb::new(Connection::open(db_path)?);
+    let mut queue = VecDeque::new();
+    let send_response = |response: ChannelResponse| {
+        // Ignore result, `fill_queue()` will just give us a RecvError next if we're disconnected.
+        if response_tx.send(response).is_err() {
+            println!("work_thread unable to send response, other end hung up.");
+        };
+    };
     println!("work_thread waiting for command.");
-    // TODO: We should probably either keep an internal queue of commands or
-    // have a separate sync thingy that detects when the End command was sent,
-    // otherwise we could spend forever joining the thread if there's a ton
-    // of network requests queued up before the End command was sent.
     loop {
-        match cmd_rx.recv() {
+        fill_queue(&mut queue, &cmd_rx);
+        println!("Done filling queue, it now has {} elements.", queue.len());
+        match queue.pop_front().expect("queue should not be empty") {
             Ok(ChannelCommand::End) => {
                 println!("work_thread received 'end' command.");
                 break;
@@ -140,15 +192,9 @@ pub fn work_thread(
             }) => {
                 //println!("work_thread received 'GetMetObjectsForGalleryWall' command, request_id={request_id}, gallery_id={gallery_id}, wall_id={wall_id}.");
                 let records = get_met_objects_for_gallery_wall(&mut db, gallery_id, wall_id)?;
-                if response_tx
-                    .send(ChannelResponse::MetObjectsForGalleryWall(
-                        request_id, records,
-                    ))
-                    .is_err()
-                {
-                    // The other end hung up, we're effectively done.
-                    break;
-                }
+                send_response(ChannelResponse::MetObjectsForGalleryWall(
+                    request_id, records,
+                ));
             }
             Ok(ChannelCommand::FetchSmallImage {
                 request_id,
@@ -156,16 +202,10 @@ pub fn work_thread(
             }) => {
                 //println!("work_thread received 'FetchSmallImage' command, request_id={request_id}, object_id={object_id}.");
                 let small_image = fetch_small_image(&cache, object_id);
-                if response_tx
-                    .send(ChannelResponse::Image(request_id, small_image))
-                    .is_err()
-                {
-                    // The other end hung up, we're effectively done.
-                    break;
-                }
+                send_response(ChannelResponse::Image(request_id, small_image));
             }
-            Err(_) => {
-                // The other end hung up, just quit.
+            Err(RecvError) => {
+                println!("work_thread client hung up prematurely.");
                 break;
             }
         }
