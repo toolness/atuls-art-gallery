@@ -5,7 +5,7 @@ use std::{
 };
 
 use godot::{
-    engine::{Image, Os, ProjectSettings},
+    engine::{Image, ProjectSettings},
     prelude::*,
 };
 
@@ -24,12 +24,7 @@ struct Connection {
 }
 
 impl Connection {
-    fn connect() -> Self {
-        let root_dir: PathBuf = normalize_path(
-            ProjectSettings::singleton()
-                .globalize_path(GalleryClient::get_root_dir())
-                .to_string(),
-        );
+    fn connect(root_dir: PathBuf) -> Self {
         godot_print!("Root dir is {}.", root_dir.display());
         let (cmd_tx, cmd_rx) = channel::<ChannelCommand>();
         let (response_tx, response_rx) = channel::<ChannelResponse>();
@@ -100,30 +95,13 @@ impl IRefCounted for GalleryClient {
 #[godot_api]
 impl GalleryClient {
     #[func]
-    fn get_root_dir() -> GString {
-        // TODO: Just do this in GDScript and have it be passed-in to connect().
-        let os = Os::singleton();
-        if os.has_feature("editor".into()) {
-            // Running from an editor binary.
-            //
-            // Store everything in a place that's convenient to access while developing,
-            // relative to the project's root directory.
-            //
-            // If we change this dir, we will want to change where the CLI accesses things too.
-            GString::from("res://rust/cache/")
-        } else {
-            // Running from an exported project.
-            //
-            // Store everything in the persistent user data directory:
-            //
-            //   https://docs.godotengine.org/en/stable/tutorials/io/data_paths.html#accessing-persistent-user-data-user
-            GString::from("user://")
-        }
-    }
-
-    #[func]
-    fn connect(&mut self) {
-        self.connection = Some(Connection::connect());
+    fn connect(&mut self, root_dir: GString) {
+        let globalized_root_dir: PathBuf = normalize_path(
+            ProjectSettings::singleton()
+                .globalize_path(root_dir)
+                .to_string(),
+        );
+        self.connection = Some(Connection::connect(globalized_root_dir));
     }
 
     fn handle_send_error(&mut self, err: SendError<ChannelCommand>) {

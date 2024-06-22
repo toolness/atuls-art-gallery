@@ -54,7 +54,7 @@ func sync_galleries() -> void:
 			instance.init(gallery_id, player)
 
 
-@onready var SAVE_STATE_FILENAME := GalleryClient.get_root_dir() + "save_state.json"
+@onready var SAVE_STATE_FILENAME := MetObjects.ROOT_DIR + "save_state.json"
 
 const AUTOSAVE_INTERVAL := 30.0
 
@@ -102,6 +102,8 @@ func load_state() -> void:
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
+	print("Save state filename is " + SAVE_STATE_FILENAME + ".")
+
 	# Even if we set the reference gallery to not be visible, raycasts still intersect with
 	# it, which is weird, so just remove it.
 	remove_child(%Moma_for_reference_only)

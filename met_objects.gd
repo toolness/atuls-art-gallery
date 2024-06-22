@@ -50,8 +50,10 @@ func crash(message: String):
 	OS.crash(message)
 
 
-func copy_initial_db() -> void:
-	const GALLERY_DB_PATH = "user://gallery.sqlite"
+func copy_initial_db_for_exported_project() -> void:
+	# If we change this, we'll need to change some Rust code too.
+	var GALLERY_DB_PATH := ROOT_DIR + "gallery.sqlite"
+
 	if not FileAccess.file_exists(GALLERY_DB_PATH):
 		const INITIAL_DB_PATH = "res://initial-db.sqlite"
 		print("Copying initial DB to ", GALLERY_DB_PATH, ".")
@@ -83,11 +85,28 @@ func copy_initial_db() -> void:
 		print("Wrote initial DB.")
 
 
+var ROOT_DIR: String
+
+
 func _ready() -> void:
-	if not OS.has_feature("editor"):
-		copy_initial_db()
+	if OS.has_feature("editor"):
+		# Running from an editor binary.
+		#
+		# Store everything in a place that's convenient to access while developing,
+		# relative to the project's root directory.
+		#
+		# If we change this dir, we will want to change where the CLI accesses things too.
+		ROOT_DIR = "res://rust/cache/"
+	else:
+		# Running from an exported project.
+		#
+		# Store everything in the persistent user data directory:
+		#
+		#   https://docs.godotengine.org/en/stable/tutorials/io/data_paths.html#accessing-persistent-user-data-user
+		ROOT_DIR = "user://"
+		copy_initial_db_for_exported_project()
 	gallery_client = GalleryClient.new()
-	gallery_client.connect()
+	gallery_client.connect(ROOT_DIR)
 
 
 func _process(_delta) -> void:
