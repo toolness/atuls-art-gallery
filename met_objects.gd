@@ -110,6 +110,10 @@ func _ready() -> void:
 	add_child(gallery_client)
 	gallery_client.connect(ROOT_DIR)
 
+	# Try calling the RPC command.
+	var result := gallery_client.rpc("example_rpc_command", "hi?", PackedByteArray([1,2]))
+	print("result is ", result)
+
 
 func _process(_delta) -> void:
 	if fatal_error_message:

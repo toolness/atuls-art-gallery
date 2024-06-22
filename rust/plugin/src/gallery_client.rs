@@ -5,7 +5,7 @@ use std::{
 };
 
 use godot::{
-    engine::{Image, ProjectSettings},
+    engine::{multiplayer_api::RpcMode, multiplayer_peer::TransferMode, Image, ProjectSettings},
     prelude::*,
 };
 
@@ -35,6 +35,7 @@ impl Connection {
                 let _ = response_tx.send(ChannelResponse::FatalError(format!("{err:?}")));
             }
         });
+
         Self {
             cmd_tx,
             response_rx,
@@ -90,6 +91,18 @@ impl INode for GalleryClient {
             fatal_error: None,
         }
     }
+
+    fn ready(&mut self) {
+        self.base_mut().rpc_config(
+            "example_rpc_command".into(),
+            dict! {
+                "rpc_mode": RpcMode::ANY_PEER,
+                "transfer_mode": TransferMode::RELIABLE,
+                "call_local": true,
+            }
+            .to_variant(),
+        );
+    }
 }
 
 #[godot_api]
@@ -102,6 +115,11 @@ impl GalleryClient {
                 .to_string(),
         );
         self.connection = Some(Connection::connect(globalized_root_dir));
+    }
+
+    #[func]
+    fn example_rpc_command(&mut self, thing: String, array: PackedByteArray) {
+        godot_print!("EXAMPLE RPC COMMAND GOT {} {:?}", thing, array);
     }
 
     fn handle_send_error(&mut self, err: SendError<ChannelCommand>) {
