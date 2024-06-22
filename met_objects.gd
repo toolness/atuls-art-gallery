@@ -55,7 +55,7 @@ func copy_initial_db() -> void:
 	if not FileAccess.file_exists(GALLERY_DB_PATH):
 		const INITIAL_DB_PATH = "res://initial-db.sqlite"
 		print("Copying initial DB to ", GALLERY_DB_PATH, ".")
-		# I'd LOVE to use DirAccess.copy_absolute() here because it
+		# I'd love to use DirAccess.copy_absolute() here because it
 		# probably streams things, but it can't open the file and
 		# basically seems to be completely broken:
 		#
@@ -65,8 +65,11 @@ func copy_initial_db() -> void:
 		# will exhaust system memory, so just read the whole damn
 		# thing into memory and write it.
 		#
-		# PS: WHY CAN'T I JUST PUT THIS FILE IN MY EXPORTED PROJECT,
-		# OUTSIDE OF THE PCK, AS A REGULAR FILE????????
+		# Beyond that, I don't really understand why I can't just
+		# put this file alongside all the other files in the exported
+		# project, rather than having to stuff it in the PCK/ZIP and
+		# then extract it, but that doesn't seem to be something Godot
+		# easily supports.
 		var data := FileAccess.get_file_as_bytes(INITIAL_DB_PATH)
 		print("Read initial db ", data.size())
 		if data.size() == 0:
