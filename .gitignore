@@ -8,3 +8,5 @@
 *.lmbake
 
 initial-db.sqlite
+
+.DS_Store
