@@ -7,7 +7,7 @@ class_name UI
 @onready var resume_button: Button = %ResumeButton
 @onready var color_rect_fader: ColorRect = $ColorRectFader
 
-@onready var reticle: TextureRect = %Reticle
+@onready var reticle: Reticle = %Reticle
 
 @onready var error_dialog: AcceptDialog = %ErrorDialog
 
