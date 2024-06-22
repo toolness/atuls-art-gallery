@@ -113,7 +113,7 @@ func change_scene(next_scene: String, player_transform: Transform3D) -> void:
 	player.set_physics_process(false)
 	var zoom = player.zoom
 	var view = player.view
-	var tween = create_tween()
+	var tween := create_tween()
 	fade_out(tween)
 	tween.tween_callback(func(): get_tree().change_scene_to_file(next_scene))
 	# Wait at least one frame for the scene to update and ready.
@@ -145,7 +145,7 @@ func reload_current_scene(hard_reset: bool) -> void:
 	player.set_physics_process(false)
 	var zoom = player.zoom
 	var view = player.view
-	var tween = create_tween()
+	var tween := create_tween()
 	fade_out(tween)
 	tween.tween_callback(func(): get_tree().reload_current_scene())
 	# Wait at least one frame for the scene to update and ready.
