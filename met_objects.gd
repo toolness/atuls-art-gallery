@@ -45,7 +45,44 @@ var fatal_error_message: String
 var gallery_client: GalleryClient
 
 
+func crash(message: String):
+	OS.alert(message)
+	OS.crash(message)
+
+
+func copy_initial_db() -> void:
+	const GALLERY_DB_PATH = "user://gallery.sqlite"
+	if not FileAccess.file_exists(GALLERY_DB_PATH):
+		const INITIAL_DB_PATH = "res://initial-db.sqlite"
+		print("Copying initial DB to ", GALLERY_DB_PATH, ".")
+		# I'd LOVE to use DirAccess.copy_absolute() here because it
+		# probably streams things, but it can't open the file and
+		# basically seems to be completely broken:
+		#
+		#   https://github.com/godotengine/godot/issues/74105
+		#
+		# For now, at least, the initial DB isn't so big that it
+		# will exhaust system memory, so just read the whole damn
+		# thing into memory and write it.
+		#
+		# PS: WHY CAN'T I JUST PUT THIS FILE IN MY EXPORTED PROJECT,
+		# OUTSIDE OF THE PCK, AS A REGULAR FILE????????
+		var data := FileAccess.get_file_as_bytes(INITIAL_DB_PATH)
+		print("Read initial db ", data.size())
+		if data.size() == 0:
+			crash("Could not open initial DB!")
+			return
+		var out_file := FileAccess.open(GALLERY_DB_PATH, FileAccess.WRITE)
+		if not out_file:
+			crash("Unable to write initial DB!")
+		out_file.store_buffer(data)
+		out_file.close()
+		print("Wrote initial DB.")
+
+
 func _ready() -> void:
+	if not OS.has_feature("editor"):
+		copy_initial_db()
 	gallery_client = GalleryClient.new()
 
 

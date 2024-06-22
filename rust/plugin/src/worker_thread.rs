@@ -98,8 +98,7 @@ pub fn work_thread(
     cmd_rx: Receiver<ChannelCommand>,
     response_tx: Sender<ChannelResponse>,
 ) -> Result<()> {
-    let cache_dir = root_dir.join("rust").join("cache");
-    let cache = GalleryCache::new(cache_dir.clone());
+    let cache = GalleryCache::new(root_dir);
     let db_path = cache.get_cached_path("gallery.sqlite");
     let mut db = GalleryDb::new(Connection::open(db_path)?);
     println!("work_thread waiting for command.");

@@ -45,15 +45,28 @@ fn get_root_dir() -> PathBuf {
     let os = Os::singleton();
     if os.has_feature("editor".into()) {
         // Running from an editor binary.
-        normalize_path(
+        //
+        // Store everything in a place that's convenient to access while developing,
+        // relative to the project's root directory.
+        let project_root_dir = normalize_path(
             ProjectSettings::singleton()
                 .globalize_path(GString::from("res://"))
                 .to_string(),
-        )
+        );
+        // If we change this dir, we will want to change where the CLI accesses things too.
+        project_root_dir.join("rust").join("cache")
     } else {
         // Running from an exported project.
-        let executable_path = normalize_path(os.get_executable_path().to_string());
-        executable_path.parent().unwrap().to_path_buf()
+        //
+        // Store everything in the persistent user data directory:
+        //
+        //   https://docs.godotengine.org/en/stable/tutorials/io/data_paths.html#accessing-persistent-user-data-user
+        let user_dir = normalize_path(
+            ProjectSettings::singleton()
+                .globalize_path(GString::from("user://"))
+                .to_string(),
+        );
+        user_dir
     }
 }
 
