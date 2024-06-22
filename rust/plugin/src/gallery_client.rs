@@ -17,13 +17,57 @@ use crate::{
 
 const NULL_REQUEST_ID: u32 = 0;
 
+struct Connection {
+    cmd_tx: Sender<ChannelCommand>,
+    response_rx: Receiver<ChannelResponse>,
+    handler: JoinHandle<()>,
+}
+
+impl Connection {
+    fn connect() -> Self {
+        let root_dir: PathBuf = normalize_path(
+            ProjectSettings::singleton()
+                .globalize_path(GalleryClient::get_root_dir())
+                .to_string(),
+        );
+        godot_print!("Root dir is {}.", root_dir.display());
+        let (cmd_tx, cmd_rx) = channel::<ChannelCommand>();
+        let (response_tx, response_rx) = channel::<ChannelResponse>();
+        godot_print!("Spawning work thread.");
+        let handler = thread::spawn(move || {
+            if let Err(err) = work_thread(root_dir.clone(), cmd_rx, response_tx.clone()) {
+                eprintln!("Thread errored: {err:?}");
+                let _ = response_tx.send(ChannelResponse::FatalError(format!("{err:?}")));
+            }
+        });
+        Self {
+            cmd_tx,
+            response_rx,
+            handler,
+        }
+    }
+
+    fn disconnect(self) {
+        if let Err(err) = self.cmd_tx.send(ChannelCommand::End) {
+            godot_print!("Error sending end signal to thread: {:?}", err);
+            return;
+        }
+        match self.handler.join() {
+            Ok(_) => {
+                godot_print!("Joined thread.");
+            }
+            Err(err) => {
+                godot_print!("Error joining thread: {:?}", err);
+            }
+        }
+    }
+}
+
 #[derive(GodotClass)]
 #[class(base=RefCounted)]
 pub struct GalleryClient {
     base: Base<RefCounted>,
-    cmd_tx: Sender<ChannelCommand>,
-    response_rx: Receiver<ChannelResponse>,
-    handler: Option<JoinHandle<()>>,
+    connection: Option<Connection>,
     fatal_error: Option<String>,
     next_request_id: u32,
 }
@@ -44,26 +88,9 @@ fn normalize_path(path: String) -> PathBuf {
 #[godot_api]
 impl IRefCounted for GalleryClient {
     fn init(base: Base<RefCounted>) -> Self {
-        let root_dir: PathBuf = normalize_path(
-            ProjectSettings::singleton()
-                .globalize_path(GalleryClient::get_root_dir())
-                .to_string(),
-        );
-        godot_print!("Root dir is {}.", root_dir.display());
-        let (cmd_tx, cmd_rx) = channel::<ChannelCommand>();
-        let (response_tx, response_rx) = channel::<ChannelResponse>();
-        godot_print!("Spawning work thread.");
-        let handler = thread::spawn(move || {
-            if let Err(err) = work_thread(root_dir.clone(), cmd_rx, response_tx.clone()) {
-                eprintln!("Thread errored: {err:?}");
-                let _ = response_tx.send(ChannelResponse::FatalError(format!("{err:?}")));
-            }
-        });
         Self {
             base,
-            cmd_tx,
-            response_rx,
-            handler: Some(handler),
+            connection: None,
             next_request_id: 1,
             fatal_error: None,
         }
@@ -97,21 +124,32 @@ impl GalleryClient {
         }
     }
 
+    #[func]
+    fn connect(&mut self) {
+        self.connection = Some(Connection::connect());
+    }
+
     fn handle_send_error(&mut self, err: SendError<ChannelCommand>) {
-        if self.handler.is_some() {
+        if self.connection.is_some() {
             godot_error!("sending command failed: {:?}", err);
         }
     }
 
     fn send(&mut self, command: ChannelCommand) {
-        let result = self.cmd_tx.send(command);
+        let Some(connection) = &self.connection else {
+            return;
+        };
+        let result = connection.cmd_tx.send(command);
         if let Err(err) = result {
             self.handle_send_error(err);
         }
     }
 
     fn send_request(&mut self, request_id: u32, command: ChannelCommand) -> u32 {
-        let result = self.cmd_tx.send(command);
+        let Some(connection) = &self.connection else {
+            return NULL_REQUEST_ID;
+        };
+        let result = connection.cmd_tx.send(command);
         if let Err(err) = result {
             self.handle_send_error(err);
             NULL_REQUEST_ID
@@ -176,18 +214,18 @@ impl GalleryClient {
 
     #[func]
     fn poll(&mut self) -> Option<Gd<MetResponse>> {
-        if self.handler.is_none() {
+        let Some(connection) = &self.connection else {
             return None;
-        }
-        match self.response_rx.try_recv() {
+        };
+        match connection.response_rx.try_recv() {
             Ok(ChannelResponse::Done) => {
                 godot_print!("Work thread exited cleanly.");
-                self.handler = None;
+                self.connection = None;
             }
             Ok(ChannelResponse::FatalError(message)) => {
                 godot_error!("Work thread encountered fatal error: {message}");
                 self.fatal_error = Some(message);
-                self.handler = None;
+                self.connection = None;
             }
             Ok(ChannelResponse::MetObjectsForGalleryWall(request_id, objects)) => {
                 return Some(Gd::from_object(MetResponse {
@@ -223,7 +261,7 @@ impl GalleryClient {
             Err(TryRecvError::Empty) => {}
             Err(TryRecvError::Disconnected) => {
                 godot_print!("response_rx.recv() failed, thread died!");
-                self.handler = None;
+                self.connection = None;
             }
         }
         None
@@ -233,19 +271,8 @@ impl GalleryClient {
 impl Drop for GalleryClient {
     fn drop(&mut self) {
         godot_print!("drop GalleryClient!");
-        if let Some(handler) = self.handler.take() {
-            if let Err(err) = self.cmd_tx.send(ChannelCommand::End) {
-                godot_print!("Error sending end signal to thread: {:?}", err);
-                return;
-            }
-            match handler.join() {
-                Ok(_) => {
-                    godot_print!("Joined thread.");
-                }
-                Err(err) => {
-                    godot_print!("Error joining thread: {:?}", err);
-                }
-            }
+        if let Some(connection) = self.connection.take() {
+            connection.disconnect();
         }
     }
 }

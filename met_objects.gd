@@ -87,6 +87,7 @@ func _ready() -> void:
 	if not OS.has_feature("editor"):
 		copy_initial_db()
 	gallery_client = GalleryClient.new()
+	gallery_client.connect()
 
 
 func _process(_delta) -> void:
