@@ -43,6 +43,10 @@ folder_colors={
 "res://UserInterface/": "pink"
 }
 
+[filesystem]
+
+import/blender/enabled=false
+
 [input]
 
 move_left={
