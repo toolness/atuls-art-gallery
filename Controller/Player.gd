@@ -125,7 +125,7 @@ func _physics_process(delta: float) -> void:
 	if moving_painting:
 		moving_painting.move_along_wall(raycast)
 
-	if UserInterface.reticle.is_visible:
+	if UserInterface.reticle.visible:
 		var painting := Moma.try_to_find_painting_from_collision(raycast.get_collider())
 		UserInterface.reticle.is_highlighted = painting != null
 
@@ -169,10 +169,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			moving_painting.finish_moving()
 			moving_painting = null
 			pass
-		else:
+		elif UserInterface.reticle.visible:
 			moving_painting = Moma.MovingPainting.try_to_start_moving(raycast)
 
-	if event.is_action_pressed("right_click"):
+	if event.is_action_pressed("right_click") and UserInterface.reticle.visible:
 		var painting := Moma.try_to_find_painting_from_collision(raycast.get_collider())
 		if painting:
 			painting.try_to_open_in_browser()
