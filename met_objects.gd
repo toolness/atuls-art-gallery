@@ -73,7 +73,7 @@ func copy_initial_db_for_exported_project() -> void:
 		# then extract it, but that doesn't seem to be something Godot
 		# easily supports.
 		var data := FileAccess.get_file_as_bytes(INITIAL_DB_PATH)
-		print("Read initial db ", data.size())
+		print("Read initial db (", data.size(), " bytes).")
 		if data.size() == 0:
 			crash("Could not open initial DB!")
 			return
