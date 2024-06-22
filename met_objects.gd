@@ -106,6 +106,8 @@ func _ready() -> void:
 		ROOT_DIR = "user://"
 		copy_initial_db_for_exported_project()
 	gallery_client = GalleryClient.new()
+	gallery_client.name = "GalleryClient"
+	add_child(gallery_client)
 	gallery_client.connect(ROOT_DIR)
 
 

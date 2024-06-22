@@ -59,9 +59,9 @@ impl Connection {
 }
 
 #[derive(GodotClass)]
-#[class(base=RefCounted)]
+#[class(base=Node)]
 pub struct GalleryClient {
-    base: Base<RefCounted>,
+    base: Base<Node>,
     connection: Option<Connection>,
     fatal_error: Option<String>,
     next_request_id: u32,
@@ -81,8 +81,8 @@ fn normalize_path(path: String) -> PathBuf {
 }
 
 #[godot_api]
-impl IRefCounted for GalleryClient {
-    fn init(base: Base<RefCounted>) -> Self {
+impl INode for GalleryClient {
+    fn init(base: Base<Node>) -> Self {
         Self {
             base,
             connection: None,
