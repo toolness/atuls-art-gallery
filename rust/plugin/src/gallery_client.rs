@@ -41,39 +41,14 @@ fn normalize_path(path: String) -> PathBuf {
     }
 }
 
-fn get_root_dir() -> PathBuf {
-    let os = Os::singleton();
-    if os.has_feature("editor".into()) {
-        // Running from an editor binary.
-        //
-        // Store everything in a place that's convenient to access while developing,
-        // relative to the project's root directory.
-        let project_root_dir = normalize_path(
-            ProjectSettings::singleton()
-                .globalize_path(GString::from("res://"))
-                .to_string(),
-        );
-        // If we change this dir, we will want to change where the CLI accesses things too.
-        project_root_dir.join("rust").join("cache")
-    } else {
-        // Running from an exported project.
-        //
-        // Store everything in the persistent user data directory:
-        //
-        //   https://docs.godotengine.org/en/stable/tutorials/io/data_paths.html#accessing-persistent-user-data-user
-        let user_dir = normalize_path(
-            ProjectSettings::singleton()
-                .globalize_path(GString::from("user://"))
-                .to_string(),
-        );
-        user_dir
-    }
-}
-
 #[godot_api]
 impl IRefCounted for GalleryClient {
     fn init(base: Base<RefCounted>) -> Self {
-        let root_dir: PathBuf = get_root_dir();
+        let root_dir: PathBuf = normalize_path(
+            ProjectSettings::singleton()
+                .globalize_path(GalleryClient::get_root_dir())
+                .to_string(),
+        );
         godot_print!("Root dir is {}.", root_dir.display());
         let (cmd_tx, cmd_rx) = channel::<ChannelCommand>();
         let (response_tx, response_rx) = channel::<ChannelResponse>();
@@ -97,6 +72,31 @@ impl IRefCounted for GalleryClient {
 
 #[godot_api]
 impl GalleryClient {
+    #[func]
+    fn get_root_dir() -> GString {
+        // Honestly this is something I'd rather do in GDScript and pass into our
+        // constructor, but whenever I try making this class no_init, Godot complains
+        // that it isn't reloadable. So I guess I'll just put this logic in here and
+        // expose stuff to GDScript instead of passing it in.
+        let os = Os::singleton();
+        if os.has_feature("editor".into()) {
+            // Running from an editor binary.
+            //
+            // Store everything in a place that's convenient to access while developing,
+            // relative to the project's root directory.
+            //
+            // If we change this dir, we will want to change where the CLI accesses things too.
+            GString::from("res://rust/cache/")
+        } else {
+            // Running from an exported project.
+            //
+            // Store everything in the persistent user data directory:
+            //
+            //   https://docs.godotengine.org/en/stable/tutorials/io/data_paths.html#accessing-persistent-user-data-user
+            GString::from("user://")
+        }
+    }
+
     fn handle_send_error(&mut self, err: SendError<ChannelCommand>) {
         if self.handler.is_some() {
             godot_error!("sending command failed: {:?}", err);

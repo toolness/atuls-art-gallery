@@ -54,7 +54,7 @@ func sync_galleries() -> void:
 			instance.init(gallery_id, player)
 
 
-const SAVE_STATE_FILENAME := "user://save_state.json"
+@onready var SAVE_STATE_FILENAME := GalleryClient.get_root_dir() + "save_state.json"
 
 const AUTOSAVE_INTERVAL := 30.0
 
