@@ -3,6 +3,7 @@ use std::{
     sync::mpsc::{Receiver, Sender},
 };
 
+use anyhow::anyhow;
 use anyhow::Result;
 use gallery::{
     gallery_cache::GalleryCache,
@@ -100,8 +101,16 @@ pub fn work_thread(
 ) -> Result<()> {
     let cache = GalleryCache::new(root_dir);
     let db_path = cache.get_cached_path("gallery.sqlite");
+    // Check for existence, we don't want SQLite making a zero-byte DB file.
+    if !db_path.exists() {
+        return Err(anyhow!("DB does not exist: {}", db_path.display()));
+    }
     let mut db = GalleryDb::new(Connection::open(db_path)?);
     println!("work_thread waiting for command.");
+    // TODO: We should probably either keep an internal queue of commands or
+    // have a separate sync thingy that detects when the End command was sent,
+    // otherwise we could spend forever joining the thread if there's a ton
+    // of network requests queued up before the End command was sent.
     loop {
         match cmd_rx.recv() {
             Ok(ChannelCommand::End) => {

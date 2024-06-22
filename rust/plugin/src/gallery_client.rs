@@ -101,10 +101,7 @@ impl IRefCounted for GalleryClient {
 impl GalleryClient {
     #[func]
     fn get_root_dir() -> GString {
-        // Honestly this is something I'd rather do in GDScript and pass into our
-        // constructor, but whenever I try making this class no_init, Godot complains
-        // that it isn't reloadable. So I guess I'll just put this logic in here and
-        // expose stuff to GDScript instead of passing it in.
+        // TODO: Just do this in GDScript and have it be passed-in to connect().
         let os = Os::singleton();
         if os.has_feature("editor".into()) {
             // Running from an editor binary.
