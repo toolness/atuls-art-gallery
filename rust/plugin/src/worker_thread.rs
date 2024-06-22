@@ -163,7 +163,6 @@ pub fn work_thread(
     println!("work_thread waiting for command.");
     loop {
         fill_queue(&mut queue, &cmd_rx);
-        println!("Done filling queue, it now has {} elements.", queue.len());
         match queue.pop_front().expect("queue should not be empty") {
             Ok(ChannelCommand::End) => {
                 println!("work_thread received 'end' command.");
