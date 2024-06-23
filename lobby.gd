@@ -55,7 +55,10 @@ func _ready():
         multiplayer.multiplayer_peer = peer
     elif IS_CLIENT:
         var peer := ENetMultiplayerPeer.new()
+
+        # TODO: We should parse this from command-line args.
         var host := "127.0.0.1"
+
         var error := peer.create_client(host, PORT)
         if error:
             print("Failed to create client: ", error)
