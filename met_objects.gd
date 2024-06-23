@@ -121,6 +121,7 @@ func _process(_delta) -> void:
 		# TODO: It would be nice to let all requests know that an error occurred.
 		requests.clear()
 		return
+	# TODO: If we're headless, possibly no need to handle max requests per frame.
 	for i in range(MAX_REQUESTS_PER_FRAME):
 		var obj := gallery_client.poll()
 		if not obj:

@@ -1,4 +1,5 @@
 use std::{
+    collections::VecDeque,
     path::PathBuf,
     sync::mpsc::{channel, Receiver, SendError, Sender, TryRecvError},
     thread::{self, JoinHandle},
@@ -68,6 +69,7 @@ pub struct GalleryClient {
     base: Base<Node>,
     connection: Option<Connection>,
     queued_requests: Vec<(u32, ChannelCommand)>,
+    queued_responses: VecDeque<ChannelResponse>,
     fatal_error: Option<String>,
     next_request_id: u32,
 }
@@ -94,6 +96,7 @@ impl INode for GalleryClient {
             next_request_id: 1,
             fatal_error: None,
             queued_requests: vec![],
+            queued_responses: VecDeque::new(),
         }
     }
 
@@ -102,6 +105,15 @@ impl INode for GalleryClient {
             "proxy_request_to_server_internal".into(),
             dict! {
                 "rpc_mode": RpcMode::ANY_PEER,
+                "transfer_mode": TransferMode::RELIABLE,
+                "call_local": false,
+            }
+            .to_variant(),
+        );
+        self.base_mut().rpc_config(
+            "proxy_response_from_server_internal".into(),
+            dict! {
+                "rpc_mode": RpcMode::AUTHORITY,
                 "transfer_mode": TransferMode::RELIABLE,
                 "call_local": false,
             }
@@ -165,25 +177,63 @@ impl GalleryClient {
     }
 
     #[func]
-    fn proxy_request_to_server_internal(&self, serialized_request: String) {
+    fn proxy_request_to_server_internal(&mut self, serialized_request: String) {
         if !self.is_multiplayer_server() {
             godot_error!("Non-servers cannot handle proxied requests!");
             return;
         }
+        let multiplayer = &mut self.base().get_multiplayer().unwrap();
+        let remote_sender_id = multiplayer.get_remote_sender_id();
+        if remote_sender_id == 0 {
+            godot_error!("Proxying requests must be done in an RPC context!");
+            return;
+        }
         let command = serde_json::from_str::<ChannelCommand>(&serialized_request);
         match command {
-            Ok(command) => {
+            Ok(mut command) => {
                 if !command.is_proxyable_to_server() {
                     godot_error!("Proxied request is not proxyable to server: {:?}", command);
                     return;
                 }
-                godot_print!("Received proxied request: {:?}", command);
-                // TODO: Implement this!
+                //godot_print!("Received proxied request: {:?}", command);
+                match &mut command {
+                    ChannelCommand::GetMetObjectsForGalleryWall { peer_id, .. } => {
+                        *peer_id = Some(remote_sender_id)
+                    }
+                    _ => {}
+                }
+                self.send(command);
             }
             Err(err) => {
                 godot_error!(
                     "Unable to deserialize proxied request: {}, error={:?}",
                     serialized_request,
+                    err
+                );
+            }
+        }
+    }
+
+    #[func]
+    fn proxy_response_from_server_internal(&mut self, serialized_response: String) {
+        if !self.is_multiplayer_client() {
+            godot_error!("Non-clients cannot handled proxied responses!");
+            return;
+        }
+        let response = serde_json::from_str::<ChannelResponse>(&serialized_response);
+        match response {
+            Ok(mut response) => {
+                //godot_print!("Received proxied response: {:?}", response);
+                match &mut response {
+                    ChannelResponse::MetObjectsForGalleryWall { peer_id, .. } => *peer_id = None,
+                    _ => {}
+                }
+                self.queued_responses.push_back(response);
+            }
+            Err(err) => {
+                godot_error!(
+                    "Unable to deserialize proxied response: {}, error={:?}",
+                    serialized_response,
                     err
                 );
             }
@@ -233,6 +283,7 @@ impl GalleryClient {
         self.send_request(
             request_id,
             ChannelCommand::GetMetObjectsForGalleryWall {
+                peer_id: None,
                 request_id,
                 gallery_id,
                 wall_id,
@@ -275,7 +326,7 @@ impl GalleryClient {
                             godot_error!("Unable to serialize command: {:?}", command);
                             continue;
                         };
-                        godot_print!("Proxying request to server: {}", serialized_request);
+                        //godot_print!("Proxying request to server: {}", serialized_request);
                         self.base_mut().rpc(
                             "proxy_request_to_server_internal".into(),
                             &[serialized_request.into_godot().to_variant()],
@@ -285,38 +336,79 @@ impl GalleryClient {
             }
         }
 
-        let Some(connection) = &self.connection else {
-            return None;
-        };
-        match connection.response_rx.try_recv() {
-            Ok(ChannelResponse::Done) => {
+        let response: ChannelResponse =
+            if let Some(queued_response) = self.queued_responses.pop_front() {
+                queued_response
+            } else {
+                let Some(connection) = &self.connection else {
+                    return None;
+                };
+                match connection.response_rx.try_recv() {
+                    Ok(response) => response,
+                    Err(TryRecvError::Empty) => {
+                        return None;
+                    }
+                    Err(TryRecvError::Disconnected) => {
+                        godot_print!("response_rx.recv() failed, thread died!");
+                        self.connection = None;
+                        return None;
+                    }
+                }
+            };
+
+        match response {
+            ChannelResponse::Done => {
                 godot_print!("Work thread exited cleanly.");
                 self.connection = None;
+                None
             }
-            Ok(ChannelResponse::FatalError(message)) => {
+            ChannelResponse::FatalError(message) => {
                 godot_error!("Work thread encountered fatal error: {message}");
                 self.fatal_error = Some(message);
                 self.connection = None;
+                None
             }
-            Ok(ChannelResponse::MetObjectsForGalleryWall(request_id, objects)) => {
-                return Some(Gd::from_object(MetResponse {
-                    request_id,
-                    response: InnerMetResponse::MetObjects(Array::from_iter(
-                        objects.into_iter().map(|object| {
-                            Gd::from_object(MetObject {
-                                object_id: object.object_id as i64,
-                                title: object.title.into_godot(),
-                                date: object.date.into_godot(),
-                                width: object.width,
-                                height: object.height,
-                                x: object.x,
-                                y: object.y,
-                            })
-                        }),
-                    )),
-                }));
+            ChannelResponse::MetObjectsForGalleryWall {
+                peer_id,
+                request_id,
+                objects,
+            } => {
+                if let Some(peer_id) = peer_id {
+                    let response = ChannelResponse::MetObjectsForGalleryWall {
+                        peer_id: None,
+                        request_id,
+                        objects,
+                    };
+                    let Ok(serialized_response) = serde_json::to_string(&response) else {
+                        godot_error!("Unable to serialize response: {:?}", response);
+                        return None;
+                    };
+                    self.base_mut().rpc_id(
+                        peer_id as i64, // TODO: Why do some Godot APIs think this is i32, while others think it's i64?
+                        "proxy_response_from_server_internal".into(),
+                        &[serialized_response.into_godot().to_variant()],
+                    );
+                    None
+                } else {
+                    Some(Gd::from_object(MetResponse {
+                        request_id,
+                        response: InnerMetResponse::MetObjects(Array::from_iter(
+                            objects.into_iter().map(|object| {
+                                Gd::from_object(MetObject {
+                                    object_id: object.object_id as i64,
+                                    title: object.title.into_godot(),
+                                    date: object.date.into_godot(),
+                                    width: object.width,
+                                    height: object.height,
+                                    x: object.x,
+                                    y: object.y,
+                                })
+                            }),
+                        )),
+                    }))
+                }
             }
-            Ok(ChannelResponse::Image(request_id, small_image)) => {
+            ChannelResponse::Image(request_id, small_image) => {
                 let image = small_image
                     .map(|small_image| {
                         Image::load_from_file(GString::from(
@@ -324,18 +416,12 @@ impl GalleryClient {
                         ))
                     })
                     .flatten();
-                return Some(Gd::from_object(MetResponse {
+                Some(Gd::from_object(MetResponse {
                     request_id,
                     response: InnerMetResponse::Image(image),
-                }));
-            }
-            Err(TryRecvError::Empty) => {}
-            Err(TryRecvError::Disconnected) => {
-                godot_print!("response_rx.recv() failed, thread died!");
-                self.connection = None;
+                }))
             }
         }
-        None
     }
 }
 

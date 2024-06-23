@@ -25,6 +25,7 @@ pub enum ChannelCommand {
         y: f64,
     },
     GetMetObjectsForGalleryWall {
+        peer_id: Option<i32>,
         request_id: u32,
         gallery_id: i64,
         wall_id: String,
@@ -51,7 +52,11 @@ impl ChannelCommand {
 pub enum ChannelResponse {
     Done,
     FatalError(String),
-    MetObjectsForGalleryWall(u32, Vec<SimplifiedRecord>),
+    MetObjectsForGalleryWall {
+        peer_id: Option<i32>,
+        request_id: u32,
+        objects: Vec<SimplifiedRecord>,
+    },
     Image(u32, Option<PathBuf>),
 }
 
@@ -200,15 +205,18 @@ pub fn work_thread(
                 }])?;
             }
             Ok(ChannelCommand::GetMetObjectsForGalleryWall {
+                peer_id,
                 request_id,
                 gallery_id,
                 wall_id,
             }) => {
                 //println!("work_thread received 'GetMetObjectsForGalleryWall' command, request_id={request_id}, gallery_id={gallery_id}, wall_id={wall_id}.");
-                let records = get_met_objects_for_gallery_wall(&mut db, gallery_id, wall_id)?;
-                send_response(ChannelResponse::MetObjectsForGalleryWall(
-                    request_id, records,
-                ));
+                let objects = get_met_objects_for_gallery_wall(&mut db, gallery_id, wall_id)?;
+                send_response(ChannelResponse::MetObjectsForGalleryWall {
+                    peer_id,
+                    request_id,
+                    objects,
+                });
             }
             Ok(ChannelCommand::FetchSmallImage {
                 request_id,
