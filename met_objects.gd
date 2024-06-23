@@ -19,6 +19,8 @@ class ImageRequest:
 
 
 func fetch_small_image(object_id: int) -> Image:
+	if IS_HEADLESS:
+		return Image.create(1, 1, false, Image.FORMAT_L8)
 	var request := ImageRequest.new()
 	var request_id := gallery_client.fetch_small_image(object_id)
 	if request_id == NULL_REQUEST_ID:
@@ -87,6 +89,7 @@ func copy_initial_db_for_exported_project() -> void:
 
 var ROOT_DIR: String
 
+@onready var IS_HEADLESS := DisplayServer.get_name() == "headless"
 
 func _ready() -> void:
 	if OS.has_feature("editor"):
