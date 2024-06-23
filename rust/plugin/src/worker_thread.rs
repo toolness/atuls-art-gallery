@@ -36,6 +36,8 @@ pub enum ChannelCommand {
 }
 
 impl ChannelCommand {
+    // TODO: It'd be nice to have a completely separate enum for proxyable requests,
+    // so we can get exhaustiveness checking.
     pub fn is_proxyable_to_server(&self) -> bool {
         matches!(
             &self,

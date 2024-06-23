@@ -166,8 +166,28 @@ impl GalleryClient {
 
     #[func]
     fn proxy_request_to_server_internal(&self, serialized_request: String) {
-        godot_print!("Received proxied request: {}", serialized_request);
-        // TODO: Implement this!
+        if !self.is_multiplayer_server() {
+            godot_error!("Non-servers cannot handle proxied requests!");
+            return;
+        }
+        let command = serde_json::from_str::<ChannelCommand>(&serialized_request);
+        match command {
+            Ok(command) => {
+                if !command.is_proxyable_to_server() {
+                    godot_error!("Proxied request is not proxyable to server: {:?}", command);
+                    return;
+                }
+                godot_print!("Received proxied request: {:?}", command);
+                // TODO: Implement this!
+            }
+            Err(err) => {
+                godot_error!(
+                    "Unable to deserialize proxied request: {}, error={:?}",
+                    serialized_request,
+                    err
+                );
+            }
+        }
     }
 
     fn send_request(&mut self, request_id: u32, command: ChannelCommand) -> u32 {
