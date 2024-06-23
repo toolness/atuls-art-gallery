@@ -9,12 +9,29 @@ var IS_CLIENT := false
 
 var IS_SERVER := false
 
+var HOST := "127.0.0.1"
+
+
+func _get_cmdline_args_dict() -> Dictionary:
+    var arguments = {}
+    for argument in OS.get_cmdline_args():
+        if argument.find("=") > -1:
+            var key_value = argument.split("=")
+            arguments[key_value[0]] = key_value[1]
+        else:
+            # Options without an argument will be present in the dictionary,
+            # with the value set to an empty string.
+            arguments[argument] = ""
+    return arguments
+
 func _parse_cmdline_args():
-    for arg in OS.get_cmdline_args():
-        if arg == "--client":
-            IS_CLIENT = true
-        elif arg == "--server":
-            IS_SERVER = true
+    var args = _get_cmdline_args_dict()
+    if args.has("--client"):
+        IS_CLIENT = true
+    if args.has("--server"):
+        IS_SERVER = true
+    if args.has("--host"):
+        HOST = args.get("--host")
     if IS_CLIENT and IS_SERVER:
         OS.crash("Cannot be server and client simultaneously!")
 
@@ -55,15 +72,11 @@ func _ready():
         multiplayer.multiplayer_peer = peer
     elif IS_CLIENT:
         var peer := ENetMultiplayerPeer.new()
-
-        # TODO: We should parse this from command-line args.
-        var host := "127.0.0.1"
-
-        var error := peer.create_client(host, PORT)
+        var error := peer.create_client(HOST, PORT)
         if error:
             print("Failed to create client: ", error)
             return
-        print("Connecting to server on ", host, ":", PORT, ".")
+        print("Connecting to server on ", HOST, ":", PORT, ".")
         multiplayer.multiplayer_peer = peer
     else:
         multiplayer.multiplayer_peer = null
