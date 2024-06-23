@@ -12,6 +12,8 @@ class_name UI
 
 @onready var error_dialog: AcceptDialog = %ErrorDialog
 
+signal before_reload(hard_reset: bool)
+
 var paused := false:
 	set(value):
 		paused = value
@@ -130,17 +132,9 @@ func change_scene(next_scene: String, player_transform: Transform3D) -> void:
 		)
 	fade_in(tween)
 
-func _get_gallery() -> InfiniteGallery:
-	var gallery := get_tree().get_first_node_in_group("InfiniteGallery")
-	assert(gallery is InfiniteGallery)
-	return gallery
-
 # Fade the screen out, reload the level and fade back in.
 func reload_current_scene(hard_reset: bool) -> void:
-	if hard_reset:
-		_get_gallery().delete_state()
-	else:
-		_get_gallery().save_state()
+	before_reload.emit(hard_reset)
 	# Store a reference to the player to pass its settings onto the next player.
 	var player = get_tree().get_first_node_in_group("Player")
 	# Stop movement and cache settings.

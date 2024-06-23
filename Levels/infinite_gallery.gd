@@ -100,8 +100,17 @@ func load_state() -> void:
 	player.global_rotation = vec3_from_array(state.get("player_rotation"), player_start_rotation)
 
 
+func _on_before_reload(hard_reset: bool):
+	if hard_reset:
+		delete_state()
+	else:
+		save_state()
+
+
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
+	UserInterface.before_reload.connect(_on_before_reload)
+
 	print("Save state filename is " + SAVE_STATE_FILENAME + ".")
 
 	# Even if we set the reference gallery to not be visible, raycasts still intersect with
