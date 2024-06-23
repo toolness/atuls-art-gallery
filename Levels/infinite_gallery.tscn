@@ -1,8 +1,9 @@
-[gd_scene load_steps=5 format=3 uid="uid://dss65i31egqc3"]
+[gd_scene load_steps=6 format=3 uid="uid://dss65i31egqc3"]
 
 [ext_resource type="Script" path="res://Levels/infinite_gallery.gd" id="1_drnpr"]
 [ext_resource type="PackedScene" uid="uid://vwr8ajoufse8" path="res://Controller/Player.tscn" id="2_4hb5h"]
 [ext_resource type="PackedScene" uid="uid://mv0032qsc6tk" path="res://Levels/moma.tscn" id="3_3c1uq"]
+[ext_resource type="Script" path="res://auto_saver.gd" id="4_114bu"]
 
 [sub_resource type="Environment" id="Environment_ckp8a"]
 ssao_enabled = true
@@ -24,3 +25,7 @@ jump_height = 0.5
 [node name="Moma_for_reference_only" parent="." instance=ExtResource("3_3c1uq")]
 unique_name_in_owner = true
 visible = false
+
+[node name="AutoSaver" type="Node" parent="." node_paths=PackedStringArray("player")]
+script = ExtResource("4_114bu")
+player = NodePath("../Player")
