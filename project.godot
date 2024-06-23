@@ -19,6 +19,7 @@ boot_splash/image="res://GDTVAssetPack/Textures/GDTVSplash.png"
 
 [autoload]
 
+Lobby="*res://lobby.gd"
 MetObjects="*res://met_objects.gd"
 UserInterface="*res://UserInterface/UserInterface.tscn"
 
