@@ -62,3 +62,5 @@ func _ready():
             return
         print("Connecting to server on ", host, ":", PORT, ".")
         multiplayer.multiplayer_peer = peer
+    else:
+        multiplayer.multiplayer_peer = null

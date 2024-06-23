@@ -5,7 +5,11 @@ use std::{
 };
 
 use godot::{
-    engine::{Image, ProjectSettings},
+    engine::{
+        multiplayer_api::RpcMode,
+        multiplayer_peer::{ConnectionStatus, TransferMode},
+        Image, MultiplayerPeer, ProjectSettings,
+    },
     prelude::*,
 };
 
@@ -63,6 +67,7 @@ impl Connection {
 pub struct GalleryClient {
     base: Base<Node>,
     connection: Option<Connection>,
+    queued_requests: Vec<(u32, ChannelCommand)>,
     fatal_error: Option<String>,
     next_request_id: u32,
 }
@@ -88,7 +93,25 @@ impl INode for GalleryClient {
             connection: None,
             next_request_id: 1,
             fatal_error: None,
+            queued_requests: vec![],
         }
+    }
+
+    fn ready(&mut self) {
+        self.base_mut().rpc_config(
+            "proxy_request_to_server_internal".into(),
+            dict! {
+                "rpc_mode": RpcMode::ANY_PEER,
+                "transfer_mode": TransferMode::RELIABLE,
+                "call_local": false,
+            }
+            .to_variant(),
+        );
+        godot_print!(
+            "GalleryClient ready, is_multiplayer_client={} is_multiplayer_server={}",
+            self.is_multiplayer_client(),
+            self.is_multiplayer_server()
+        );
     }
 }
 
@@ -120,7 +143,40 @@ impl GalleryClient {
         }
     }
 
+    fn get_multiplayer_client(&self) -> Option<Gd<MultiplayerPeer>> {
+        if self.base().is_multiplayer_authority() {
+            return None;
+        }
+        let Some(multiplayer) = &mut self.base().get_multiplayer() else {
+            return None;
+        };
+        multiplayer.get_multiplayer_peer()
+    }
+
+    fn is_multiplayer_client(&self) -> bool {
+        self.get_multiplayer_client().is_some()
+    }
+
+    fn is_multiplayer_server(&self) -> bool {
+        let Some(multiplayer) = &mut self.base().get_multiplayer() else {
+            return false;
+        };
+        multiplayer.has_multiplayer_peer() && self.base().is_multiplayer_authority()
+    }
+
+    #[func]
+    fn proxy_request_to_server_internal(&self, serialized_request: String) {
+        godot_print!("Received proxied request: {}", serialized_request);
+        // TODO: Implement this!
+    }
+
     fn send_request(&mut self, request_id: u32, command: ChannelCommand) -> u32 {
+        if command.is_proxyable_to_server() && self.is_multiplayer_client() {
+            // We're being very optimistic here and assuming all requests will eventually
+            // be sent.
+            self.queued_requests.push((request_id, command));
+            return request_id;
+        }
         let Some(connection) = &self.connection else {
             return NULL_REQUEST_ID;
         };
@@ -189,6 +245,26 @@ impl GalleryClient {
 
     #[func]
     fn poll(&mut self) -> Option<Gd<MetResponse>> {
+        if !self.queued_requests.is_empty() {
+            if let Some(peer) = self.get_multiplayer_client() {
+                if peer.get_connection_status() == ConnectionStatus::CONNECTED {
+                    let queued_requests = std::mem::take(&mut self.queued_requests);
+                    for (_request_id, command) in queued_requests {
+                        // TODO: Consider using postcard or something else that's more space-efficient.
+                        let Ok(serialized_request) = serde_json::to_string(&command) else {
+                            godot_error!("Unable to serialize command: {:?}", command);
+                            continue;
+                        };
+                        godot_print!("Proxying request to server: {}", serialized_request);
+                        self.base_mut().rpc(
+                            "proxy_request_to_server_internal".into(),
+                            &[serialized_request.into_godot().to_variant()],
+                        );
+                    }
+                }
+            }
+        }
+
         let Some(connection) = &self.connection else {
             return None;
         };

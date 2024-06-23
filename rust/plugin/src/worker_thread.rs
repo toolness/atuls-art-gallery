@@ -12,7 +12,9 @@ use gallery::{
     met_api::load_met_api_record,
 };
 use rusqlite::Connection;
+use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Deserialize, Serialize)]
 pub enum ChannelCommand {
     End,
     MoveMetObject {
@@ -33,6 +35,17 @@ pub enum ChannelCommand {
     },
 }
 
+impl ChannelCommand {
+    pub fn is_proxyable_to_server(&self) -> bool {
+        matches!(
+            &self,
+            ChannelCommand::MoveMetObject { .. }
+                | ChannelCommand::GetMetObjectsForGalleryWall { .. }
+        )
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
 pub enum ChannelResponse {
     Done,
     FatalError(String),
@@ -40,7 +53,7 @@ pub enum ChannelResponse {
     Image(u32, Option<PathBuf>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct SimplifiedRecord {
     pub object_id: u64,
     pub title: String,

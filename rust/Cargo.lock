@@ -482,6 +482,8 @@ dependencies = [
  "gallery",
  "godot",
  "rusqlite",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
