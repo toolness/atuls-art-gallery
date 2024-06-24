@@ -326,7 +326,8 @@ impl GalleryClient {
                             continue;
                         };
                         //godot_print!("Proxying request to server: {}", serialized_request);
-                        self.base_mut().rpc(
+                        self.base_mut().rpc_id(
+                            1, // Send to server only, its ID is always 1.
                             "proxy_request_to_server_internal".into(),
                             &[
                                 request_id.to_variant(),
