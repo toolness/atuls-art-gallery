@@ -26,32 +26,32 @@ use crate::{
 const NULL_REQUEST_ID: u32 = 0;
 
 struct Connection {
-    cmd_tx: Sender<MessageToWorker>,
-    response_rx: Receiver<MessageFromWorker>,
+    to_worker_tx: Sender<MessageToWorker>,
+    from_worker_rx: Receiver<MessageFromWorker>,
     handler: JoinHandle<()>,
 }
 
 impl Connection {
     fn connect(root_dir: PathBuf) -> Self {
         godot_print!("Root dir is {}.", root_dir.display());
-        let (cmd_tx, cmd_rx) = channel::<MessageToWorker>();
-        let (response_tx, response_rx) = channel::<MessageFromWorker>();
+        let (to_worker_tx, to_worker_rx) = channel::<MessageToWorker>();
+        let (from_worker_tx, from_worker_rx) = channel::<MessageFromWorker>();
         godot_print!("Spawning work thread.");
         let handler = thread::spawn(move || {
-            if let Err(err) = work_thread(root_dir.clone(), cmd_rx, response_tx.clone()) {
+            if let Err(err) = work_thread(root_dir.clone(), to_worker_rx, from_worker_tx.clone()) {
                 eprintln!("Thread errored: {err:?}");
-                let _ = response_tx.send(MessageFromWorker::FatalError(format!("{err:?}")));
+                let _ = from_worker_tx.send(MessageFromWorker::FatalError(format!("{err:?}")));
             }
         });
         Self {
-            cmd_tx,
-            response_rx,
+            to_worker_tx,
+            from_worker_rx,
             handler,
         }
     }
 
     fn disconnect(self) {
-        if let Err(err) = self.cmd_tx.send(MessageToWorker::End) {
+        if let Err(err) = self.to_worker_tx.send(MessageToWorker::End) {
             godot_print!("Error sending end signal to thread: {:?}", err);
             return;
         }
@@ -152,7 +152,7 @@ impl GalleryClient {
         let Some(connection) = &self.connection else {
             return;
         };
-        let result = connection.cmd_tx.send(message);
+        let result = connection.to_worker_tx.send(message);
         if let Err(err) = result {
             self.handle_send_error(err);
         }
@@ -256,11 +256,13 @@ impl GalleryClient {
         let Some(connection) = &self.connection else {
             return NULL_REQUEST_ID;
         };
-        let result = connection.cmd_tx.send(MessageToWorker::Request(Request {
-            peer_id: None,
-            request_id,
-            body,
-        }));
+        let result = connection
+            .to_worker_tx
+            .send(MessageToWorker::Request(Request {
+                peer_id: None,
+                request_id,
+                body,
+            }));
         if let Err(err) = result {
             self.handle_send_error(err);
             NULL_REQUEST_ID
@@ -347,13 +349,13 @@ impl GalleryClient {
                 let Some(connection) = &self.connection else {
                     return None;
                 };
-                match connection.response_rx.try_recv() {
+                match connection.from_worker_rx.try_recv() {
                     Ok(message) => message,
                     Err(TryRecvError::Empty) => {
                         return None;
                     }
                     Err(TryRecvError::Disconnected) => {
-                        godot_print!("response_rx.recv() failed, thread died!");
+                        godot_print!("from_worker_rx.recv() failed, thread died!");
                         self.connection = None;
                         return None;
                     }

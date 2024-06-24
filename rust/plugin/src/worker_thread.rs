@@ -131,7 +131,7 @@ fn fetch_small_image(cache: &GalleryCache, met_object_id: u64) -> Option<PathBuf
 
 fn fill_queue(
     queue: &mut VecDeque<Result<MessageToWorker, RecvError>>,
-    cmd_rx: &Receiver<MessageToWorker>,
+    to_worker_rx: &Receiver<MessageToWorker>,
 ) {
     // Note that if we receive an explicit 'End' message, we push an 'End' message
     // to the front of the stack, meaning we'll ignore any other messages that had
@@ -139,7 +139,7 @@ fn fill_queue(
     // we want to quit ASAP, effectively aborting all in-flight requests.
     if queue.len() == 0 {
         // We don't have anything in the queue, so wait until we do.
-        match cmd_rx.recv() {
+        match to_worker_rx.recv() {
             Ok(MessageToWorker::End) => {
                 queue.push_front(Ok(MessageToWorker::End));
                 return;
@@ -156,7 +156,7 @@ fn fill_queue(
     // Now go through anything else in the channel, without blocking. This
     // allows us to see if the client has hung up or wants us to quit ASAP.
     loop {
-        match cmd_rx.try_recv() {
+        match to_worker_rx.try_recv() {
             Err(TryRecvError::Empty) => {
                 return;
             }
@@ -177,8 +177,8 @@ fn fill_queue(
 
 pub fn work_thread(
     root_dir: PathBuf,
-    cmd_rx: Receiver<MessageToWorker>,
-    response_tx: Sender<MessageFromWorker>,
+    to_worker_rx: Receiver<MessageToWorker>,
+    from_worker_tx: Sender<MessageFromWorker>,
 ) -> Result<()> {
     let cache = GalleryCache::new(root_dir);
     let db_path = cache.get_cached_path("gallery.sqlite");
@@ -190,13 +190,13 @@ pub fn work_thread(
     let mut queue = VecDeque::new();
     let send_message = |response: MessageFromWorker| {
         // Ignore result, `fill_queue()` will just give us a RecvError next if we're disconnected.
-        if response_tx.send(response).is_err() {
+        if from_worker_tx.send(response).is_err() {
             println!("work_thread unable to send response, other end hung up.");
         };
     };
     println!("work_thread waiting for message.");
     loop {
-        fill_queue(&mut queue, &cmd_rx);
+        fill_queue(&mut queue, &to_worker_rx);
         match queue.pop_front().expect("queue should not be empty") {
             Ok(MessageToWorker::End) => {
                 println!("work_thread received 'end' message.");
@@ -251,7 +251,7 @@ pub fn work_thread(
     }
 
     // Ignoring result, there's not much we can do if this send fails.
-    let _ = response_tx.send(MessageFromWorker::Done);
+    let _ = from_worker_tx.send(MessageFromWorker::Done);
 
     Ok(())
 }
