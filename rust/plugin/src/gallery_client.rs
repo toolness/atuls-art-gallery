@@ -17,27 +17,30 @@ use godot::{
 use crate::{
     met_object::MetObject,
     met_response::{InnerMetResponse, MetResponse},
-    worker_thread::{work_thread, ChannelCommand, ChannelResponse},
+    worker_thread::{
+        work_thread, MessageFromWorker, MessageToWorker, Request, RequestBody, Response,
+        ResponseBody,
+    },
 };
 
 const NULL_REQUEST_ID: u32 = 0;
 
 struct Connection {
-    cmd_tx: Sender<ChannelCommand>,
-    response_rx: Receiver<ChannelResponse>,
+    cmd_tx: Sender<MessageToWorker>,
+    response_rx: Receiver<MessageFromWorker>,
     handler: JoinHandle<()>,
 }
 
 impl Connection {
     fn connect(root_dir: PathBuf) -> Self {
         godot_print!("Root dir is {}.", root_dir.display());
-        let (cmd_tx, cmd_rx) = channel::<ChannelCommand>();
-        let (response_tx, response_rx) = channel::<ChannelResponse>();
+        let (cmd_tx, cmd_rx) = channel::<MessageToWorker>();
+        let (response_tx, response_rx) = channel::<MessageFromWorker>();
         godot_print!("Spawning work thread.");
         let handler = thread::spawn(move || {
             if let Err(err) = work_thread(root_dir.clone(), cmd_rx, response_tx.clone()) {
                 eprintln!("Thread errored: {err:?}");
-                let _ = response_tx.send(ChannelResponse::FatalError(format!("{err:?}")));
+                let _ = response_tx.send(MessageFromWorker::FatalError(format!("{err:?}")));
             }
         });
         Self {
@@ -48,7 +51,7 @@ impl Connection {
     }
 
     fn disconnect(self) {
-        if let Err(err) = self.cmd_tx.send(ChannelCommand::End) {
+        if let Err(err) = self.cmd_tx.send(MessageToWorker::End) {
             godot_print!("Error sending end signal to thread: {:?}", err);
             return;
         }
@@ -68,8 +71,8 @@ impl Connection {
 pub struct GalleryClient {
     base: Base<Node>,
     connection: Option<Connection>,
-    queued_requests: Vec<(u32, ChannelCommand)>,
-    queued_responses: VecDeque<ChannelResponse>,
+    queued_requests: Vec<(u32, RequestBody)>,
+    queued_responses: VecDeque<(u32, ResponseBody)>,
     fatal_error: Option<String>,
     next_request_id: u32,
 }
@@ -139,13 +142,13 @@ impl GalleryClient {
         self.connection = Some(Connection::connect(globalized_root_dir));
     }
 
-    fn handle_send_error(&mut self, err: SendError<ChannelCommand>) {
+    fn handle_send_error(&mut self, err: SendError<MessageToWorker>) {
         if self.connection.is_some() {
             godot_error!("sending command failed: {:?}", err);
         }
     }
 
-    fn send(&mut self, command: ChannelCommand) {
+    fn send(&mut self, command: MessageToWorker) {
         let Some(connection) = &self.connection else {
             return;
         };
@@ -177,7 +180,11 @@ impl GalleryClient {
     }
 
     #[func]
-    fn proxy_request_to_server_internal(&mut self, serialized_request: String) {
+    fn proxy_request_to_server_internal(
+        &mut self,
+        request_id: u32,
+        serialized_request_body: String,
+    ) {
         if !self.is_multiplayer_server() {
             godot_error!("Non-servers cannot handle proxied requests!");
             return;
@@ -188,26 +195,24 @@ impl GalleryClient {
             godot_error!("Proxying requests must be done in an RPC context!");
             return;
         }
-        let command = serde_json::from_str::<ChannelCommand>(&serialized_request);
-        match command {
-            Ok(mut command) => {
-                if !command.is_proxyable_to_server() {
-                    godot_error!("Proxied request is not proxyable to server: {:?}", command);
+        let body = serde_json::from_str::<RequestBody>(&serialized_request_body);
+        match body {
+            Ok(body) => {
+                if !body.is_proxyable_to_server() {
+                    godot_error!("Proxied request is not proxyable to server: {:?}", body);
                     return;
                 }
                 //godot_print!("Received proxied request: {:?}", command);
-                match &mut command {
-                    ChannelCommand::GetMetObjectsForGalleryWall { peer_id, .. } => {
-                        *peer_id = Some(remote_sender_id)
-                    }
-                    _ => {}
-                }
-                self.send(command);
+                self.send(MessageToWorker::Request(Request {
+                    peer_id: Some(remote_sender_id),
+                    request_id,
+                    body,
+                }));
             }
             Err(err) => {
                 godot_error!(
                     "Unable to deserialize proxied request: {}, error={:?}",
-                    serialized_request,
+                    serialized_request_body,
                     err
                 );
             }
@@ -215,42 +220,47 @@ impl GalleryClient {
     }
 
     #[func]
-    fn proxy_response_from_server_internal(&mut self, serialized_response: String) {
+    fn proxy_response_from_server_internal(
+        &mut self,
+        request_id: u32,
+        serialized_response_body: String,
+    ) {
         if !self.is_multiplayer_client() {
             godot_error!("Non-clients cannot handled proxied responses!");
             return;
         }
-        let response = serde_json::from_str::<ChannelResponse>(&serialized_response);
-        match response {
-            Ok(mut response) => {
+        let body = serde_json::from_str::<ResponseBody>(&serialized_response_body);
+        match body {
+            Ok(body) => {
                 //godot_print!("Received proxied response: {:?}", response);
-                match &mut response {
-                    ChannelResponse::MetObjectsForGalleryWall { peer_id, .. } => *peer_id = None,
-                    _ => {}
-                }
-                self.queued_responses.push_back(response);
+                self.queued_responses.push_back((request_id, body));
             }
             Err(err) => {
                 godot_error!(
                     "Unable to deserialize proxied response: {}, error={:?}",
-                    serialized_response,
+                    serialized_response_body,
                     err
                 );
             }
         }
     }
 
-    fn send_request(&mut self, request_id: u32, command: ChannelCommand) -> u32 {
-        if command.is_proxyable_to_server() && self.is_multiplayer_client() {
+    fn send_request(&mut self, body: RequestBody) -> u32 {
+        let request_id = self.new_request_id();
+        if body.is_proxyable_to_server() && self.is_multiplayer_client() {
             // We're being very optimistic here and assuming all requests will eventually
             // be sent.
-            self.queued_requests.push((request_id, command));
+            self.queued_requests.push((request_id, body));
             return request_id;
         }
         let Some(connection) = &self.connection else {
             return NULL_REQUEST_ID;
         };
-        let result = connection.cmd_tx.send(command);
+        let result = connection.cmd_tx.send(MessageToWorker::Request(Request {
+            peer_id: None,
+            request_id,
+            body,
+        }));
         if let Err(err) = result {
             self.handle_send_error(err);
             NULL_REQUEST_ID
@@ -268,7 +278,7 @@ impl GalleryClient {
         x: f64,
         y: f64,
     ) {
-        self.send(ChannelCommand::MoveMetObject {
+        self.send_request(RequestBody::MoveMetObject {
             met_object_id,
             gallery_id,
             wall_id,
@@ -279,28 +289,15 @@ impl GalleryClient {
 
     #[func]
     fn get_met_objects_for_gallery_wall(&mut self, gallery_id: i64, wall_id: String) -> u32 {
-        let request_id = self.new_request_id();
-        self.send_request(
-            request_id,
-            ChannelCommand::GetMetObjectsForGalleryWall {
-                peer_id: None,
-                request_id,
-                gallery_id,
-                wall_id,
-            },
-        )
+        self.send_request(RequestBody::GetMetObjectsForGalleryWall {
+            gallery_id,
+            wall_id,
+        })
     }
 
     #[func]
     fn fetch_small_image(&mut self, object_id: u64) -> u32 {
-        let request_id = self.new_request_id();
-        self.send_request(
-            request_id,
-            ChannelCommand::FetchSmallImage {
-                request_id,
-                object_id,
-            },
-        )
+        self.send_request(RequestBody::FetchSmallImage { object_id })
     }
 
     fn new_request_id(&mut self) -> u32 {
@@ -320,7 +317,7 @@ impl GalleryClient {
             if let Some(peer) = self.get_multiplayer_client() {
                 if peer.get_connection_status() == ConnectionStatus::CONNECTED {
                     let queued_requests = std::mem::take(&mut self.queued_requests);
-                    for (_request_id, command) in queued_requests {
+                    for (request_id, command) in queued_requests {
                         // TODO: Consider using postcard or something else that's more space-efficient.
                         let Ok(serialized_request) = serde_json::to_string(&command) else {
                             godot_error!("Unable to serialize command: {:?}", command);
@@ -329,16 +326,23 @@ impl GalleryClient {
                         //godot_print!("Proxying request to server: {}", serialized_request);
                         self.base_mut().rpc(
                             "proxy_request_to_server_internal".into(),
-                            &[serialized_request.into_godot().to_variant()],
+                            &[
+                                request_id.to_variant(),
+                                serialized_request.into_godot().to_variant(),
+                            ],
                         );
                     }
                 }
             }
         }
 
-        let response: ChannelResponse =
-            if let Some(queued_response) = self.queued_responses.pop_front() {
-                queued_response
+        let response: MessageFromWorker =
+            if let Some((request_id, body)) = self.queued_responses.pop_front() {
+                MessageFromWorker::Response(Response {
+                    peer_id: None,
+                    request_id,
+                    body,
+                })
             } else {
                 let Some(connection) = &self.connection else {
                     return None;
@@ -357,69 +361,68 @@ impl GalleryClient {
             };
 
         match response {
-            ChannelResponse::Done => {
+            MessageFromWorker::Done => {
                 godot_print!("Work thread exited cleanly.");
                 self.connection = None;
                 None
             }
-            ChannelResponse::FatalError(message) => {
+            MessageFromWorker::FatalError(message) => {
                 godot_error!("Work thread encountered fatal error: {message}");
                 self.fatal_error = Some(message);
                 self.connection = None;
                 None
             }
-            ChannelResponse::MetObjectsForGalleryWall {
-                peer_id,
-                request_id,
-                objects,
-            } => {
-                if let Some(peer_id) = peer_id {
-                    let response = ChannelResponse::MetObjectsForGalleryWall {
-                        peer_id: None,
-                        request_id,
-                        objects,
-                    };
-                    let Ok(serialized_response) = serde_json::to_string(&response) else {
+            MessageFromWorker::Response(response) => {
+                let request_id = response.request_id;
+                if let Some(peer_id) = response.peer_id {
+                    let Ok(serialized_response) = serde_json::to_string(&response.body) else {
                         godot_error!("Unable to serialize response: {:?}", response);
                         return None;
                     };
                     self.base_mut().rpc_id(
                         peer_id as i64, // TODO: Why do some Godot APIs think this is i32, while others think it's i64?
                         "proxy_response_from_server_internal".into(),
-                        &[serialized_response.into_godot().to_variant()],
+                        &[
+                            request_id.to_variant(),
+                            serialized_response.into_godot().to_variant(),
+                        ],
                     );
                     None
                 } else {
-                    Some(Gd::from_object(MetResponse {
-                        request_id,
-                        response: InnerMetResponse::MetObjects(Array::from_iter(
-                            objects.into_iter().map(|object| {
-                                Gd::from_object(MetObject {
-                                    object_id: object.object_id as i64,
-                                    title: object.title.into_godot(),
-                                    date: object.date.into_godot(),
-                                    width: object.width,
-                                    height: object.height,
-                                    x: object.x,
-                                    y: object.y,
+                    match response.body {
+                        ResponseBody::MetObjectsForGalleryWall(objects) => {
+                            Some(Gd::from_object(MetResponse {
+                                request_id,
+                                response: InnerMetResponse::MetObjects(Array::from_iter(
+                                    objects.into_iter().map(|object| {
+                                        Gd::from_object(MetObject {
+                                            object_id: object.object_id as i64,
+                                            title: object.title.into_godot(),
+                                            date: object.date.into_godot(),
+                                            width: object.width,
+                                            height: object.height,
+                                            x: object.x,
+                                            y: object.y,
+                                        })
+                                    }),
+                                )),
+                            }))
+                        }
+                        ResponseBody::Image(small_image) => {
+                            let image = small_image
+                                .map(|small_image| {
+                                    Image::load_from_file(GString::from(
+                                        small_image.to_string_lossy().into_owned(),
+                                    ))
                                 })
-                            }),
-                        )),
-                    }))
+                                .flatten();
+                            Some(Gd::from_object(MetResponse {
+                                request_id,
+                                response: InnerMetResponse::Image(image),
+                            }))
+                        }
+                    }
                 }
-            }
-            ChannelResponse::Image(request_id, small_image) => {
-                let image = small_image
-                    .map(|small_image| {
-                        Image::load_from_file(GString::from(
-                            small_image.to_string_lossy().into_owned(),
-                        ))
-                    })
-                    .flatten();
-                Some(Gd::from_object(MetResponse {
-                    request_id,
-                    response: InnerMetResponse::Image(image),
-                }))
             }
         }
     }

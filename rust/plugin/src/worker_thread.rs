@@ -14,9 +14,15 @@ use gallery::{
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug)]
+pub struct Request {
+    pub peer_id: Option<i32>,
+    pub request_id: u32,
+    pub body: RequestBody,
+}
+
 #[derive(Debug, Deserialize, Serialize)]
-pub enum ChannelCommand {
-    End,
+pub enum RequestBody {
     MoveMetObject {
         met_object_id: u64,
         gallery_id: i64,
@@ -25,39 +31,47 @@ pub enum ChannelCommand {
         y: f64,
     },
     GetMetObjectsForGalleryWall {
-        peer_id: Option<i32>,
-        request_id: u32,
         gallery_id: i64,
         wall_id: String,
     },
     FetchSmallImage {
-        request_id: u32,
         object_id: u64,
     },
 }
 
-impl ChannelCommand {
+#[derive(Debug)]
+pub struct Response {
+    pub peer_id: Option<i32>,
+    pub request_id: u32,
+    pub body: ResponseBody,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub enum ResponseBody {
+    MetObjectsForGalleryWall(Vec<SimplifiedRecord>),
+    Image(Option<PathBuf>),
+}
+
+pub enum MessageToWorker {
+    End,
+    Request(Request),
+}
+
+impl RequestBody {
     // TODO: It'd be nice to have a completely separate enum for proxyable requests,
     // so we can get exhaustiveness checking.
     pub fn is_proxyable_to_server(&self) -> bool {
         matches!(
             &self,
-            ChannelCommand::MoveMetObject { .. }
-                | ChannelCommand::GetMetObjectsForGalleryWall { .. }
+            RequestBody::MoveMetObject { .. } | RequestBody::GetMetObjectsForGalleryWall { .. }
         )
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-pub enum ChannelResponse {
+pub enum MessageFromWorker {
     Done,
     FatalError(String),
-    MetObjectsForGalleryWall {
-        peer_id: Option<i32>,
-        request_id: u32,
-        objects: Vec<SimplifiedRecord>,
-    },
-    Image(u32, Option<PathBuf>),
+    Response(Response),
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -116,8 +130,8 @@ fn fetch_small_image(cache: &GalleryCache, met_object_id: u64) -> Option<PathBuf
 }
 
 fn fill_queue(
-    queue: &mut VecDeque<Result<ChannelCommand, RecvError>>,
-    cmd_rx: &Receiver<ChannelCommand>,
+    queue: &mut VecDeque<Result<MessageToWorker, RecvError>>,
+    cmd_rx: &Receiver<MessageToWorker>,
 ) {
     // Note that if we receive an explicit 'End' command, we push an 'End' command
     // to the front of the stack, meaning we'll ignore any other commands that had
@@ -126,8 +140,8 @@ fn fill_queue(
     if queue.len() == 0 {
         // We don't have anything in the queue, so wait until we do.
         match cmd_rx.recv() {
-            Ok(ChannelCommand::End) => {
-                queue.push_front(Ok(ChannelCommand::End));
+            Ok(MessageToWorker::End) => {
+                queue.push_front(Ok(MessageToWorker::End));
                 return;
             }
             Err(RecvError) => {
@@ -150,8 +164,8 @@ fn fill_queue(
                 queue.push_front(Err(RecvError));
                 return;
             }
-            Ok(ChannelCommand::End) => {
-                queue.push_front(Ok(ChannelCommand::End));
+            Ok(MessageToWorker::End) => {
+                queue.push_front(Ok(MessageToWorker::End));
                 return;
             }
             Ok(command) => {
@@ -163,8 +177,8 @@ fn fill_queue(
 
 pub fn work_thread(
     root_dir: PathBuf,
-    cmd_rx: Receiver<ChannelCommand>,
-    response_tx: Sender<ChannelResponse>,
+    cmd_rx: Receiver<MessageToWorker>,
+    response_tx: Sender<MessageFromWorker>,
 ) -> Result<()> {
     let cache = GalleryCache::new(root_dir);
     let db_path = cache.get_cached_path("gallery.sqlite");
@@ -174,7 +188,7 @@ pub fn work_thread(
     }
     let mut db = GalleryDb::new(Connection::open(db_path)?);
     let mut queue = VecDeque::new();
-    let send_response = |response: ChannelResponse| {
+    let send_message = |response: MessageFromWorker| {
         // Ignore result, `fill_queue()` will just give us a RecvError next if we're disconnected.
         if response_tx.send(response).is_err() {
             println!("work_thread unable to send response, other end hung up.");
@@ -184,47 +198,52 @@ pub fn work_thread(
     loop {
         fill_queue(&mut queue, &cmd_rx);
         match queue.pop_front().expect("queue should not be empty") {
-            Ok(ChannelCommand::End) => {
+            Ok(MessageToWorker::End) => {
                 println!("work_thread received 'end' command.");
                 break;
             }
-            Ok(ChannelCommand::MoveMetObject {
-                met_object_id,
-                gallery_id,
-                wall_id,
-                x,
-                y,
-            }) => {
-                //println!("work_thread received 'MoveMetObject' command.");
-                db.upsert_layout_records(&vec![LayoutRecord {
-                    gallery_id,
-                    wall_id,
-                    met_object_id,
-                    x,
-                    y,
-                }])?;
-            }
-            Ok(ChannelCommand::GetMetObjectsForGalleryWall {
-                peer_id,
-                request_id,
-                gallery_id,
-                wall_id,
-            }) => {
-                //println!("work_thread received 'GetMetObjectsForGalleryWall' command, request_id={request_id}, gallery_id={gallery_id}, wall_id={wall_id}.");
-                let objects = get_met_objects_for_gallery_wall(&mut db, gallery_id, wall_id)?;
-                send_response(ChannelResponse::MetObjectsForGalleryWall {
-                    peer_id,
-                    request_id,
-                    objects,
-                });
-            }
-            Ok(ChannelCommand::FetchSmallImage {
-                request_id,
-                object_id,
-            }) => {
-                //println!("work_thread received 'FetchSmallImage' command, request_id={request_id}, object_id={object_id}.");
-                let small_image = fetch_small_image(&cache, object_id);
-                send_response(ChannelResponse::Image(request_id, small_image));
+            Ok(MessageToWorker::Request(request)) => {
+                let peer_id = request.peer_id;
+                let request_id = request.request_id;
+                let send_response = |body: ResponseBody| {
+                    send_message(MessageFromWorker::Response(Response {
+                        peer_id,
+                        request_id,
+                        body,
+                    }));
+                };
+                match request.body {
+                    RequestBody::MoveMetObject {
+                        met_object_id,
+                        gallery_id,
+                        wall_id,
+                        x,
+                        y,
+                    } => {
+                        //println!("work_thread received 'MoveMetObject' command.");
+                        db.upsert_layout_records(&vec![LayoutRecord {
+                            gallery_id,
+                            wall_id,
+                            met_object_id,
+                            x,
+                            y,
+                        }])?;
+                    }
+                    RequestBody::GetMetObjectsForGalleryWall {
+                        gallery_id,
+                        wall_id,
+                    } => {
+                        //println!("work_thread received 'GetMetObjectsForGalleryWall' command, request_id={request_id}, gallery_id={gallery_id}, wall_id={wall_id}.");
+                        let objects =
+                            get_met_objects_for_gallery_wall(&mut db, gallery_id, wall_id)?;
+                        send_response(ResponseBody::MetObjectsForGalleryWall(objects));
+                    }
+                    RequestBody::FetchSmallImage { object_id } => {
+                        //println!("work_thread received 'FetchSmallImage' command, request_id={request_id}, object_id={object_id}.");
+                        let small_image = fetch_small_image(&cache, object_id);
+                        send_response(ResponseBody::Image(small_image));
+                    }
+                }
             }
             Err(RecvError) => {
                 println!("work_thread client hung up prematurely.");
@@ -234,7 +253,7 @@ pub fn work_thread(
     }
 
     // Ignoring result, there's not much we can do if this send fails.
-    let _ = response_tx.send(ChannelResponse::Done);
+    let _ = response_tx.send(MessageFromWorker::Done);
 
     Ok(())
 }
