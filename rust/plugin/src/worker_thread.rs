@@ -133,8 +133,8 @@ fn fill_queue(
     queue: &mut VecDeque<Result<MessageToWorker, RecvError>>,
     cmd_rx: &Receiver<MessageToWorker>,
 ) {
-    // Note that if we receive an explicit 'End' command, we push an 'End' command
-    // to the front of the stack, meaning we'll ignore any other commands that had
+    // Note that if we receive an explicit 'End' message, we push an 'End' message
+    // to the front of the stack, meaning we'll ignore any other messages that had
     // been queued up. This is intentional: if the user suddenly decides to quit,
     // we want to quit ASAP, effectively aborting all in-flight requests.
     if queue.len() == 0 {
@@ -148,8 +148,8 @@ fn fill_queue(
                 queue.push_front(Err(RecvError));
                 return;
             }
-            Ok(command) => {
-                queue.push_back(Ok(command));
+            Ok(message) => {
+                queue.push_back(Ok(message));
             }
         }
     }
@@ -168,8 +168,8 @@ fn fill_queue(
                 queue.push_front(Ok(MessageToWorker::End));
                 return;
             }
-            Ok(command) => {
-                queue.push_back(Ok(command));
+            Ok(message) => {
+                queue.push_back(Ok(message));
             }
         }
     }
@@ -194,12 +194,12 @@ pub fn work_thread(
             println!("work_thread unable to send response, other end hung up.");
         };
     };
-    println!("work_thread waiting for command.");
+    println!("work_thread waiting for message.");
     loop {
         fill_queue(&mut queue, &cmd_rx);
         match queue.pop_front().expect("queue should not be empty") {
             Ok(MessageToWorker::End) => {
-                println!("work_thread received 'end' command.");
+                println!("work_thread received 'end' message.");
                 break;
             }
             Ok(MessageToWorker::Request(request)) => {
@@ -212,6 +212,7 @@ pub fn work_thread(
                         body,
                     }));
                 };
+                //println!("work_thread received request: {:?}", request.body);
                 match request.body {
                     RequestBody::MoveMetObject {
                         met_object_id,
@@ -220,7 +221,6 @@ pub fn work_thread(
                         x,
                         y,
                     } => {
-                        //println!("work_thread received 'MoveMetObject' command.");
                         db.upsert_layout_records(&vec![LayoutRecord {
                             gallery_id,
                             wall_id,
@@ -233,13 +233,11 @@ pub fn work_thread(
                         gallery_id,
                         wall_id,
                     } => {
-                        //println!("work_thread received 'GetMetObjectsForGalleryWall' command, request_id={request_id}, gallery_id={gallery_id}, wall_id={wall_id}.");
                         let objects =
                             get_met_objects_for_gallery_wall(&mut db, gallery_id, wall_id)?;
                         send_response(ResponseBody::MetObjectsForGalleryWall(objects));
                     }
                     RequestBody::FetchSmallImage { object_id } => {
-                        //println!("work_thread received 'FetchSmallImage' command, request_id={request_id}, object_id={object_id}.");
                         let small_image = fetch_small_image(&cache, object_id);
                         send_response(ResponseBody::Image(small_image));
                     }

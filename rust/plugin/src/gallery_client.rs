@@ -144,15 +144,15 @@ impl GalleryClient {
 
     fn handle_send_error(&mut self, err: SendError<MessageToWorker>) {
         if self.connection.is_some() {
-            godot_error!("sending command failed: {:?}", err);
+            godot_error!("sending message to worker failed: {:?}", err);
         }
     }
 
-    fn send(&mut self, command: MessageToWorker) {
+    fn send(&mut self, message: MessageToWorker) {
         let Some(connection) = &self.connection else {
             return;
         };
-        let result = connection.cmd_tx.send(command);
+        let result = connection.cmd_tx.send(message);
         if let Err(err) = result {
             self.handle_send_error(err);
         }
@@ -202,7 +202,7 @@ impl GalleryClient {
                     godot_error!("Proxied request is not proxyable to server: {:?}", body);
                     return;
                 }
-                //godot_print!("Received proxied request: {:?}", command);
+                //godot_print!("Received proxied request: {:?}", body);
                 self.send(MessageToWorker::Request(Request {
                     peer_id: Some(remote_sender_id),
                     request_id,
@@ -232,12 +232,12 @@ impl GalleryClient {
         let body = serde_json::from_str::<ResponseBody>(&serialized_response_body);
         match body {
             Ok(body) => {
-                //godot_print!("Received proxied response: {:?}", response);
+                //godot_print!("Received proxied response: {:?}", body);
                 self.queued_responses.push_back((request_id, body));
             }
             Err(err) => {
                 godot_error!(
-                    "Unable to deserialize proxied response: {}, error={:?}",
+                    "Unable to deserialize proxied response body: {}, error={:?}",
                     serialized_response_body,
                     err
                 );
@@ -317,10 +317,10 @@ impl GalleryClient {
             if let Some(peer) = self.get_multiplayer_client() {
                 if peer.get_connection_status() == ConnectionStatus::CONNECTED {
                     let queued_requests = std::mem::take(&mut self.queued_requests);
-                    for (request_id, command) in queued_requests {
+                    for (request_id, body) in queued_requests {
                         // TODO: Consider using postcard or something else that's more space-efficient.
-                        let Ok(serialized_request) = serde_json::to_string(&command) else {
-                            godot_error!("Unable to serialize command: {:?}", command);
+                        let Ok(serialized_request_body) = serde_json::to_string(&body) else {
+                            godot_error!("Unable to serialize request body: {:?}", body);
                             continue;
                         };
                         //godot_print!("Proxying request to server: {}", serialized_request);
@@ -328,7 +328,7 @@ impl GalleryClient {
                             "proxy_request_to_server_internal".into(),
                             &[
                                 request_id.to_variant(),
-                                serialized_request.into_godot().to_variant(),
+                                serialized_request_body.into_godot().to_variant(),
                             ],
                         );
                     }
@@ -336,7 +336,7 @@ impl GalleryClient {
             }
         }
 
-        let response: MessageFromWorker =
+        let message: MessageFromWorker =
             if let Some((request_id, body)) = self.queued_responses.pop_front() {
                 MessageFromWorker::Response(Response {
                     peer_id: None,
@@ -348,7 +348,7 @@ impl GalleryClient {
                     return None;
                 };
                 match connection.response_rx.try_recv() {
-                    Ok(response) => response,
+                    Ok(message) => message,
                     Err(TryRecvError::Empty) => {
                         return None;
                     }
@@ -360,7 +360,7 @@ impl GalleryClient {
                 }
             };
 
-        match response {
+        match message {
             MessageFromWorker::Done => {
                 godot_print!("Work thread exited cleanly.");
                 self.connection = None;
