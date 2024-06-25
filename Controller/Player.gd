@@ -8,6 +8,9 @@ class_name Player
 ## How fast the player falls after reaching max jump height.
 @export var fall_multiplier := 2.5
 
+## Whether this is the main player, or a remote player (or npc, etc)
+@export var is_main_player: bool
+
 @export_category("Camera")
 ## How much moving the mouse moves the camera. Overwritten in settings.
 @export var mouse_sensitivity: float = 0.00075
@@ -79,17 +82,19 @@ var zoom := min_zoom:
 
 var moving_painting: Moma.MovingPainting = null
 
-
 func _ready() -> void:
-	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
-	# Whenever the player loads in, give the autoload ui a reference to itself.
-	UserInterface.update_player(self)
+	if is_main_player:
+		camera.make_current()
+		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+		# Whenever the player loads in, give the autoload ui a reference to itself.
+		UserInterface.update_player(self)
 
 
 func _physics_process(delta: float) -> void:
-	frame_camera_rotation()
-	smooth_camera_zoom(delta)
-	
+	if is_main_player:
+		frame_camera_rotation()
+		smooth_camera_zoom(delta)
+
 	# Add gravity.
 	if not is_on_floor():
 		# if holding jump and ascending be floaty.
@@ -100,7 +105,7 @@ func _physics_process(delta: float) -> void:
 			velocity.y -= gravity * delta * fall_multiplier
 		
 	# Handle jump.
-	if Input.is_action_just_pressed("jump") and is_on_floor():
+	if is_main_player and Input.is_action_just_pressed("jump") and is_on_floor():
 		# Projectile motion to turn jump height into a velocity.
 		velocity.y = sqrt(jump_height * 2.0 * gravity)
 		jump_particles.restart()
@@ -125,12 +130,14 @@ func _physics_process(delta: float) -> void:
 	if moving_painting:
 		moving_painting.move_along_wall(raycast)
 
-	if UserInterface.reticle.visible:
+	if is_main_player and UserInterface.reticle.visible:
 		var painting := Moma.try_to_find_painting_from_collision(raycast.get_collider())
 		UserInterface.reticle.is_highlighted = painting != null
 
 # Turn movent inputs into a locally oriented vector.
 func get_movement_direction() -> Vector3:
+	if not is_main_player:
+		return Vector3.ZERO
 	var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	return (transform.basis * Vector3(input_dir.x, 0, input_dir.y)).normalized()
 	
@@ -156,6 +163,8 @@ func update_animation_tree() -> void:
 	animation_tree.set("parameters/blend_position", animation_target)
 
 func _unhandled_input(event: InputEvent) -> void:
+	if not is_main_player:
+		return
 	# Update the _look variable to the latest mouse offset.
 	if event is InputEventMouseMotion:
 		var motion_event: InputEventMouseMotion = event

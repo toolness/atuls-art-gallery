@@ -21,6 +21,7 @@ environment = SubResource("Environment_ckp8a")
 [node name="Player" parent="." instance=ExtResource("2_4hb5h")]
 transform = Transform3D(-7.39508e-06, 0, -1, 0, 1, 0, 1, 0, -7.39508e-06, 26.5, 2, 4.00023)
 jump_height = 0.5
+is_main_player = true
 
 [node name="Moma_for_reference_only" parent="." instance=ExtResource("3_3c1uq")]
 unique_name_in_owner = true
