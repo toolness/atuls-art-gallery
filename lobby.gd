@@ -41,11 +41,9 @@ func _on_connected_to_server():
 
 func _on_connection_failed():
     print("Connection failed.")
-    multiplayer.multiplayer_peer = null
 
 func _on_server_disconnected():
     print("Server disconnected.")
-    multiplayer.multiplayer_peer = null
 
 func _on_peer_connected(id):
     print("Peer ", id, " connected.")
@@ -78,5 +76,3 @@ func _ready():
             return
         print("Connecting to server on ", HOST, ":", PORT, ".")
         multiplayer.multiplayer_peer = peer
-    else:
-        multiplayer.multiplayer_peer = null

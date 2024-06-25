@@ -9,7 +9,7 @@ use godot::{
     engine::{
         multiplayer_api::RpcMode,
         multiplayer_peer::{ConnectionStatus, TransferMode},
-        Image, MultiplayerPeer, ProjectSettings,
+        Image, MultiplayerPeer, OfflineMultiplayerPeer, ProjectSettings,
     },
     prelude::*,
 };
@@ -123,9 +123,10 @@ impl INode for GalleryClient {
             .to_variant(),
         );
         godot_print!(
-            "GalleryClient ready, is_multiplayer_client={} is_multiplayer_server={}",
+            "GalleryClient ready, is_multiplayer_client={} is_multiplayer_server={} is_offline_mode={}",
             self.is_multiplayer_client(),
-            self.is_multiplayer_server()
+            self.is_multiplayer_server(),
+            self.is_offline_mode()
         );
     }
 }
@@ -158,8 +159,23 @@ impl GalleryClient {
         }
     }
 
+    /// This returns if the game itself is in offline mode, *not* if we're in multiplayer mode but
+    /// currently disconnected from the server.
+    fn is_offline_mode(&self) -> bool {
+        // lol why is this so complicated
+        self.base()
+            .get_multiplayer()
+            .map(|mut multiplayer| {
+                multiplayer
+                    .get_multiplayer_peer()
+                    .map(|peer| peer.try_cast::<OfflineMultiplayerPeer>().is_ok())
+            })
+            .flatten()
+            .unwrap_or(true)
+    }
+
     fn get_multiplayer_client(&self) -> Option<Gd<MultiplayerPeer>> {
-        if self.base().is_multiplayer_authority() {
+        if self.is_offline_mode() || self.base().is_multiplayer_authority() {
             return None;
         }
         let Some(multiplayer) = &mut self.base().get_multiplayer() else {
@@ -173,6 +189,9 @@ impl GalleryClient {
     }
 
     fn is_multiplayer_server(&self) -> bool {
+        if self.is_offline_mode() || !self.base().is_multiplayer_authority() {
+            return false;
+        }
         let Some(multiplayer) = &mut self.base().get_multiplayer() else {
             return false;
         };
