@@ -8,6 +8,6 @@ extends Camera3D
 func _process(delta: float) -> void:
 	global_transform = global_transform.interpolate_with(
 		target.global_transform, 
-		clamp(speed * delta, 0.0, 1.0)
+		clampf(speed * delta, 0.0, 1.0)
 		)
 	global_position = target.global_position
