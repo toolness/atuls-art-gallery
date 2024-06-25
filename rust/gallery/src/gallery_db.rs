@@ -95,7 +95,8 @@ impl GalleryDb {
                 date TEXT NOT NULL,
                 medium TEXT NOT NULL,
                 width REAL NOT NULL,
-                height REAL NOT NULL
+                height REAL NOT NULL,
+                accession_year INTEGER NOT NULL
             )
             ",
             (),
@@ -117,7 +118,7 @@ impl GalleryDb {
         for record in records {
             tx.execute(
             "
-                INSERT INTO met_objects (id, title, date, medium, width, height) VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+                INSERT INTO met_objects (id, title, date, medium, width, height, accession_year) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
                 ",
         (
                     &record.object_id,
@@ -125,7 +126,8 @@ impl GalleryDb {
                     &record.object_date,
                     &record.medium,
                     &record.width,
-                    &record.height
+                    &record.height,
+                    &record.accession_year
                 ),
             )?;
         }
@@ -152,7 +154,8 @@ impl GalleryDb {
                 mo.date,
                 mo.medium,
                 mo.width,
-                mo.height
+                mo.height,
+                mo.accession_year
             FROM
                 met_objects AS mo
             INNER JOIN
@@ -170,12 +173,12 @@ impl GalleryDb {
             let location: (f64, f64) = (row.get(1)?, row.get(2)?);
             let object = PublicDomain2DMetObjectRecord {
                 object_id: id,
-                accession_year: 0, // TODO add it to our schema
                 title: row.get(3)?,
                 object_date: row.get(4)?,
                 medium: row.get(5)?,
                 width: row.get(6)?,
                 height: row.get(7)?,
+                accession_year: row.get(8)?,
             };
             result.push((object, location));
         }
