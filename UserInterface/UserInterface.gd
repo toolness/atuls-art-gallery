@@ -108,11 +108,16 @@ func fade_out(tween_in: Tween):
 # Update the reference to the player variable in the settings container.
 func update_player(player_in: Player) -> void:
 	settings_container.update_player(player_in)
-	
+
+func get_main_player() -> Player:
+	var player := get_tree().get_first_node_in_group("Player")
+	assert(player is Player)
+	return player
+
 # Fade the screen out, change level and fade back in.
 func change_scene(next_scene: String, player_transform: Transform3D) -> void:
 	# Store a reference to the player to pass its settings onto the next player.
-	var player = get_tree().get_first_node_in_group("Player")
+	var player := get_main_player()
 	# Stop movement and cache settings.
 	player.set_physics_process(false)
 	var zoom = player.zoom
@@ -124,7 +129,7 @@ func change_scene(next_scene: String, player_transform: Transform3D) -> void:
 	tween.tween_interval(0.1)
 	tween.tween_callback(func():
 		# Apply the cached variable to the new player.
-		var new_player = get_tree().get_first_node_in_group("Player")
+		var new_player = get_main_player()
 		# Set the player's position in the new level.
 		new_player.global_transform = player_transform
 		new_player.view = view
@@ -136,7 +141,7 @@ func change_scene(next_scene: String, player_transform: Transform3D) -> void:
 func reload_current_scene(hard_reset: bool) -> void:
 	before_reload.emit(hard_reset)
 	# Store a reference to the player to pass its settings onto the next player.
-	var player = get_tree().get_first_node_in_group("Player")
+	var player = get_main_player()
 	# Stop movement and cache settings.
 	player.set_physics_process(false)
 	var zoom = player.zoom
@@ -147,7 +152,7 @@ func reload_current_scene(hard_reset: bool) -> void:
 	# Wait at least one frame for the scene to update and ready.
 	tween.tween_interval(0.1)
 	tween.tween_callback(func(): 
-		var new_player = get_tree().get_first_node_in_group("Player")
+		var new_player = get_main_player()
 		# Apply cached settings, but don't update position.
 		new_player.view = view
 		new_player.zoom = zoom
