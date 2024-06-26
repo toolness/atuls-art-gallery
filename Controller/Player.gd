@@ -156,11 +156,12 @@ func _physics_process(delta: float) -> void:
 # Turn movent inputs into a locally oriented vector.
 func get_movement_direction() -> Vector3:
 	var input_dir := player_input.input_direction
-	return (transform.basis * Vector3(input_dir.x, 0, input_dir.y)).normalized()
+	return (player_input.basis * Vector3(input_dir.x, 0, input_dir.y)).normalized()
 
 # Apply the _look variables rotation to the camera.
 func frame_camera_rotation() -> void:
 	rotate_y(_look.x)
+	player_input.basis = transform.basis
 	# The smooth camera orients the camera to align with the target smoothly.
 	camera_target.rotate_x(_look.y)
 	camera_target.rotation.x = clamp(camera_target.rotation.x, 

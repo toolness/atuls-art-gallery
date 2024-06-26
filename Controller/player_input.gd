@@ -4,6 +4,8 @@ class_name PlayerInput
 
 @export var input_direction: Vector2
 
+@export var basis: Transform3D
+
 func _ready():
     pass
 
