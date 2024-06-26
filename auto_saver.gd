@@ -61,6 +61,9 @@ func _on_before_reload(hard_reset: bool):
 		save_state()
 
 func _ready() -> void:
+	if not Lobby.IS_OFFLINE_MODE:
+		get_parent().remove_child.call_deferred(self)
+		return
 	UserInterface.before_reload.connect(_on_before_reload)
 	print("Save state filename is " + SAVE_STATE_FILENAME + ".")
 	load_state()
