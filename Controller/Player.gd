@@ -109,7 +109,8 @@ func _ready() -> void:
 
 	if is_main_player:
 		camera.make_current()
-		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+		if not Lobby.DISABLE_INITIAL_MOUSE_CAPTURE:
+			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 		# Whenever the player loads in, give the autoload ui a reference to itself.
 		UserInterface.update_player(self)
 	else:

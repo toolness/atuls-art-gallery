@@ -13,6 +13,7 @@ var IS_OFFLINE_MODE := false
 
 var HOST := "127.0.0.1"
 
+var DISABLE_INITIAL_MOUSE_CAPTURE := false
 
 func _get_cmdline_args_dict() -> Dictionary:
     var cmdline_args := OS.get_cmdline_args()
@@ -44,6 +45,8 @@ func _parse_cmdline_args():
         IS_SERVER = true
     if args.has("--host"):
         HOST = args.get("--host")
+    if args.has("--nocap"):
+        DISABLE_INITIAL_MOUSE_CAPTURE = true
     if IS_CLIENT and IS_SERVER:
         OS.crash("Cannot be server and client simultaneously!")
     IS_OFFLINE_MODE = !IS_CLIENT and !IS_SERVER
