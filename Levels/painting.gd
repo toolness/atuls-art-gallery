@@ -6,8 +6,6 @@ extends Node3D
 const PAINTING_SURFACE_IDX = 1
 
 
-var met_object: MetObject
-
 var painting_surface_material: StandardMaterial3D
 
 var original_albedo_color: Color
@@ -23,7 +21,7 @@ var original_albedo_color: Color
 ## seems to be unable to access.)
 @export var inner_painting_scale: Vector3
 
-## The met object ID of the painting, set by the server in multiplayer.
+## The met object ID of the painting, set by the server.
 @export var met_object_id: int
 
 func _ready():
@@ -66,13 +64,12 @@ func configure_wall_label(painting_width: float, painting_height: float, text: S
 
 
 func init_with_met_object(object: MetObject):
-	met_object = object
 	inner_painting_scale = Vector3(object.width, object.height, 1.0)
-	met_object_id = met_object.object_id
+	met_object_id = object.object_id
 
 
-func paint_and_resize(image: Image) -> void:
-	configure_wall_label(met_object.width, met_object.height, met_object.title + "\n" + met_object.date)
+func paint_and_resize(met_object: MetObject, image: Image) -> void:
+	configure_wall_label(inner_painting_scale.x, inner_painting_scale.y, met_object.title + "\n" + met_object.date)
 	painting.set_scale(inner_painting_scale)
 	set_image(image)
 
@@ -88,12 +85,7 @@ func set_image(image: Image):
 
 
 func try_to_open_in_browser():
-	# TODO: The conditional is from when paintings could potentially have
-	# solid colors instead of met objects, consider removing it and renaming
-	# the function to `open_in_browser`... Or just get rid of it and have clients
-	# directly reference `met_object`.
-	if met_object:
-		met_object.open_in_browser()
+	OS.shell_open("https://www.metmuseum.org/art/collection/search/" + str(met_object_id))
 
 
 func start_interactive_placement():

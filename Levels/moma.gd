@@ -59,7 +59,7 @@ func place_met_object_on_wall(
 	image: Image
 ) -> void:
 	var painting := make_painting(met_object)
-	painting.paint_and_resize(image)
+	painting.paint_and_resize(met_object, image)
 	var width_offset := wall.horizontal_direction * met_object.x
 	var height_offset := Vector3.UP * met_object.y
 	var painting_mount_point := wall.get_base_position() + width_offset + height_offset
@@ -77,8 +77,8 @@ class MovingPainting:
 
 	func finish_moving() -> void:
 		painting.finish_interactive_placement()
-		print("New painting position is object_id=", painting.met_object.object_id, " gallery_id=", gallery_id, " wall_id=", wall_id, " x=", wall_x, " y=", wall_y)
-		MetObjects.gallery_client.move_met_object(painting.met_object.object_id, gallery_id, wall_id, wall_x, wall_y)
+		print("New painting position is object_id=", painting.met_object_id, " gallery_id=", gallery_id, " wall_id=", wall_id, " x=", wall_x, " y=", wall_y)
+		MetObjects.gallery_client.move_met_object(painting.met_object_id, gallery_id, wall_id, wall_x, wall_y)
 
 	func _populate_wall_info(wall: Wall):
 		var relative_position = painting.global_position - wall.get_global_base_position()
@@ -215,7 +215,7 @@ func populate_with_paintings(player: Player) -> int:
 		if not is_inside_tree():
 			return count
 		for met_object in met_objects:
-			if player.moving_painting and player.moving_painting.painting.met_object.object_id == met_object.object_id:
+			if player.moving_painting and player.moving_painting.painting.met_object_id == met_object.object_id:
 				# The player is currently moving this painting, don't spawn it.
 				print("Not spawning ", met_object.object_id, " because it is being moved by player.")
 				continue
