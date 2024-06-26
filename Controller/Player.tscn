@@ -305,6 +305,11 @@ target_position = Vector3(2.08165e-12, 2.08165e-12, -5)
 debug_shape_custom_color = Color(1, 1, 1, 1)
 debug_shape_thickness = 5
 
+[node name="DebugLookDirection" type="CSGBox3D" parent="SmoothCamera"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2)
+visible = false
+size = Vector3(0.25, 0.25, 0.25)
+
 [node name="AnimationTree" type="AnimationTree" parent="."]
 root_node = NodePath("../BasePivot")
 tree_root = SubResource("AnimationNodeBlendSpace2D_e0dl0")
