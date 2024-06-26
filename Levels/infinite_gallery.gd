@@ -34,6 +34,16 @@ func sync_galleries() -> void:
 		player = get_tree().get_first_node_in_group("Player")
 
 	if not player:
+		# This saves system resources, but somewhat worryingly, weird stuff seems to happen if a single
+		# player leaves the server and then rejoins--a bunch of errors about not being able to find the
+		# multiplayer spawner are logged to the client. This seems to fix it.
+		#
+		# Note that errors do _not_ occur if a player logs off while another player is still connected, and
+		# then the player rejoins. Very strange.
+		for gallery_chunk in gallery_chunks:
+			print("Despawning gallery with id ", gallery_chunk.gallery_id, " at ", gallery_chunk.position.x)
+			gallery_chunk.queue_free()
+		gallery_chunks = []
 		return
 
 	var middle_gallery_id := get_gallery_id(player.position.x)
