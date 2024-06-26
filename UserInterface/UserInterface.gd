@@ -110,9 +110,13 @@ func update_player(player_in: Player) -> void:
 	settings_container.update_player(player_in)
 
 func get_main_player() -> Player:
-	var player := get_tree().get_first_node_in_group("Player")
-	assert(player is Player)
-	return player
+	for maybe_player in get_tree().get_nodes_in_group("Player"):
+		if maybe_player is Player:
+			var player: Player = maybe_player
+			if player.is_main_player:
+				return player
+	print("Warning: main player not found!")
+	return null
 
 # Fade the screen out, change level and fade back in.
 func change_scene(next_scene: String, player_transform: Transform3D) -> void:
