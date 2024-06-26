@@ -18,8 +18,12 @@ var original_albedo_color: Color
 
 @onready var wall_label: Label3D = $wall_label
 
+## The scaling applied to the actual painting canvas, set by the server in multiplayer. (We can't
+## simply synchronize the actual scale because it's in an imported scene that our synchronizer
+## seems to be unable to access.)
 @export var inner_painting_scale: Vector3
 
+## The met object ID of the painting, set by the server in multiplayer.
 @export var met_object_id: int
 
 func _ready():
