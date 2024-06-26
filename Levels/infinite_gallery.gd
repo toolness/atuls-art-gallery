@@ -9,6 +9,8 @@ extends Node3D
 
 @onready var gallery_chunks: Array[Moma] = []
 
+@export var spawned_example_scene: PackedScene
+
 const GALLERY_CHUNK_WIDTH = 28
 
 const GALLERY_SPAWN_RADIUS = 1
@@ -56,7 +58,20 @@ func _ready() -> void:
 	# it, which is weird, so just remove it.
 	remove_child(%Moma_for_reference_only)
 
+	if Lobby.IS_SERVER:
+		_spawn_multiplayer_example_objects()
+
 	sync_galleries()
+
+
+func _spawn_multiplayer_example_objects():
+	# These just exist to try out Godot's MultiplayerSpawner and MultiplayerSynchronizer classes.
+	var rng := RandomNumberGenerator.new()
+	for i in range(10):
+		var example: Node3D = spawned_example_scene.instantiate()
+		var example_position := Vector3(rng.randf_range(28.0, 38.0), 1.0, rng.randf_range(1.0, 7.0))
+		example.translate(example_position)
+		add_child(example, true)
 
 
 func _process(_delta) -> void:
