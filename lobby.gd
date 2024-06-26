@@ -9,7 +9,7 @@ var IS_CLIENT := false
 
 var IS_SERVER := false
 
-var IS_OFFLINE_MODE := true
+var IS_OFFLINE_MODE := false
 
 var HOST := "127.0.0.1"
 
@@ -30,14 +30,13 @@ func _parse_cmdline_args():
     var args = _get_cmdline_args_dict()
     if args.has("--client"):
         IS_CLIENT = true
-        IS_OFFLINE_MODE = false
     if args.has("--server"):
         IS_SERVER = true
-        IS_OFFLINE_MODE = false
     if args.has("--host"):
         HOST = args.get("--host")
     if IS_CLIENT and IS_SERVER:
         OS.crash("Cannot be server and client simultaneously!")
+    IS_OFFLINE_MODE = !IS_CLIENT and !IS_SERVER
 
 func _on_connected_to_server():
     var peer_id := multiplayer.get_unique_id()
