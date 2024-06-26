@@ -175,10 +175,10 @@ func _physics_process(delta: float) -> void:
 # Turn movent inputs into a locally oriented vector.
 func get_movement_direction() -> Vector3:
 	var input_dir := player_input.input_direction
-	return (player_input.basis * Vector3(input_dir.x, 0, input_dir.y)).normalized()
+	return (transform.basis * Vector3(input_dir.x, 0, input_dir.y)).normalized()
 
 
-@rpc("any_peer", "call_local", "unreliable")
+@rpc("any_peer", "call_local", "unreliable_ordered")
 func set_look_rotation(x_rotation: float, y_rotation: float):
 	rotation.y = y_rotation
 	camera_target.rotation.x = clamp(x_rotation,
@@ -190,7 +190,6 @@ func set_look_rotation(x_rotation: float, y_rotation: float):
 # Apply the _look variables rotation to the camera.
 func frame_camera_rotation() -> void:
 	set_look_rotation.rpc(camera_target.rotation.x + _look.y, rotation.y + _look.x)
-	player_input.basis = transform.basis
 	# Reset the _look variable so the same offset can't be reapplied.
 	_look = Vector2.ZERO
 
