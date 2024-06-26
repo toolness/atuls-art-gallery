@@ -140,6 +140,8 @@ reset_and_reload_scene={
 [layer_names]
 
 3d_render/layer_20="WALL_LABELS"
+3d_physics/layer_1="Walls"
+3d_physics/layer_2="Players"
 
 [rendering]
 

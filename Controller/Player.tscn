@@ -221,6 +221,7 @@ stream_0/stream = ExtResource("4_0mhnh")
 stream_0/weight = 1.0
 
 [node name="Player" type="CharacterBody3D" groups=["Player"]]
+collision_layer = 2
 floor_max_angle = 0.872665
 script = ExtResource("1_12if5")
 
