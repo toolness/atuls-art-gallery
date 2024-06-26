@@ -15,7 +15,10 @@ class_name Player
 @export var is_offline_mode_player: bool
 
 ## The peer ID of this player (multiplayer only, set at runtime).
-@export var peer_id: int
+@export var peer_id: int:
+	set(value):
+		peer_id = value
+		$PlayerInput.set_multiplayer_authority(peer_id)
 
 @export_category("Camera")
 ## How much moving the mouse moves the camera. Overwritten in settings.
@@ -32,6 +35,8 @@ class_name Player
 @export var max_zoom: float = 6.0
 ## How quickly to zoom the camera
 @export var zoom_sensitivity: float = 0.4
+
+@onready var player_input: PlayerInput = $PlayerInput
 
 # Get the gravity from the project settings to be synced with RigidBody nodes.
 var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
@@ -150,11 +155,9 @@ func _physics_process(delta: float) -> void:
 
 # Turn movent inputs into a locally oriented vector.
 func get_movement_direction() -> Vector3:
-	if not is_main_player:
-		return Vector3.ZERO
-	var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+	var input_dir := player_input.input_direction
 	return (transform.basis * Vector3(input_dir.x, 0, input_dir.y)).normalized()
-	
+
 # Apply the _look variables rotation to the camera.
 func frame_camera_rotation() -> void:
 	rotate_y(_look.x)
