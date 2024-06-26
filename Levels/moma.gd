@@ -239,9 +239,12 @@ func populate_with_paintings(player: Player) -> int:
 	return count
 
 
-func init(new_gallery_id: int, player: Player) -> void:
+func init(new_gallery_id: int):
 	gallery_id = new_gallery_id
 	name = GALLERY_BASE_NAME + str(gallery_id)
+
+
+func populate(player: Player) -> void:
 	gallery_label.text = str(gallery_id + GALLERY_LABEL_ID_OFFSET)
 	print("Initializing gallery ", gallery_id)
 	var count := await populate_with_paintings(player)

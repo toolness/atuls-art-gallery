@@ -5,7 +5,11 @@ extends Node3D
 
 @export var gallery_chunk_scene: PackedScene
 
-@onready var player: Player = $Player
+@export var player_scene: PackedScene
+
+@onready var offline_mode_player: Player = $OfflineModePlayer
+
+@onready var player_start_position: Vector3 = offline_mode_player.global_position
 
 @onready var gallery_chunks: Array[Moma] = []
 
@@ -21,6 +25,17 @@ func get_gallery_id(x: float) -> int:
 
 
 func sync_galleries() -> void:
+	var player: Player
+	if Lobby.IS_OFFLINE_MODE:
+		player = offline_mode_player
+	elif Lobby.IS_SERVER:
+		# TODO: We will want to make sure galleries around _all_ players
+		# are visible, not just one of them.
+		player = get_tree().get_first_node_in_group("Player")
+
+	if not player:
+		return
+
 	var middle_gallery_id := get_gallery_id(player.position.x)
 	var min_gallery_id := middle_gallery_id - GALLERY_SPAWN_RADIUS
 	var max_gallery_id := middle_gallery_id + GALLERY_SPAWN_RADIUS
@@ -47,9 +62,10 @@ func sync_galleries() -> void:
 			var instance: Moma = gallery_chunk_scene.instantiate()
 			instance.position.x = gallery_id * GALLERY_CHUNK_WIDTH
 			print("Spawning new gallery with id ", gallery_id, " at ", instance.position.x)
+			instance.init(gallery_id)
 			add_child(instance)
 			gallery_chunks.push_front(instance)
-			instance.init(gallery_id, player)
+			instance.populate(player)
 
 
 # Called when the node enters the scene tree for the first time.
@@ -58,8 +74,14 @@ func _ready() -> void:
 	# it, which is weird, so just remove it.
 	%Moma_for_reference_only.queue_free()
 
+	if not Lobby.IS_OFFLINE_MODE:
+		offline_mode_player.free()
+
 	if Lobby.IS_SERVER:
 		_spawn_multiplayer_example_objects()
+		multiplayer.peer_connected.connect(_on_peer_connected)
+		multiplayer.peer_disconnected.connect(_on_peer_disconnected)
+		# TODO: If we're not headless, spawn our own player.
 
 	sync_galleries()
 
@@ -76,3 +98,26 @@ func _spawn_multiplayer_example_objects():
 
 func _process(_delta) -> void:
 	sync_galleries()
+
+
+func _get_player_name(id: int) -> String:
+	return "Player_" + str(id)
+
+
+func _on_peer_connected(id: int):
+	var player: Player = player_scene.instantiate()
+	player.name = _get_player_name(id)
+	player.peer_id = id
+	add_child(player)
+	player.global_position = player_start_position
+	print("Spawned ", player.name, ".")
+
+
+func _on_peer_disconnected(id: int):
+	var player_name := _get_player_name(id)
+	print("Despawning ", player_name, ".")
+	var player: Player = get_node(player_name)
+	if not player:
+		print("Warning: ", player_name, " not found!")
+		return
+	player.queue_free()

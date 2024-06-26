@@ -11,6 +11,12 @@ class_name Player
 ## Whether this is the main player, or a remote player (or npc, etc)
 @export var is_main_player: bool
 
+## Whether this is player used in offline mode
+@export var is_offline_mode_player: bool
+
+## The peer ID of this player (multiplayer only, set at runtime).
+@export var peer_id: int
+
 @export_category("Camera")
 ## How much moving the mouse moves the camera. Overwritten in settings.
 @export var mouse_sensitivity: float = 0.00075
@@ -83,6 +89,14 @@ var zoom := min_zoom:
 var moving_painting: Moma.MovingPainting = null
 
 func _ready() -> void:
+	if is_offline_mode_player and not Lobby.IS_OFFLINE_MODE:
+		# We're about to be removed from the scene tree, just exit.
+		return
+	elif not Lobby.IS_OFFLINE_MODE:
+		if peer_id == multiplayer.get_unique_id():
+			# This is the main player!
+			is_main_player = true
+
 	if is_main_player:
 		camera.make_current()
 		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)

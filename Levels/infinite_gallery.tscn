@@ -15,23 +15,25 @@ glow_enabled = true
 [node name="InfiniteGallery" type="Node3D" groups=["InfiniteGallery"]]
 script = ExtResource("1_drnpr")
 gallery_chunk_scene = ExtResource("3_3c1uq")
+player_scene = ExtResource("2_4hb5h")
 spawned_example_scene = ExtResource("5_4j0l2")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_ckp8a")
 
-[node name="Player" parent="." instance=ExtResource("2_4hb5h")]
+[node name="OfflineModePlayer" parent="." instance=ExtResource("2_4hb5h")]
 transform = Transform3D(-7.39508e-06, 0, -1, 0, 1, 0, 1, 0, -7.39508e-06, 26.5, 2, 4.00023)
 jump_height = 0.5
 is_main_player = true
+is_offline_mode_player = true
 
 [node name="Moma_for_reference_only" parent="." instance=ExtResource("3_3c1uq")]
 unique_name_in_owner = true
 
 [node name="AutoSaver" type="Node" parent="." node_paths=PackedStringArray("player")]
 script = ExtResource("4_114bu")
-player = NodePath("../Player")
+player = NodePath("../OfflineModePlayer")
 
 [node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="."]
-_spawnable_scenes = PackedStringArray("res://Levels/spawned_example.tscn")
+_spawnable_scenes = PackedStringArray("res://Levels/spawned_example.tscn", "res://Controller/Player.tscn", "res://Levels/moma.tscn")
 spawn_path = NodePath("..")
