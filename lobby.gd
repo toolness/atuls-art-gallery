@@ -15,8 +15,18 @@ var HOST := "127.0.0.1"
 
 
 func _get_cmdline_args_dict() -> Dictionary:
+    var cmdline_args := OS.get_cmdline_args()
+    if OS.has_feature("editor") and cmdline_args.size() == 1 and cmdline_args[0].find("res://") == 0:
+        # We were started from the GUI editor, try to load command-line args
+        # from a JSON file.
+        const EDITOR_CMDLINE_ARGS_FILE = "res://editor-cmdline-args.json"
+        if FileAccess.file_exists(EDITOR_CMDLINE_ARGS_FILE):
+            var contents = JSON.parse_string(FileAccess.get_file_as_string(EDITOR_CMDLINE_ARGS_FILE))
+            if contents is Array:
+                cmdline_args = contents
+                print("Loaded command line args from ", EDITOR_CMDLINE_ARGS_FILE, ": ", cmdline_args)
     var arguments = {}
-    for argument in OS.get_cmdline_args():
+    for argument in cmdline_args:
         if argument.find("=") > -1:
             var key_value = argument.split("=")
             arguments[key_value[0]] = key_value[1]

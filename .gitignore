@@ -8,5 +8,6 @@
 *.lmbake
 
 initial-db.sqlite
+editor-cmdline-args.json
 
 .DS_Store
