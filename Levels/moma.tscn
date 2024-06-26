@@ -7,7 +7,7 @@
 [sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_k6ynt"]
 properties/0/path = NodePath(".:position")
 properties/0/spawn = true
-properties/0/replication_mode = 1
+properties/0/replication_mode = 2
 
 [node name="Moma" type="Node3D"]
 script = ExtResource("1_k8oh2")
@@ -48,3 +48,7 @@ outline_size = 0
 
 [node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
 replication_config = SubResource("SceneReplicationConfig_k6ynt")
+
+[node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="."]
+_spawnable_scenes = PackedStringArray("res://Levels/painting.tscn")
+spawn_path = NodePath("..")

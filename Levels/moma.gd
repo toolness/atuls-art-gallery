@@ -45,9 +45,10 @@ static func try_to_find_wall_from_collision(collision: Object) -> Wall:
 	return null
 
 
-func make_painting(painting_id: int) -> Painting:
+func make_painting(met_object: MetObject) -> Painting:
 	var painting: Painting = painting_scene.instantiate()
-	painting.name = PAINTING_BASE_NAME + str(painting_id)
+	painting.name = PAINTING_BASE_NAME + str(met_object.object_id)
+	painting.init_with_met_object(met_object)
 	add_child(painting)
 	return painting
 
@@ -55,10 +56,10 @@ func make_painting(painting_id: int) -> Painting:
 func place_met_object_on_wall(
 	met_object: MetObject,
 	wall: Wall,
-	texture: ImageTexture
+	image: Image
 ) -> void:
-	var painting := make_painting(met_object.object_id)
-	painting.init_with_met_object(met_object, texture)
+	var painting := make_painting(met_object)
+	painting.paint_and_resize(image)
 	var width_offset := wall.horizontal_direction * met_object.x
 	var height_offset := Vector3.UP * met_object.y
 	var painting_mount_point := wall.get_base_position() + width_offset + height_offset
@@ -226,9 +227,7 @@ func populate_with_paintings(player: Player) -> int:
 			if not image:
 				# Oof, fetching the image failed.
 				continue
-			image.generate_mipmaps()
-			var texture := ImageTexture.create_from_image(image)
-			place_met_object_on_wall(met_object, wall, texture)
+			place_met_object_on_wall(met_object, wall, image)
 			count += 1
 			# Give the rest of the engine time to process the full frame, we're not in a rush and
 			# processing all paintings synchronously will cause stutter.

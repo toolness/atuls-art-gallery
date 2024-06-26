@@ -18,6 +18,29 @@ var original_albedo_color: Color
 
 @onready var wall_label: Label3D = $wall_label
 
+@export var inner_painting_scale: Vector3
+
+@export var met_object_id: int
+
+func _ready():
+	if not Lobby.IS_OFFLINE_MODE:
+		if inner_painting_scale:
+			painting.set_scale(inner_painting_scale)
+		else:
+			print("Warning: No inner_painting_scale available for painting!")
+		if met_object_id:
+			var image := await MetObjects.fetch_small_image(met_object_id)
+			if not is_inside_tree():
+				# We despawned, exit.
+				return
+			if not image:
+				# Oof, fetching the image failed.
+				visible = false
+				return
+			set_image(image)
+		else:
+			print("Warning: No met_object_id available for painting!")
+
 
 func _get_side_multiplier(value: float) -> float:
 	if value == 0.0:
@@ -38,10 +61,21 @@ func configure_wall_label(painting_width: float, painting_height: float, text: S
 	wall_label.text = text
 
 
-func init_with_met_object(object: MetObject, texture: ImageTexture) -> void:
+func init_with_met_object(object: MetObject):
 	met_object = object
-	configure_wall_label(object.width, object.height, object.title + "\n" + object.date)
-	painting.set_scale(Vector3(object.width, object.height, 1.0))
+	inner_painting_scale = Vector3(object.width, object.height, 1.0)
+	met_object_id = met_object.object_id
+
+
+func paint_and_resize(image: Image) -> void:
+	configure_wall_label(met_object.width, met_object.height, met_object.title + "\n" + met_object.date)
+	painting.set_scale(inner_painting_scale)
+	set_image(image)
+
+
+func set_image(image: Image):
+	image.generate_mipmaps()
+	var texture := ImageTexture.create_from_image(image)
 	var material: StandardMaterial3D = painting.mesh.surface_get_material(PAINTING_SURFACE_IDX)
 	painting_surface_material = material.duplicate()
 	painting_surface_material.albedo_color = Color.TRANSPARENT
