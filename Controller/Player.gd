@@ -52,6 +52,8 @@ enum VIEW {
 var view := VIEW.FIRST_PERSON:
 	set(value):
 		view = value
+		if not is_main_player:
+			return
 		match view:
 			VIEW.FIRST_PERSON:
 				# Get the fov of the current camera and apply it to the target.
@@ -99,6 +101,7 @@ func _ready() -> void:
 		return
 	elif not Lobby.IS_OFFLINE_MODE:
 		if peer_id == multiplayer.get_unique_id():
+			print("Main player ", peer_id, " spawned.")
 			# This is the main player!
 			is_main_player = true
 
@@ -107,6 +110,19 @@ func _ready() -> void:
 		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 		# Whenever the player loads in, give the autoload ui a reference to itself.
 		UserInterface.update_player(self)
+	else:
+		# This is extremely annoying: just spawning a new player will make their
+		# camera the current one, and I can't make it _not_ current in the scene
+		# editor, so I guess I'll have to forcibly iterate through every single
+		# player to find the main one and make it the main camera again.
+		#
+		# I guess I might have to refactor this thing to have the camera be a
+		# completely separate element that's only attached to a player when
+		# it's the main one.
+		for p in get_tree().get_nodes_in_group("Player"):
+			var player: Player = p
+			if player.is_main_player:
+				player.camera.make_current()
 
 
 func _physics_process(delta: float) -> void:
