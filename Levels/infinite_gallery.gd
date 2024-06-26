@@ -31,7 +31,7 @@ func sync_galleries() -> void:
 		var gallery_id := gallery_chunk.gallery_id
 		if gallery_id < min_gallery_id or gallery_id > max_gallery_id:
 			print("Despawning gallery with id ", gallery_id, " at ", gallery_chunk.position.x)
-			remove_child(gallery_chunk)
+			gallery_chunk.queue_free()
 		else:
 			new_gallery_chunks.push_front(gallery_chunk)
 	gallery_chunks = new_gallery_chunks
@@ -56,7 +56,7 @@ func sync_galleries() -> void:
 func _ready() -> void:
 	# Even if we set the reference gallery to not be visible, raycasts still intersect with
 	# it, which is weird, so just remove it.
-	remove_child(%Moma_for_reference_only)
+	%Moma_for_reference_only.queue_free()
 
 	if Lobby.IS_SERVER:
 		_spawn_multiplayer_example_objects()
