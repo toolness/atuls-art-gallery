@@ -104,6 +104,8 @@ func _ready() -> void:
 			print("Main player ", peer_id, " spawned.")
 			# This is the main player!
 			is_main_player = true
+			# Make the player face the next gallery.
+			rotate(Vector3.UP, -PI / 2.0)
 
 	if is_main_player:
 		camera.make_current()
