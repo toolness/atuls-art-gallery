@@ -13,6 +13,10 @@ extends Node3D
 
 @onready var auto_saver: AutoSaver = $AutoSaver
 
+@onready var world_environment: WorldEnvironment = %WorldEnvironment
+
+var did_reset_lighting = false
+
 ## The width, along the x-axis, of the gallery chunk scene.
 const GALLERY_CHUNK_WIDTH = 28
 
@@ -120,3 +124,18 @@ func _on_peer_disconnected(id: int):
 		print("Warning: ", player_name, " not found!")
 		return
 	player.queue_free()
+
+
+func _on_multiplayer_spawner_spawned(_node: Node):
+	if not did_reset_lighting:
+		var galleries := get_tree().get_nodes_in_group("MomaGallery")
+		var num_expected_galleries := GALLERY_SPAWN_RADIUS * 2 + 1
+		if len(galleries) == num_expected_galleries:
+			print("All galleries loaded, resetting SDFGI for proper lighting.")
+			did_reset_lighting = true
+			world_environment.environment.sdfgi_enabled = false
+			for i in range(5):
+				await get_tree().process_frame
+				if not is_inside_tree():
+					return
+			world_environment.environment.sdfgi_enabled = true

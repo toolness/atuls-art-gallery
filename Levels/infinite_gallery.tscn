@@ -17,6 +17,7 @@ gallery_chunk_scene = ExtResource("3_3c1uq")
 player_scene = ExtResource("2_4hb5h")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+unique_name_in_owner = true
 environment = SubResource("Environment_ckp8a")
 
 [node name="Moma_for_reference_only" parent="." instance=ExtResource("3_3c1uq")]
@@ -33,3 +34,5 @@ spawn_path = NodePath("..")
 [node name="PlayerSpawnPoint" type="Node3D" parent="."]
 unique_name_in_owner = true
 transform = Transform3D(-7.43469e-06, 0, -1, 0, 1, 0, 1, 0, -7.43469e-06, 26.5, 2, 4.00023)
+
+[connection signal="spawned" from="MultiplayerSpawner" to="." method="_on_multiplayer_spawner_spawned"]
