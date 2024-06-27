@@ -165,6 +165,14 @@ func _physics_process(delta: float) -> void:
 	update_animation_tree()
 	move_and_slide()
 
+	if player_input.clicked:
+		player_input.clicked = false
+		if moving_painting:
+			moving_painting.finish_moving()
+			moving_painting = null
+		elif UserInterface.reticle.visible:
+			moving_painting = Moma.MovingPainting.try_to_start_moving(raycast)
+
 	if moving_painting:
 		moving_painting.move_along_wall(raycast)
 
@@ -210,16 +218,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		var motion_event: InputEventMouseMotion = event
 		if Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
 			_look = -motion_event.relative * mouse_sensitivity
-	# Capture the mouse if it is uncaptured.
-	if event.is_action_pressed("click"):
-		if Input.get_mouse_mode() != Input.MOUSE_MODE_CAPTURED:
-			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
-		elif moving_painting:
-			moving_painting.finish_moving()
-			moving_painting = null
-			pass
-		elif UserInterface.reticle.visible:
-			moving_painting = Moma.MovingPainting.try_to_start_moving(raycast)
 
 	if event.is_action_pressed("right_click") and UserInterface.reticle.visible:
 		var painting := Moma.try_to_find_painting_from_collision(raycast.get_collider())
