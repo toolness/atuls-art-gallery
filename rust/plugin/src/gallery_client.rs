@@ -344,7 +344,7 @@ impl GalleryClient {
                             godot_error!("Unable to serialize request body: {:?}", body);
                             continue;
                         };
-                        //godot_print!("Proxying request to server: {}", serialized_request);
+                        //godot_print!("Proxying request to server: {}", serialized_request_body);
                         self.base_mut().rpc_id(
                             1, // Send to server only, its ID is always 1.
                             "proxy_request_to_server_internal".into(),

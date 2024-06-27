@@ -26,5 +26,5 @@ func _unhandled_input(event: InputEvent) -> void:
         if event.is_action_pressed("click"):
             if Input.get_mouse_mode() != Input.MOUSE_MODE_CAPTURED:
                 Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
-            else:
+            elif UserInterface.reticle.visible:
                 click.rpc()

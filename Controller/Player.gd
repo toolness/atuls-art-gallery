@@ -170,7 +170,7 @@ func _physics_process(delta: float) -> void:
 		if moving_painting:
 			moving_painting.finish_moving()
 			moving_painting = null
-		elif UserInterface.reticle.visible:
+		else:
 			moving_painting = Moma.MovingPainting.try_to_start_moving(raycast)
 
 	if moving_painting:

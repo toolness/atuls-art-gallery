@@ -27,7 +27,8 @@ const PAINTING_BASE_NAME = "MomaPainting_"
 
 const PAINTING_PATTERN = "MomaPainting_*"
 
-var gallery_id: int
+## The gallery ID, synchronized by the server.
+@export var gallery_id: int
 
 static func try_to_find_painting_from_collision(collision: Object) -> Painting:
 	if collision and collision is Node3D:
@@ -77,8 +78,9 @@ class MovingPainting:
 
 	func finish_moving() -> void:
 		painting.finish_interactive_placement()
-		print("New painting position is object_id=", painting.met_object_id, " gallery_id=", gallery_id, " wall_id=", wall_id, " x=", wall_x, " y=", wall_y)
-		MetObjects.gallery_client.move_met_object(painting.met_object_id, gallery_id, wall_id, wall_x, wall_y)
+		if not Lobby.IS_CLIENT:
+			print("New painting position is object_id=", painting.met_object_id, " gallery_id=", gallery_id, " wall_id=", wall_id, " x=", wall_x, " y=", wall_y)
+			MetObjects.gallery_client.move_met_object(painting.met_object_id, gallery_id, wall_id, wall_x, wall_y)
 
 	func _populate_wall_info(wall: Wall):
 		var relative_position = painting.global_position - wall.get_global_base_position()

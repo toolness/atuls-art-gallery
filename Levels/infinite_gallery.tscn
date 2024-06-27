@@ -29,6 +29,7 @@ is_offline_mode_player = true
 
 [node name="Moma_for_reference_only" parent="." instance=ExtResource("3_3c1uq")]
 unique_name_in_owner = true
+gallery_id = null
 
 [node name="AutoSaver" type="Node" parent="." node_paths=PackedStringArray("player")]
 script = ExtResource("4_114bu")
