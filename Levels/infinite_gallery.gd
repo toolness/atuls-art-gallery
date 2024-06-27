@@ -23,57 +23,49 @@ func get_gallery_id(x: float) -> int:
 
 
 func sync_galleries() -> void:
-	var player: Player
-	if Lobby.IS_OFFLINE_MODE:
-		player = offline_mode_player
-	elif Lobby.IS_SERVER:
-		# TODO: We will want to make sure galleries around _all_ players
-		# are visible, not just one of them.
-		player = get_tree().get_first_node_in_group("Player")
-
-	if not player:
-		# This saves system resources, but somewhat worryingly, weird stuff seems to happen if a single
-		# player leaves the server and then rejoins--a bunch of errors about not being able to find the
-		# multiplayer spawner are logged to the client. This seems to fix it.
-		#
-		# Note that errors do _not_ occur if a player logs off while another player is still connected, and
-		# then the player rejoins. Very strange.
-		for gallery_chunk in gallery_chunks:
-			print("Despawning gallery with id ", gallery_chunk.gallery_id, " at ", gallery_chunk.position.x)
-			gallery_chunk.queue_free()
-		gallery_chunks = []
+	if Lobby.IS_CLIENT:
+		# We should never be running this from the client.
 		return
 
-	var middle_gallery_id := get_gallery_id(player.position.x)
-	var min_gallery_id := middle_gallery_id - GALLERY_SPAWN_RADIUS
-	var max_gallery_id := middle_gallery_id + GALLERY_SPAWN_RADIUS
+	var players: Array[Player] = []
+	if Lobby.IS_OFFLINE_MODE:
+		players = [offline_mode_player]
+	elif Lobby.IS_SERVER:
+		for player in get_tree().get_nodes_in_group("Player"):
+			players.push_back(player)
 
-	# Get rid of galleries that are far from the player.
+	var galleries_to_exist := {}
+	for player in players:
+		var middle_gallery_id := get_gallery_id(player.position.x)
+		var min_gallery_id := middle_gallery_id - GALLERY_SPAWN_RADIUS
+		var max_gallery_id := middle_gallery_id + GALLERY_SPAWN_RADIUS
+		for i in range(min_gallery_id, max_gallery_id + 1):
+			galleries_to_exist[i] = null
+
+	# Get rid of galleries that are far from the players.
 	var new_gallery_chunks: Array[Moma] = []
+	var galleries_existing := {}
 	for gallery_chunk in gallery_chunks:
 		var gallery_id := gallery_chunk.gallery_id
-		if gallery_id < min_gallery_id or gallery_id > max_gallery_id:
+		if !galleries_to_exist.has(gallery_id):
 			print("Despawning gallery with id ", gallery_id, " at ", gallery_chunk.position.x)
 			gallery_chunk.queue_free()
 		else:
-			new_gallery_chunks.push_front(gallery_chunk)
+			galleries_existing[gallery_id] = null
+			new_gallery_chunks.push_back(gallery_chunk)
 	gallery_chunks = new_gallery_chunks
 
-	# Spawn galleries that are near the player.
-	for gallery_id: int in range(min_gallery_id, max_gallery_id + 1):
-		var found := false
-		for gallery_chunk in gallery_chunks:
-			if gallery_chunk.gallery_id == gallery_id:
-				found = true
-				break
-		if not found:
+	# Spawn galleries that are near the players.
+	for gallery_id: int in galleries_to_exist.keys():
+		if not galleries_existing.has(gallery_id):
 			var instance: Moma = gallery_chunk_scene.instantiate()
 			instance.position.x = gallery_id * GALLERY_CHUNK_WIDTH
 			print("Spawning new gallery with id ", gallery_id, " at ", instance.position.x)
 			instance.init(gallery_id)
 			add_child(instance)
 			gallery_chunks.push_front(instance)
-			instance.populate(player)
+			# TODO: Pass in all players
+			instance.populate(players[0])
 
 
 # Called when the node enters the scene tree for the first time.

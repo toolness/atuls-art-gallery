@@ -31,6 +31,7 @@ func _ready():
 		else:
 			print("Warning: No inner_painting_scale available for painting!")
 		if met_object_id:
+			# TODO: Only do this when the player is near the painting.
 			var image := await MetObjects.fetch_small_image(met_object_id)
 			if not is_inside_tree():
 				# We despawned, exit.
