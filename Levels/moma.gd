@@ -191,37 +191,33 @@ class Wall:
 		return wall
 
 
-func populate_with_paintings(player: Player) -> int:
+func populate_with_paintings(players: Array[Player]) -> int:
 	var count := 0
 	var walls: Array[Wall] = []
-	# This is a mapping from walls to their distances to the player.
-	var wall_distances_from_player := {}
+
+	var moving_painting_ids := {}
+	for player in players:
+		if player.moving_painting:
+			moving_painting_ids[player.moving_painting.painting.met_object_id] = null
 
 	for child in gallery.get_children():
 		var wall := Wall.try_from_object(child)
 		if wall:
 			walls.push_back(wall)
-			var wall_pos := wall.mesh_instance.global_position + wall.aabb.get_center()
-			var distance_from_player = wall_pos.distance_to(player.global_position)
-			wall_distances_from_player[wall] = distance_from_player
-
-	var sort_by_distance_from_player := func is_b_after_a(a: Wall, b: Wall) -> bool:
-		var a_dist: float = wall_distances_from_player[a]
-		var b_dist: float = wall_distances_from_player[b]
-		return b_dist > a_dist
-
-	walls.sort_custom(sort_by_distance_from_player)
 
 	for wall in walls:
 		var met_objects := await MetObjects.get_met_objects_for_gallery_wall(gallery_id, wall.name)
 		if not is_inside_tree():
 			return count
 		for met_object in met_objects:
-			if player.moving_painting and player.moving_painting.painting.met_object_id == met_object.object_id:
-				# The player is currently moving this painting, don't spawn it.
+			if moving_painting_ids.has(met_object.object_id):
+				# A player is currently moving this painting, don't spawn it.
 				print("Not spawning ", met_object.object_id, " because it is being moved by player.")
 				continue
 			# print(gallery_id, " ", child.name, " ", met_object.title, " ", met_object.x, " ", met_object.y)
+
+			# TODO: We should only retrieve the image here in offline mode, it
+			# doesn't matter to the server.
 			var image := await MetObjects.fetch_small_image(met_object.object_id)
 			if not is_inside_tree():
 				# We despawned, exit.
@@ -245,8 +241,8 @@ func init(new_gallery_id: int):
 	name = GALLERY_BASE_NAME + str(gallery_id)
 
 
-func populate(player: Player) -> void:
+func populate(players: Array[Player]) -> void:
 	gallery_label.text = str(gallery_id + GALLERY_LABEL_ID_OFFSET)
 	print("Initializing gallery ", gallery_id)
-	var count := await populate_with_paintings(player)
+	var count := await populate_with_paintings(players)
 	print("Populated gallery ", gallery_id, " with ", count, " paintings.")

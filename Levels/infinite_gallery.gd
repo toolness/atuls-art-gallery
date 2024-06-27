@@ -64,8 +64,7 @@ func sync_galleries() -> void:
 			instance.init(gallery_id)
 			add_child(instance)
 			gallery_chunks.push_front(instance)
-			# TODO: Pass in all players
-			instance.populate(players[0])
+			instance.populate(players)
 
 
 # Called when the node enters the scene tree for the first time.
