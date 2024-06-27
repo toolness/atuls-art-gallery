@@ -13,8 +13,12 @@ extends Node3D
 
 @onready var gallery_chunks: Array[Moma] = []
 
+## The width, along the x-axis, of the gallery chunk scene.
 const GALLERY_CHUNK_WIDTH = 28
 
+## Number of gallery chunks around each player to spawn to ensure that
+## no player is ever looking into the abyss. Generally this should be
+## 1, but it can be set to 0 for debugging.
 const GALLERY_SPAWN_RADIUS = 1
 
 
