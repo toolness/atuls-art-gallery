@@ -11,8 +11,8 @@ class_name Player
 ## Whether this is the main player, or a remote player (or npc, etc)
 @export var is_main_player: bool
 
-## Whether this is player used in offline mode
-@export var is_offline_mode_player: bool
+## The initial rotation of the player when spawned, set by server.
+@export var initial_rotation: Vector3
 
 ## The peer ID of this player (multiplayer only, set at runtime).
 @export var peer_id: int:
@@ -96,16 +96,11 @@ var zoom := min_zoom:
 var moving_painting: Moma.MovingPainting = null
 
 func _ready() -> void:
-	if is_offline_mode_player and not Lobby.IS_OFFLINE_MODE:
-		# We're about to be removed from the scene tree, just exit.
-		return
-	elif not Lobby.IS_OFFLINE_MODE:
-		if peer_id == multiplayer.get_unique_id():
-			print("Main player ", peer_id, " spawned.")
-			# This is the main player!
-			is_main_player = true
-			# Make the player face the next gallery.
-			rotate(Vector3.UP, -PI / 2.0)
+	global_rotation = initial_rotation
+	if peer_id == multiplayer.get_unique_id():
+		print("Main player ", peer_id, " spawned.")
+		# This is the main player!
+		is_main_player = true
 
 	if is_main_player:
 		camera.make_current()

@@ -2,11 +2,11 @@ extends Node
 
 class_name AutoSaver
 
-@export var player: Player
+var player: Player
 
-@onready var player_start_position: Vector3 = player.global_position
+var player_start_position: Vector3
 
-@onready var player_start_rotation: Vector3 = player.global_rotation
+var player_start_rotation: Vector3
 
 @onready var SAVE_STATE_FILENAME := MetObjects.ROOT_DIR + "save_state.json"
 
@@ -15,11 +15,15 @@ const AUTOSAVE_INTERVAL := 30.0
 var seconds_since_last_save := 0.0
 
 func delete_state() -> void:
+	if not player:
+		return
 	print("Deleting state.")
 	if FileAccess.file_exists(SAVE_STATE_FILENAME):
 		DirAccess.remove_absolute(SAVE_STATE_FILENAME)
 
 func save_state() -> void:
+	if not player:
+		return
 	var state := {
 		"player_position": vec3_to_array(player.global_position),
 		"player_rotation": vec3_to_array(player.global_rotation),
@@ -45,6 +49,8 @@ func vec3_from_array(array: Variant, default: Vector3) -> Vector3:
 
 
 func load_state() -> void:
+	if not player:
+		return
 	var state: Dictionary = {}
 	if FileAccess.file_exists(SAVE_STATE_FILENAME):
 		var json_stringified := FileAccess.get_file_as_string(SAVE_STATE_FILENAME)
@@ -60,10 +66,16 @@ func _on_before_reload(hard_reset: bool):
 	else:
 		save_state()
 
-func _ready() -> void:
-	if not Lobby.IS_OFFLINE_MODE:
-		queue_free()
-		return
+
+func _ready():
+	set_process(false)
+
+
+func init(new_player: Player) -> void:
+	player = new_player
+	player_start_position = player.global_position
+	player_start_rotation = player.global_rotation
+	set_process(true)
 	UserInterface.before_reload.connect(_on_before_reload)
 	print("Save state filename is " + SAVE_STATE_FILENAME + ".")
 	load_state()
@@ -78,6 +90,8 @@ func _process(delta) -> void:
 
 
 func _notification(what):
+	if not player:
+		return
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
 		print("Saving state on exit.")
 		save_state()

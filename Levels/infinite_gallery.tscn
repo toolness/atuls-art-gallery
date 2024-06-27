@@ -19,20 +19,17 @@ player_scene = ExtResource("2_4hb5h")
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_ckp8a")
 
-[node name="OfflineModePlayer" parent="." instance=ExtResource("2_4hb5h")]
-transform = Transform3D(-7.39508e-06, 0, -1, 0, 1, 0, 1, 0, -7.39508e-06, 26.5, 2, 4.00023)
-jump_height = 0.5
-is_main_player = true
-is_offline_mode_player = true
-
 [node name="Moma_for_reference_only" parent="." instance=ExtResource("3_3c1uq")]
 unique_name_in_owner = true
 gallery_id = 0
 
-[node name="AutoSaver" type="Node" parent="." node_paths=PackedStringArray("player")]
+[node name="AutoSaver" type="Node" parent="."]
 script = ExtResource("4_114bu")
-player = NodePath("../OfflineModePlayer")
 
 [node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="."]
 _spawnable_scenes = PackedStringArray("res://Controller/Player.tscn", "res://Levels/moma.tscn")
 spawn_path = NodePath("..")
+
+[node name="PlayerSpawnPoint" type="Node3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(-7.43469e-06, 0, -1, 0, 1, 0, 1, 0, -7.43469e-06, 26.5, 2, 4.00023)
