@@ -88,7 +88,9 @@ func _ready() -> void:
 	if Lobby.IS_SERVER:
 		multiplayer.peer_connected.connect(_on_peer_connected)
 		multiplayer.peer_disconnected.connect(_on_peer_disconnected)
-		# TODO: If we're not headless, spawn our own player.
+		if not Lobby.IS_HEADLESS:
+			# Spawn the player running the server.
+			_on_peer_connected(1)
 
 	sync_galleries()
 
