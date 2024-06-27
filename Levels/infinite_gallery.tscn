@@ -1,10 +1,9 @@
-[gd_scene load_steps=7 format=3 uid="uid://dss65i31egqc3"]
+[gd_scene load_steps=6 format=3 uid="uid://dss65i31egqc3"]
 
 [ext_resource type="Script" path="res://Levels/infinite_gallery.gd" id="1_drnpr"]
 [ext_resource type="PackedScene" uid="uid://vwr8ajoufse8" path="res://Controller/Player.tscn" id="2_4hb5h"]
 [ext_resource type="PackedScene" uid="uid://mv0032qsc6tk" path="res://Levels/moma.tscn" id="3_3c1uq"]
 [ext_resource type="Script" path="res://auto_saver.gd" id="4_114bu"]
-[ext_resource type="PackedScene" uid="uid://ddi5anpqk8qj2" path="res://Levels/spawned_example.tscn" id="5_4j0l2"]
 
 [sub_resource type="Environment" id="Environment_ckp8a"]
 ssao_enabled = true
@@ -16,7 +15,6 @@ glow_enabled = true
 script = ExtResource("1_drnpr")
 gallery_chunk_scene = ExtResource("3_3c1uq")
 player_scene = ExtResource("2_4hb5h")
-spawned_example_scene = ExtResource("5_4j0l2")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_ckp8a")
@@ -29,12 +27,11 @@ is_offline_mode_player = true
 
 [node name="Moma_for_reference_only" parent="." instance=ExtResource("3_3c1uq")]
 unique_name_in_owner = true
-gallery_id = null
 
 [node name="AutoSaver" type="Node" parent="." node_paths=PackedStringArray("player")]
 script = ExtResource("4_114bu")
 player = NodePath("../OfflineModePlayer")
 
 [node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="."]
-_spawnable_scenes = PackedStringArray("res://Levels/spawned_example.tscn", "res://Controller/Player.tscn", "res://Levels/moma.tscn")
+_spawnable_scenes = PackedStringArray("res://Controller/Player.tscn", "res://Levels/moma.tscn")
 spawn_path = NodePath("..")
