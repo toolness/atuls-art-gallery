@@ -49,7 +49,7 @@ var gallery_client: GalleryClient
 
 func crash(message: String):
 	OS.alert(message)
-	OS.crash(message)
+	get_tree().quit(1)
 
 
 func copy_initial_db_for_exported_project() -> void:

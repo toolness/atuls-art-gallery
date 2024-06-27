@@ -48,7 +48,8 @@ func _parse_cmdline_args():
     if args.has("--nocap"):
         DISABLE_INITIAL_MOUSE_CAPTURE = true
     if IS_CLIENT and IS_SERVER:
-        OS.crash("Cannot be server and client simultaneously!")
+        OS.alert("Cannot be server and client simultaneously!")
+        get_tree().quit(1)
     IS_OFFLINE_MODE = !IS_CLIENT and !IS_SERVER
 
 func _on_connected_to_server():
