@@ -56,11 +56,10 @@ func make_painting(met_object: MetObject) -> Painting:
 
 func place_met_object_on_wall(
 	met_object: MetObject,
-	wall: Wall,
-	image: Image
+	wall: Wall
 ) -> void:
 	var painting := make_painting(met_object)
-	painting.paint_and_resize(met_object, image)
+	painting.resize_and_label(met_object)
 	var width_offset := wall.horizontal_direction * met_object.x
 	var height_offset := Vector3.UP * met_object.y
 	var painting_mount_point := wall.get_base_position() + width_offset + height_offset
@@ -215,17 +214,7 @@ func populate_with_paintings(players: Array[Player]) -> int:
 				print("Not spawning ", met_object.object_id, " because it is being moved by player.")
 				continue
 			# print(gallery_id, " ", child.name, " ", met_object.title, " ", met_object.x, " ", met_object.y)
-
-			# TODO: We should only retrieve the image here in offline mode, it
-			# doesn't matter to the server.
-			var image := await MetObjects.fetch_small_image(met_object.object_id)
-			if not is_inside_tree():
-				# We despawned, exit.
-				return count
-			if not image:
-				# Oof, fetching the image failed.
-				continue
-			place_met_object_on_wall(met_object, wall, image)
+			place_met_object_on_wall(met_object, wall)
 			count += 1
 			# Give the rest of the engine time to process the full frame, we're not in a rush and
 			# processing all paintings synchronously will cause stutter.

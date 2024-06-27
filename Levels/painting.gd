@@ -25,24 +25,23 @@ var original_albedo_color: Color
 @export var met_object_id: int
 
 func _ready():
-	if not Lobby.IS_OFFLINE_MODE:
-		if inner_painting_scale:
-			painting.set_scale(inner_painting_scale)
-		else:
-			print("Warning: No inner_painting_scale available for painting!")
-		if met_object_id:
-			# TODO: Only do this when the player is near the painting.
-			var image := await MetObjects.fetch_small_image(met_object_id)
-			if not is_inside_tree():
-				# We despawned, exit.
-				return
-			if not image:
-				# Oof, fetching the image failed.
-				visible = false
-				return
-			set_image(image)
-		else:
-			print("Warning: No met_object_id available for painting!")
+	if inner_painting_scale:
+		painting.set_scale(inner_painting_scale)
+	else:
+		print("Warning: No inner_painting_scale available for painting!")
+	if met_object_id:
+		# TODO: Only do this when the player is near the painting.
+		var image := await MetObjects.fetch_small_image(met_object_id)
+		if not is_inside_tree():
+			# We despawned, exit.
+			return
+		if not image:
+			# Oof, fetching the image failed.
+			visible = false
+			return
+		set_image(image)
+	else:
+		print("Warning: No met_object_id available for painting!")
 
 
 func _get_side_multiplier(value: float) -> float:
@@ -69,10 +68,9 @@ func init_with_met_object(object: MetObject):
 	met_object_id = object.object_id
 
 
-func paint_and_resize(met_object: MetObject, image: Image) -> void:
+func resize_and_label(met_object: MetObject) -> void:
 	configure_wall_label(inner_painting_scale.x, inner_painting_scale.y, met_object.title + "\n" + met_object.date)
 	painting.set_scale(inner_painting_scale)
-	set_image(image)
 
 
 func set_image(image: Image):
