@@ -11,6 +11,15 @@ class_name Player
 ## Whether this is the main player, or a remote player (or npc, etc)
 @export var is_main_player: bool
 
+## Whether this is player used in offline mode
+@export var is_offline_mode_player: bool
+
+## The peer ID of this player (multiplayer only, set at runtime).
+@export var peer_id: int:
+	set(value):
+		peer_id = value
+		$PlayerInput.set_multiplayer_authority(peer_id)
+
 @export_category("Camera")
 ## How much moving the mouse moves the camera. Overwritten in settings.
 @export var mouse_sensitivity: float = 0.00075
@@ -27,6 +36,8 @@ class_name Player
 ## How quickly to zoom the camera
 @export var zoom_sensitivity: float = 0.4
 
+@onready var player_input: PlayerInput = $PlayerInput
+
 # Get the gravity from the project settings to be synced with RigidBody nodes.
 var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 # Stores the direction the player is trying to look this frame.
@@ -41,6 +52,8 @@ enum VIEW {
 var view := VIEW.FIRST_PERSON:
 	set(value):
 		view = value
+		if not is_main_player:
+			return
 		match view:
 			VIEW.FIRST_PERSON:
 				# Get the fov of the current camera and apply it to the target.
@@ -83,11 +96,36 @@ var zoom := min_zoom:
 var moving_painting: Moma.MovingPainting = null
 
 func _ready() -> void:
+	if is_offline_mode_player and not Lobby.IS_OFFLINE_MODE:
+		# We're about to be removed from the scene tree, just exit.
+		return
+	elif not Lobby.IS_OFFLINE_MODE:
+		if peer_id == multiplayer.get_unique_id():
+			print("Main player ", peer_id, " spawned.")
+			# This is the main player!
+			is_main_player = true
+			# Make the player face the next gallery.
+			rotate(Vector3.UP, -PI / 2.0)
+
 	if is_main_player:
 		camera.make_current()
-		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+		if not Lobby.DISABLE_INITIAL_MOUSE_CAPTURE:
+			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 		# Whenever the player loads in, give the autoload ui a reference to itself.
 		UserInterface.update_player(self)
+	else:
+		# This is extremely annoying: just spawning a new player will make their
+		# camera the current one, and I can't make it _not_ current in the scene
+		# editor, so I guess I'll have to forcibly iterate through every single
+		# player to find the main one and make it the main camera again.
+		#
+		# I guess I might have to refactor this thing to have the camera be a
+		# completely separate element that's only attached to a player when
+		# it's the main one.
+		for p in get_tree().get_nodes_in_group("Player"):
+			var player: Player = p
+			if player.is_main_player:
+				player.camera.make_current()
 
 
 func _physics_process(delta: float) -> void:
@@ -127,6 +165,14 @@ func _physics_process(delta: float) -> void:
 	update_animation_tree()
 	move_and_slide()
 
+	if player_input.clicked:
+		player_input.clicked = false
+		if moving_painting:
+			moving_painting.finish_moving()
+			moving_painting = null
+		else:
+			moving_painting = Moma.MovingPainting.try_to_start_moving(raycast)
+
 	if moving_painting:
 		moving_painting.move_along_wall(raycast)
 
@@ -136,20 +182,22 @@ func _physics_process(delta: float) -> void:
 
 # Turn movent inputs into a locally oriented vector.
 func get_movement_direction() -> Vector3:
-	if not is_main_player:
-		return Vector3.ZERO
-	var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+	var input_dir := player_input.input_direction
 	return (transform.basis * Vector3(input_dir.x, 0, input_dir.y)).normalized()
-	
-# Apply the _look variables rotation to the camera.
-func frame_camera_rotation() -> void:
-	rotate_y(_look.x)
-	# The smooth camera orients the camera to align with the target smoothly.
-	camera_target.rotate_x(_look.y)
-	camera_target.rotation.x = clamp(camera_target.rotation.x, 
-		deg_to_rad(bottom_clamp), 
+
+
+@rpc("any_peer", "call_local", "unreliable_ordered")
+func set_look_rotation(x_rotation: float, y_rotation: float):
+	rotation.y = y_rotation
+	camera_target.rotation.x = clamp(x_rotation,
+		deg_to_rad(bottom_clamp),
 		deg_to_rad(top_clamp)
 	)
+
+
+# Apply the _look variables rotation to the camera.
+func frame_camera_rotation() -> void:
+	set_look_rotation.rpc(camera_target.rotation.x + _look.y, rotation.y + _look.x)
 	# Reset the _look variable so the same offset can't be reapplied.
 	_look = Vector2.ZERO
 
@@ -170,16 +218,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		var motion_event: InputEventMouseMotion = event
 		if Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
 			_look = -motion_event.relative * mouse_sensitivity
-	# Capture the mouse if it is uncaptured.
-	if event.is_action_pressed("click"):
-		if Input.get_mouse_mode() != Input.MOUSE_MODE_CAPTURED:
-			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
-		elif moving_painting:
-			moving_painting.finish_moving()
-			moving_painting = null
-			pass
-		elif UserInterface.reticle.visible:
-			moving_painting = Moma.MovingPainting.try_to_start_moving(raycast)
 
 	if event.is_action_pressed("right_click") and UserInterface.reticle.visible:
 		var painting := Moma.try_to_find_painting_from_collision(raycast.get_collider())

@@ -31,7 +31,6 @@ var paused := false:
 		
 func _ready() -> void:
 	fade_in(create_tween())
-	paused = false
 	pause_container.visible = true
 	settings_container.visible = false
 

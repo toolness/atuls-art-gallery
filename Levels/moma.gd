@@ -27,7 +27,8 @@ const PAINTING_BASE_NAME = "MomaPainting_"
 
 const PAINTING_PATTERN = "MomaPainting_*"
 
-var gallery_id: int
+## The gallery ID, synchronized by the server.
+@export var gallery_id: int
 
 static func try_to_find_painting_from_collision(collision: Object) -> Painting:
 	if collision and collision is Node3D:
@@ -45,9 +46,10 @@ static func try_to_find_wall_from_collision(collision: Object) -> Wall:
 	return null
 
 
-func make_painting(painting_id: int) -> Painting:
+func make_painting(met_object: MetObject) -> Painting:
 	var painting: Painting = painting_scene.instantiate()
-	painting.name = PAINTING_BASE_NAME + str(painting_id)
+	painting.name = PAINTING_BASE_NAME + str(met_object.object_id)
+	painting.init_with_met_object(met_object)
 	add_child(painting)
 	return painting
 
@@ -55,10 +57,10 @@ func make_painting(painting_id: int) -> Painting:
 func place_met_object_on_wall(
 	met_object: MetObject,
 	wall: Wall,
-	texture: ImageTexture
+	image: Image
 ) -> void:
-	var painting := make_painting(met_object.object_id)
-	painting.init_with_met_object(met_object, texture)
+	var painting := make_painting(met_object)
+	painting.paint_and_resize(met_object, image)
 	var width_offset := wall.horizontal_direction * met_object.x
 	var height_offset := Vector3.UP * met_object.y
 	var painting_mount_point := wall.get_base_position() + width_offset + height_offset
@@ -76,8 +78,9 @@ class MovingPainting:
 
 	func finish_moving() -> void:
 		painting.finish_interactive_placement()
-		print("New painting position is object_id=", painting.met_object.object_id, " gallery_id=", gallery_id, " wall_id=", wall_id, " x=", wall_x, " y=", wall_y)
-		MetObjects.gallery_client.move_met_object(painting.met_object.object_id, gallery_id, wall_id, wall_x, wall_y)
+		if not Lobby.IS_CLIENT:
+			print("New painting position is object_id=", painting.met_object_id, " gallery_id=", gallery_id, " wall_id=", wall_id, " x=", wall_x, " y=", wall_y)
+			MetObjects.gallery_client.move_met_object(painting.met_object_id, gallery_id, wall_id, wall_x, wall_y)
 
 	func _populate_wall_info(wall: Wall):
 		var relative_position = painting.global_position - wall.get_global_base_position()
@@ -188,37 +191,33 @@ class Wall:
 		return wall
 
 
-func populate_with_paintings(player: Player) -> int:
+func populate_with_paintings(players: Array[Player]) -> int:
 	var count := 0
 	var walls: Array[Wall] = []
-	# This is a mapping from walls to their distances to the player.
-	var wall_distances_from_player := {}
+
+	var moving_painting_ids := {}
+	for player in players:
+		if player.moving_painting:
+			moving_painting_ids[player.moving_painting.painting.met_object_id] = null
 
 	for child in gallery.get_children():
 		var wall := Wall.try_from_object(child)
 		if wall:
 			walls.push_back(wall)
-			var wall_pos := wall.mesh_instance.global_position + wall.aabb.get_center()
-			var distance_from_player = wall_pos.distance_to(player.global_position)
-			wall_distances_from_player[wall] = distance_from_player
-
-	var sort_by_distance_from_player := func is_b_after_a(a: Wall, b: Wall) -> bool:
-		var a_dist: float = wall_distances_from_player[a]
-		var b_dist: float = wall_distances_from_player[b]
-		return b_dist > a_dist
-
-	walls.sort_custom(sort_by_distance_from_player)
 
 	for wall in walls:
 		var met_objects := await MetObjects.get_met_objects_for_gallery_wall(gallery_id, wall.name)
 		if not is_inside_tree():
 			return count
 		for met_object in met_objects:
-			if player.moving_painting and player.moving_painting.painting.met_object.object_id == met_object.object_id:
-				# The player is currently moving this painting, don't spawn it.
+			if moving_painting_ids.has(met_object.object_id):
+				# A player is currently moving this painting, don't spawn it.
 				print("Not spawning ", met_object.object_id, " because it is being moved by player.")
 				continue
 			# print(gallery_id, " ", child.name, " ", met_object.title, " ", met_object.x, " ", met_object.y)
+
+			# TODO: We should only retrieve the image here in offline mode, it
+			# doesn't matter to the server.
 			var image := await MetObjects.fetch_small_image(met_object.object_id)
 			if not is_inside_tree():
 				# We despawned, exit.
@@ -226,9 +225,7 @@ func populate_with_paintings(player: Player) -> int:
 			if not image:
 				# Oof, fetching the image failed.
 				continue
-			image.generate_mipmaps()
-			var texture := ImageTexture.create_from_image(image)
-			place_met_object_on_wall(met_object, wall, texture)
+			place_met_object_on_wall(met_object, wall, image)
 			count += 1
 			# Give the rest of the engine time to process the full frame, we're not in a rush and
 			# processing all paintings synchronously will cause stutter.
@@ -239,10 +236,13 @@ func populate_with_paintings(player: Player) -> int:
 	return count
 
 
-func init(new_gallery_id: int, player: Player) -> void:
+func init(new_gallery_id: int):
 	gallery_id = new_gallery_id
 	name = GALLERY_BASE_NAME + str(gallery_id)
+
+
+func populate(players: Array[Player]) -> void:
 	gallery_label.text = str(gallery_id + GALLERY_LABEL_ID_OFFSET)
 	print("Initializing gallery ", gallery_id)
-	var count := await populate_with_paintings(player)
+	var count := await populate_with_paintings(players)
 	print("Populated gallery ", gallery_id, " with ", count, " paintings.")

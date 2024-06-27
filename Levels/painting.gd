@@ -6,8 +6,6 @@ extends Node3D
 const PAINTING_SURFACE_IDX = 1
 
 
-var met_object: MetObject
-
 var painting_surface_material: StandardMaterial3D
 
 var original_albedo_color: Color
@@ -17,6 +15,34 @@ var original_albedo_color: Color
 @onready var collision_shape: CollisionShape3D = $painting/Painting/StaticBody3D/CollisionShape3D
 
 @onready var wall_label: Label3D = $wall_label
+
+## The scaling applied to the actual painting canvas, set by the server in multiplayer. (We can't
+## simply synchronize the actual scale because it's in an imported scene that our synchronizer
+## seems to be unable to access.)
+@export var inner_painting_scale: Vector3
+
+## The met object ID of the painting, set by the server.
+@export var met_object_id: int
+
+func _ready():
+	if not Lobby.IS_OFFLINE_MODE:
+		if inner_painting_scale:
+			painting.set_scale(inner_painting_scale)
+		else:
+			print("Warning: No inner_painting_scale available for painting!")
+		if met_object_id:
+			# TODO: Only do this when the player is near the painting.
+			var image := await MetObjects.fetch_small_image(met_object_id)
+			if not is_inside_tree():
+				# We despawned, exit.
+				return
+			if not image:
+				# Oof, fetching the image failed.
+				visible = false
+				return
+			set_image(image)
+		else:
+			print("Warning: No met_object_id available for painting!")
 
 
 func _get_side_multiplier(value: float) -> float:
@@ -38,10 +64,20 @@ func configure_wall_label(painting_width: float, painting_height: float, text: S
 	wall_label.text = text
 
 
-func init_with_met_object(object: MetObject, texture: ImageTexture) -> void:
-	met_object = object
-	configure_wall_label(object.width, object.height, object.title + "\n" + object.date)
-	painting.set_scale(Vector3(object.width, object.height, 1.0))
+func init_with_met_object(object: MetObject):
+	inner_painting_scale = Vector3(object.width, object.height, 1.0)
+	met_object_id = object.object_id
+
+
+func paint_and_resize(met_object: MetObject, image: Image) -> void:
+	configure_wall_label(inner_painting_scale.x, inner_painting_scale.y, met_object.title + "\n" + met_object.date)
+	painting.set_scale(inner_painting_scale)
+	set_image(image)
+
+
+func set_image(image: Image):
+	image.generate_mipmaps()
+	var texture := ImageTexture.create_from_image(image)
 	var material: StandardMaterial3D = painting.mesh.surface_get_material(PAINTING_SURFACE_IDX)
 	painting_surface_material = material.duplicate()
 	painting_surface_material.albedo_color = Color.TRANSPARENT
@@ -50,12 +86,7 @@ func init_with_met_object(object: MetObject, texture: ImageTexture) -> void:
 
 
 func try_to_open_in_browser():
-	# TODO: The conditional is from when paintings could potentially have
-	# solid colors instead of met objects, consider removing it and renaming
-	# the function to `open_in_browser`... Or just get rid of it and have clients
-	# directly reference `met_object`.
-	if met_object:
-		met_object.open_in_browser()
+	OS.shell_open("https://www.metmuseum.org/art/collection/search/" + str(met_object_id))
 
 
 func start_interactive_placement():

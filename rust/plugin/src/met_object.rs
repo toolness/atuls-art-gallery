@@ -1,4 +1,4 @@
-use godot::{engine::Os, prelude::*};
+use godot::prelude::*;
 
 #[derive(Debug, GodotClass)]
 #[class(init)]
@@ -17,18 +17,4 @@ pub struct MetObject {
     pub x: f64,
     #[var]
     pub y: f64,
-}
-
-#[godot_api]
-impl MetObject {
-    #[func]
-    fn open_in_browser(&self) {
-        Os::singleton().shell_open(
-            format!(
-                "https://www.metmuseum.org/art/collection/search/{}",
-                self.object_id
-            )
-            .into_godot(),
-        );
-    }
 }
