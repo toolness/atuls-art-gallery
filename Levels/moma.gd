@@ -190,6 +190,19 @@ class Wall:
 		return wall
 
 
+func sort_walls_by_distance_from_player(walls: Array[Wall], player: Player):
+	var wall_distances_from_player := {}
+	for wall in walls:
+		var wall_pos := wall.mesh_instance.global_position + wall.aabb.get_center()
+		var distance_from_player = wall_pos.distance_to(player.global_position)
+		wall_distances_from_player[wall] = distance_from_player
+	var sort_by_distance_from_player := func is_b_after_a(a: Wall, b: Wall) -> bool:
+		var a_dist: float = wall_distances_from_player[a]
+		var b_dist: float = wall_distances_from_player[b]
+		return b_dist > a_dist
+	walls.sort_custom(sort_by_distance_from_player)
+
+
 func populate_with_paintings(players: Array[Player]) -> int:
 	var count := 0
 	var walls: Array[Wall] = []
@@ -203,6 +216,10 @@ func populate_with_paintings(players: Array[Player]) -> int:
 		var wall := Wall.try_from_object(child)
 		if wall:
 			walls.push_back(wall)
+
+	if len(players) == 1:
+		# Optimization for single player mode: populate the closest walls first.
+		sort_walls_by_distance_from_player(walls, players[0])
 
 	for wall in walls:
 		var met_objects := await MetObjects.get_met_objects_for_gallery_wall(gallery_id, wall.name)

@@ -15,7 +15,6 @@ properties/1/replication_mode = 2
 [node name="Moma" type="Node3D" groups=["MomaGallery"]]
 script = ExtResource("1_k8oh2")
 painting_scene = ExtResource("2_4p8tv")
-gallery_id = null
 
 [node name="OmniLight3D" type="OmniLight3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 2, 4)
