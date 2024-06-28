@@ -79,6 +79,8 @@ func _on_fov_slider_value_changed(value: float) -> void:
 
 
 func _on_option_button_item_selected(index: int) -> void:
+	if UserInterface.in_main_menu:
+		return
 	match index:
 		0:
 			_player.mouse_sensitivity = very_low_sens
@@ -165,6 +167,9 @@ func _on_sfx_slider_value_changed(value: float) -> void:
 
 
 func _on_reload_button_pressed() -> void:
+	if UserInterface.in_main_menu:
+		# TODO: Really we shouldn't show this button when in the main menu?
+		return
 	UserInterface._on_resume_button_pressed()
 	UserInterface.reload_current_scene(false)
 

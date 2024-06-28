@@ -1,6 +1,7 @@
-[gd_scene load_steps=14 format=3 uid="uid://b4mrqfvtlycnc"]
+[gd_scene load_steps=15 format=3 uid="uid://b4mrqfvtlycnc"]
 
 [ext_resource type="Script" path="res://UserInterface/UserInterface.gd" id="1_pjpe8"]
+[ext_resource type="PackedScene" uid="uid://dss65i31egqc3" path="res://Levels/infinite_gallery.tscn" id="2_60fvu"]
 [ext_resource type="Theme" uid="uid://bq6qbvmwxf5gm" path="res://UserInterface/UITheme.tres" id="2_rwlv8"]
 [ext_resource type="Script" path="res://UserInterface/Reticle.gd" id="3_hfmys"]
 [ext_resource type="Shader" uid="uid://wn6mnfchf1w7" path="res://UserInterface/ScreenSpaceBlur.tres" id="4_kynqp"]
@@ -49,6 +50,7 @@ events = [SubResource("InputEventAction_gbevd")]
 
 [node name="UserInterface" type="CanvasLayer"]
 script = ExtResource("1_pjpe8")
+start_level = ExtResource("2_60fvu")
 
 [node name="HUD" type="Control" parent="."]
 layout_mode = 3
@@ -78,6 +80,8 @@ stretch_mode = 5
 script = ExtResource("3_hfmys")
 
 [node name="Hints" type="MarginContainer" parent="HUD"]
+unique_name_in_owner = true
+visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -183,6 +187,7 @@ texture = SubResource("PlaceholderTexture2D_dk3bb")
 
 [node name="PauseContainer" type="CenterContainer" parent="PauseScreen"]
 unique_name_in_owner = true
+visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -216,6 +221,41 @@ text = "Settings"
 layout_mode = 2
 text = "Quit Game"
 
+[node name="MainMenuContainer" type="CenterContainer" parent="PauseScreen"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="PauseScreen/MainMenuContainer"]
+custom_minimum_size = Vector2(512, 0)
+layout_mode = 2
+
+[node name="Label" type="Label" parent="PauseScreen/MainMenuContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 128
+text = "Atul's Art Museum"
+horizontal_alignment = 1
+
+[node name="StartButton" type="Button" parent="PauseScreen/MainMenuContainer/VBoxContainer" node_paths=PackedStringArray("shortcut_context")]
+layout_mode = 2
+shortcut_context = NodePath("../../../PauseContainer")
+shortcut = SubResource("Shortcut_rg3uj")
+shortcut_in_tooltip = false
+text = "start"
+
+[node name="SettingsButton" type="Button" parent="PauseScreen/MainMenuContainer/VBoxContainer"]
+layout_mode = 2
+text = "Settings"
+
+[node name="QuitButton" type="Button" parent="PauseScreen/MainMenuContainer/VBoxContainer"]
+layout_mode = 2
+text = "Quit Game"
+
 [node name="SettingsContainer" parent="PauseScreen" instance=ExtResource("5_qrem4")]
 unique_name_in_owner = true
 layout_mode = 1
@@ -238,4 +278,7 @@ initial_position = 1
 [connection signal="pressed" from="PauseScreen/PauseContainer/VBoxContainer/ResumeButton" to="." method="_on_resume_button_pressed"]
 [connection signal="pressed" from="PauseScreen/PauseContainer/VBoxContainer/SettingsButton" to="." method="_on_settings_button_pressed"]
 [connection signal="pressed" from="PauseScreen/PauseContainer/VBoxContainer/QuitButton" to="." method="_on_quit_button_pressed"]
+[connection signal="pressed" from="PauseScreen/MainMenuContainer/VBoxContainer/StartButton" to="." method="_on_start_button_pressed"]
+[connection signal="pressed" from="PauseScreen/MainMenuContainer/VBoxContainer/SettingsButton" to="." method="_on_settings_button_pressed"]
+[connection signal="pressed" from="PauseScreen/MainMenuContainer/VBoxContainer/QuitButton" to="." method="_on_quit_button_pressed"]
 [connection signal="exit" from="PauseScreen/SettingsContainer" to="." method="_on_settings_container_exit"]
