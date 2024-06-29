@@ -3,14 +3,23 @@ class_name UI
 
 @onready var pause_screen: Control = $PauseScreen
 @onready var pause_container: CenterContainer = %PauseContainer
+@onready var main_menu_container: CenterContainer = %MainMenuContainer
 @onready var settings_container: SettingsContainer = %SettingsContainer
+@onready var join_game_container: CenterContainer = %JoinGameContainer
+@onready var host_field: LineEdit = %HostField
 @onready var resume_button: Button = %ResumeButton
+@onready var start_button: Button = %StartButton
 @onready var color_rect_fader: ColorRect = $ColorRectFader
 @onready var inspect_mode_hints: Control = %InspectModeHints
+@onready var hints: Control = %Hints
 
 @onready var reticle: Reticle = %Reticle
 
 @onready var error_dialog: AcceptDialog = %ErrorDialog
+
+@export var start_level: PackedScene
+
+var in_main_menu: bool = false
 
 signal before_reload(hard_reset: bool)
 
@@ -31,7 +40,9 @@ var paused := false:
 		
 func _ready() -> void:
 	fade_in(create_tween())
+	pause_screen.visible = false
 	pause_container.visible = true
+	main_menu_container.visible = false
 	settings_container.visible = false
 
 var DEBUG_DRAW_CYCLE: Array[Viewport.DebugDraw] = [
@@ -54,7 +65,13 @@ func _unhandled_input(event: InputEvent) -> void:
 	# When the player presses the escape key, pause the game.
 	if event.is_action_pressed("ui_cancel"):
 		paused = true
-	elif event.is_action_pressed("cycle_debug_draw"):
+	elif event.is_action_pressed("toggle_fullscreen"):
+		settings_container.toggle_fullscreen()
+
+	if in_main_menu:
+		return
+
+	if event.is_action_pressed("cycle_debug_draw"):
 		cycle_debug_draw()
 	elif event.is_action_pressed("reset_and_reload_scene"):
 		reload_current_scene(true)
@@ -62,13 +79,26 @@ func _unhandled_input(event: InputEvent) -> void:
 		reload_current_scene(false)
 	elif event.is_action_pressed("toggle_reticle"):
 		toggle_reticle()
-	elif event.is_action_pressed("toggle_fullscreen"):
-		settings_container.toggle_fullscreen()
+
+func start_game() -> void:
+	get_tree().change_scene_to_packed(start_level)
+	hints.visible = true
+	main_menu_container.visible = false
+	pause_container.visible = true
+	in_main_menu = false
+
+func _on_start_button_pressed() -> void:
+	var tween := create_tween()
+	fade_out(tween)
+	tween.tween_callback(start_game)
+	fade_in(tween)
+	paused = false
 
 func _on_resume_button_pressed() -> void:
 	paused = false
 
 func _on_settings_button_pressed() -> void:
+	main_menu_container.visible = false
 	pause_container.visible = false
 	settings_container.visible = true
 	settings_container.focus()
@@ -81,9 +111,13 @@ func _notification(what):
 		get_tree().quit()
 
 func _on_settings_container_exit() -> void:
-	pause_container.visible = true
 	settings_container.visible = false
-	resume_button.grab_focus()
+	if in_main_menu:
+		main_menu_container.visible = true
+		start_button.grab_focus()
+	else:
+		pause_container.visible = true
+		resume_button.grab_focus()
 
 func toggle_reticle() -> void:
 	reticle.visible = not reticle.visible
@@ -117,29 +151,6 @@ func get_main_player() -> Player:
 	print("Warning: main player not found!")
 	return null
 
-# Fade the screen out, change level and fade back in.
-func change_scene(next_scene: String, player_transform: Transform3D) -> void:
-	# Store a reference to the player to pass its settings onto the next player.
-	var player := get_main_player()
-	# Stop movement and cache settings.
-	player.set_physics_process(false)
-	var zoom = player.zoom
-	var view = player.view
-	var tween := create_tween()
-	fade_out(tween)
-	tween.tween_callback(func(): get_tree().change_scene_to_file(next_scene))
-	# Wait at least one frame for the scene to update and ready.
-	tween.tween_interval(0.1)
-	tween.tween_callback(func():
-		# Apply the cached variable to the new player.
-		var new_player = get_main_player()
-		# Set the player's position in the new level.
-		new_player.global_transform = player_transform
-		new_player.view = view
-		new_player.zoom = zoom
-		)
-	fade_in(tween)
-
 # Fade the screen out, reload the level and fade back in.
 func reload_current_scene(hard_reset: bool) -> void:
 	before_reload.emit(hard_reset)
@@ -166,3 +177,34 @@ func show_fatal_error(message: String):
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	error_dialog.dialog_text = "Alas, a fatal error occurred:\n\n" + message
 	error_dialog.popup_centered()
+
+func show_main_menu():
+	in_main_menu = true
+	paused = true
+	pause_container.visible = false
+	main_menu_container.visible = true
+	join_game_container.visible = false
+	start_button.grab_focus()
+
+func _on_join_button_pressed():
+	main_menu_container.visible = false
+	join_game_container.visible = true
+	host_field.grab_focus()
+
+func _on_host_button_pressed():
+	Lobby.IS_SERVER = true
+	Lobby.IS_OFFLINE_MODE = false
+	main_menu_container.visible = false
+	_on_start_button_pressed()
+
+func _on_connect_button_pressed():
+	Lobby.IS_CLIENT = true
+	Lobby.HOST = host_field.text
+	Lobby.IS_OFFLINE_MODE = false
+	join_game_container.visible = false
+	_on_start_button_pressed()
+
+func _on_back_button_pressed():
+	join_game_container.visible = false
+	main_menu_container.visible = true
+	start_button.grab_focus()

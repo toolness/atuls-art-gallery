@@ -80,6 +80,7 @@ func _enter_tree():
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
+	Lobby.start()
 	if Lobby.IS_SERVER:
 		multiplayer.peer_connected.connect(_on_peer_connected)
 		multiplayer.peer_disconnected.connect(_on_peer_disconnected)
