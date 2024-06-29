@@ -145,5 +145,6 @@ reset_and_reload_scene={
 
 [rendering]
 
+environment/defaults/default_clear_color=Color(0.171039, 0.171039, 0.171039, 1)
 anti_aliasing/quality/msaa_3d=2
 anti_aliasing/quality/screen_space_aa=1
