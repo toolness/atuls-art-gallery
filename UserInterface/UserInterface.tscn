@@ -172,6 +172,36 @@ text = "[color=ebbb4f]Left click[/color][color=746c61]:[/color] move art
 [color=30aa36]tab[/color][color=746c61]:[/color] exit inspect mode"
 fit_content = true
 
+[node name="ConnectionStatusContainer" type="Control" parent="HUD"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = -1920.0
+offset_bottom = -1080.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HUD/ConnectionStatusContainer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -0.5
+offset_top = -40.5
+offset_right = 1919.5
+offset_bottom = 1039.5
+grow_horizontal = 2
+grow_vertical = 2
+alignment = 1
+
+[node name="ConnectionStatusLabel" type="Label" parent="HUD/ConnectionStatusContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 64
+horizontal_alignment = 1
+vertical_alignment = 1
+
 [node name="PauseScreen" type="Control" parent="."]
 process_mode = 3
 visible = false

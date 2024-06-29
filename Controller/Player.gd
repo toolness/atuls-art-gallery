@@ -103,6 +103,7 @@ func _ready() -> void:
 		is_main_player = true
 
 	if is_main_player:
+		UserInterface.hints.visible = true
 		camera.make_current()
 		if not UserInterface.DISABLE_INITIAL_MOUSE_CAPTURE:
 			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)

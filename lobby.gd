@@ -18,12 +18,15 @@ var HOST := "127.0.0.1"
 func _on_connected_to_server():
     var peer_id := multiplayer.get_unique_id()
     print("Connected to server with peer ID ", peer_id, ".")
+    UserInterface.set_connection_status_text("")
 
 func _on_connection_failed():
     print("Connection failed.")
+    UserInterface.set_connection_status_text("Connection failed.")
 
 func _on_server_disconnected():
     print("Server disconnected.")
+    UserInterface.set_connection_status_text("Server disconnected.")
 
 func _on_peer_connected(id):
     print("Peer ", id, " connected.")
@@ -52,5 +55,7 @@ func start():
         if error:
             print("Failed to create client: ", error)
             return
-        print("Connecting to server on ", HOST, ":", PORT, ".")
+        var full_host := HOST + ":" + str(PORT)
+        print("Connecting to server on ", full_host, ".")
+        UserInterface.set_connection_status_text("Connecting to " + full_host + "...")
         multiplayer.multiplayer_peer = peer

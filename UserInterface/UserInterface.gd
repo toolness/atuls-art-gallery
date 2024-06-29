@@ -6,6 +6,7 @@ class_name UI
 @onready var main_menu_container: CenterContainer = %MainMenuContainer
 @onready var settings_container: SettingsContainer = %SettingsContainer
 @onready var join_game_container: CenterContainer = %JoinGameContainer
+@onready var connection_status_label: Label = %ConnectionStatusLabel
 @onready var host_field: LineEdit = %HostField
 @onready var resume_button: Button = %ResumeButton
 @onready var start_button: Button = %StartButton
@@ -47,6 +48,9 @@ func _ready() -> void:
 	main_menu_container.visible = false
 	settings_container.visible = false
 
+func set_connection_status_text(value: String):
+	connection_status_label.text = value
+
 var DEBUG_DRAW_CYCLE: Array[Viewport.DebugDraw] = [
 	Viewport.DEBUG_DRAW_DISABLED,
 	Viewport.DEBUG_DRAW_OVERDRAW,
@@ -84,7 +88,6 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func start_game() -> void:
 	get_tree().change_scene_to_packed(start_level)
-	hints.visible = true
 	main_menu_container.visible = false
 	pause_container.visible = true
 	in_main_menu = false
