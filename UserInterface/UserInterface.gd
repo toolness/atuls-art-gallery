@@ -6,6 +6,7 @@ class_name UI
 @onready var main_menu_container: CenterContainer = %MainMenuContainer
 @onready var settings_container: SettingsContainer = %SettingsContainer
 @onready var resume_button: Button = %ResumeButton
+@onready var start_button: Button = %StartButton
 @onready var color_rect_fader: ColorRect = $ColorRectFader
 @onready var inspect_mode_hints: Control = %InspectModeHints
 @onready var hints: Control = %Hints
@@ -110,6 +111,7 @@ func _on_settings_container_exit() -> void:
 	settings_container.visible = false
 	if in_main_menu:
 		main_menu_container.visible = true
+		start_button.grab_focus()
 	else:
 		pause_container.visible = true
 		resume_button.grab_focus()
@@ -178,3 +180,4 @@ func show_main_menu():
 	paused = true
 	pause_container.visible = false
 	main_menu_container.visible = true
+	start_button.grab_focus()

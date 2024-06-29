@@ -242,8 +242,9 @@ text = "Atul's Art Museum"
 horizontal_alignment = 1
 
 [node name="StartButton" type="Button" parent="PauseScreen/MainMenuContainer/VBoxContainer" node_paths=PackedStringArray("shortcut_context")]
+unique_name_in_owner = true
 layout_mode = 2
-shortcut_context = NodePath("../../../PauseContainer")
+shortcut_context = NodePath("../..")
 shortcut = SubResource("Shortcut_rg3uj")
 shortcut_in_tooltip = false
 text = "start"
