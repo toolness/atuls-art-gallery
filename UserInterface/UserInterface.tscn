@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3 uid="uid://b4mrqfvtlycnc"]
+[gd_scene load_steps=18 format=3 uid="uid://b4mrqfvtlycnc"]
 
 [ext_resource type="Script" path="res://UserInterface/UserInterface.gd" id="1_pjpe8"]
 [ext_resource type="PackedScene" uid="uid://dss65i31egqc3" path="res://Levels/infinite_gallery.tscn" id="2_60fvu"]
@@ -48,6 +48,13 @@ pressed = true
 
 [sub_resource type="Shortcut" id="Shortcut_rg3uj"]
 events = [SubResource("InputEventAction_gbevd")]
+
+[sub_resource type="InputEventAction" id="InputEventAction_mp2s8"]
+action = &"ui_cancel"
+pressed = true
+
+[sub_resource type="Shortcut" id="Shortcut_alxiy"]
+events = [SubResource("InputEventAction_mp2s8")]
 
 [node name="UserInterface" type="CanvasLayer"]
 script = ExtResource("1_pjpe8")
@@ -313,6 +320,7 @@ text = "Connect"
 
 [node name="BackButton" type="Button" parent="PauseScreen/JoinGameContainer/VBoxContainer"]
 layout_mode = 2
+shortcut = SubResource("Shortcut_alxiy")
 text = "Back"
 
 [node name="ColorRectFader" type="ColorRect" parent="."]
