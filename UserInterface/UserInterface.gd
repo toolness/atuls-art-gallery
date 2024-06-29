@@ -158,6 +158,9 @@ func get_main_player() -> Player:
 
 # Fade the screen out, reload the level and fade back in.
 func reload_current_scene(hard_reset: bool) -> void:
+	if not Lobby.IS_OFFLINE_MODE:
+		print("Reloading is only supported in offline mode.")
+		return
 	before_reload.emit(hard_reset)
 	# Store a reference to the player to pass its settings onto the next player.
 	var player = get_main_player()
