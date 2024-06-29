@@ -40,7 +40,6 @@ func _parse_cmdline_args():
     if Lobby.IS_CLIENT and Lobby.IS_SERVER:
         OS.alert("Cannot be server and client simultaneously!")
         get_tree().quit(1)
-    Lobby.IS_OFFLINE_MODE = !Lobby.IS_CLIENT and !Lobby.IS_SERVER
     if Lobby.IS_CLIENT or Lobby.IS_SERVER or args.has("--autostart"):
         auto_start = true
 

@@ -9,7 +9,9 @@ var IS_CLIENT := false
 
 var IS_SERVER := false
 
-var IS_OFFLINE_MODE := false
+var IS_OFFLINE_MODE: bool:
+    get:
+        return !IS_CLIENT and !IS_SERVER
 
 var HOST := "127.0.0.1"
 
