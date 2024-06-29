@@ -1,6 +1,6 @@
 extends Node
 
-const PORT = 7000
+const PORT = 15237
 const MAX_CONNECTIONS = 16
 
 @onready var IS_HEADLESS := DisplayServer.get_name() == "headless"
