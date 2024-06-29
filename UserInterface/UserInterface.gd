@@ -188,6 +188,7 @@ func show_main_menu():
 func _on_join_button_pressed():
 	main_menu_container.visible = false
 	join_game_container.visible = true
+	host_field.grab_focus()
 
 func _on_connect_button_pressed():
 	Lobby.IS_CLIENT = true
@@ -197,3 +198,4 @@ func _on_connect_button_pressed():
 func _on_back_button_pressed():
 	join_game_container.visible = false
 	main_menu_container.visible = true
+	start_button.grab_focus()
