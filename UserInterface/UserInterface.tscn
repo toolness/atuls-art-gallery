@@ -70,7 +70,7 @@ grow_vertical = 2
 mouse_filter = 2
 theme = ExtResource("2_rwlv8")
 
-[node name="CenterContainer" type="CenterContainer" parent="HUD"]
+[node name="ReticleContainer" type="CenterContainer" parent="HUD"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -79,7 +79,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Reticle" type="TextureRect" parent="HUD/CenterContainer"]
+[node name="Reticle" type="TextureRect" parent="HUD/ReticleContainer"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
