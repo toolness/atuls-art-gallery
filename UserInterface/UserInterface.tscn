@@ -333,3 +333,4 @@ initial_position = 1
 [connection signal="pressed" from="PauseScreen/MainMenuContainer/VBoxContainer/QuitButton" to="." method="_on_quit_button_pressed"]
 [connection signal="exit" from="PauseScreen/SettingsContainer" to="." method="_on_settings_container_exit"]
 [connection signal="pressed" from="PauseScreen/JoinGameContainer/VBoxContainer/ConnectButton" to="." method="_on_connect_button_pressed"]
+[connection signal="pressed" from="PauseScreen/JoinGameContainer/VBoxContainer/BackButton" to="." method="_on_back_button_pressed"]

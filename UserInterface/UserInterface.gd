@@ -193,3 +193,7 @@ func _on_connect_button_pressed():
 	Lobby.IS_CLIENT = true
 	Lobby.HOST = host_field.text
 	_on_start_button_pressed()
+
+func _on_back_button_pressed():
+	join_game_container.visible = false
+	main_menu_container.visible = true
