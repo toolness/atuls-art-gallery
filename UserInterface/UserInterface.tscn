@@ -1,4 +1,4 @@
-[gd_scene load_steps=18 format=3 uid="uid://b4mrqfvtlycnc"]
+[gd_scene load_steps=17 format=3 uid="uid://b4mrqfvtlycnc"]
 
 [ext_resource type="Script" path="res://UserInterface/UserInterface.gd" id="1_pjpe8"]
 [ext_resource type="PackedScene" uid="uid://dss65i31egqc3" path="res://Levels/infinite_gallery.tscn" id="2_60fvu"]
@@ -42,12 +42,7 @@ shader_parameter/BlurAmount = 1.0
 
 [sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_dk3bb"]
 
-[sub_resource type="InputEventAction" id="InputEventAction_gbevd"]
-action = &"ui_cancel"
-pressed = true
-
 [sub_resource type="Shortcut" id="Shortcut_rg3uj"]
-events = [SubResource("InputEventAction_gbevd")]
 
 [sub_resource type="InputEventAction" id="InputEventAction_mp2s8"]
 action = &"ui_cancel"
@@ -251,12 +246,11 @@ horizontal_alignment = 1
 [node name="HBoxContainer" type="HBoxContainer" parent="PauseScreen/MainMenuContainer/VBoxContainer"]
 layout_mode = 2
 
-[node name="StartButton" type="Button" parent="PauseScreen/MainMenuContainer/VBoxContainer/HBoxContainer" node_paths=PackedStringArray("shortcut_context")]
+[node name="StartButton" type="Button" parent="PauseScreen/MainMenuContainer/VBoxContainer/HBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-shortcut_context = NodePath("../../..")
-shortcut = SubResource("Shortcut_rg3uj")
+shortcut_feedback = false
 shortcut_in_tooltip = false
 text = "solo"
 
