@@ -259,6 +259,11 @@ layout_mode = 2
 size_flags_horizontal = 3
 text = "join"
 
+[node name="HostButton" type="Button" parent="PauseScreen/MainMenuContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "host"
+
 [node name="SettingsButton" type="Button" parent="PauseScreen/MainMenuContainer/VBoxContainer"]
 layout_mode = 2
 text = "Settings"
@@ -274,6 +279,7 @@ layout_mode = 1
 
 [node name="JoinGameContainer" type="CenterContainer" parent="PauseScreen"]
 unique_name_in_owner = true
+visible = false
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -329,6 +335,7 @@ initial_position = 1
 [connection signal="pressed" from="PauseScreen/PauseContainer/VBoxContainer/QuitButton" to="." method="_on_quit_button_pressed"]
 [connection signal="pressed" from="PauseScreen/MainMenuContainer/VBoxContainer/HBoxContainer/StartButton" to="." method="_on_start_button_pressed"]
 [connection signal="pressed" from="PauseScreen/MainMenuContainer/VBoxContainer/HBoxContainer/JoinButton" to="." method="_on_join_button_pressed"]
+[connection signal="pressed" from="PauseScreen/MainMenuContainer/VBoxContainer/HBoxContainer/HostButton" to="." method="_on_host_button_pressed"]
 [connection signal="pressed" from="PauseScreen/MainMenuContainer/VBoxContainer/SettingsButton" to="." method="_on_settings_button_pressed"]
 [connection signal="pressed" from="PauseScreen/MainMenuContainer/VBoxContainer/QuitButton" to="." method="_on_quit_button_pressed"]
 [connection signal="exit" from="PauseScreen/SettingsContainer" to="." method="_on_settings_container_exit"]

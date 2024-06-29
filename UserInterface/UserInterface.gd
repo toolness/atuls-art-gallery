@@ -190,6 +190,11 @@ func _on_join_button_pressed():
 	join_game_container.visible = true
 	host_field.grab_focus()
 
+func _on_host_button_pressed():
+	Lobby.IS_SERVER = true
+	main_menu_container.visible = false
+	_on_start_button_pressed()
+
 func _on_connect_button_pressed():
 	Lobby.IS_CLIENT = true
 	Lobby.HOST = host_field.text
