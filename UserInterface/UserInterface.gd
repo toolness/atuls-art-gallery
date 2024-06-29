@@ -125,12 +125,13 @@ func _on_settings_container_exit() -> void:
 		resume_button.grab_focus()
 
 func toggle_reticle() -> void:
-	reticle.visible = not reticle.visible
-	inspect_mode_hints.visible = reticle.visible
+	hide_reticle(reticle.visible)
+
 
 func hide_reticle(is_hidden:bool) -> void:
 	# Hide the aiming reticle. Useful for the third person camera.
 	reticle.visible = not is_hidden
+	inspect_mode_hints.visible = reticle.visible
 
 
 # Take an existing tween and add steps to fade the screen in.
@@ -178,6 +179,7 @@ func reload_current_scene(hard_reset: bool) -> void:
 		# Apply cached settings, but don't update position.
 		new_player.view = view
 		new_player.zoom = zoom
+		hide_reticle(true)
 		)
 	fade_in(tween)
 
