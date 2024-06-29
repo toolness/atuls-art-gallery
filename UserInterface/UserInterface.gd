@@ -192,3 +192,4 @@ func _on_join_button_pressed():
 func _on_connect_button_pressed():
 	Lobby.IS_CLIENT = true
 	Lobby.HOST = host_field.text
+	_on_start_button_pressed()
