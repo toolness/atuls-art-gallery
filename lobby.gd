@@ -15,8 +15,6 @@ var IS_OFFLINE_MODE: bool:
 
 var HOST := "127.0.0.1"
 
-var DISABLE_INITIAL_MOUSE_CAPTURE := false
-
 func _on_connected_to_server():
     var peer_id := multiplayer.get_unique_id()
     print("Connected to server with peer ID ", peer_id, ".")

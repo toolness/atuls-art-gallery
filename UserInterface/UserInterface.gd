@@ -19,6 +19,8 @@ class_name UI
 
 @export var start_level: PackedScene
 
+var DISABLE_INITIAL_MOUSE_CAPTURE := false
+
 var in_main_menu: bool = false
 
 signal before_reload(hard_reset: bool)

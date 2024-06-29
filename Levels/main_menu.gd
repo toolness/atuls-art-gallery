@@ -36,7 +36,7 @@ func _parse_cmdline_args():
     if args.has("--host"):
         Lobby.HOST = args.get("--host")
     if args.has("--nocap"):
-        Lobby.DISABLE_INITIAL_MOUSE_CAPTURE = true
+        UserInterface.DISABLE_INITIAL_MOUSE_CAPTURE = true
     if Lobby.IS_CLIENT and Lobby.IS_SERVER:
         OS.alert("Cannot be server and client simultaneously!")
         get_tree().quit(1)
