@@ -5,6 +5,8 @@ class_name UI
 @onready var pause_container: CenterContainer = %PauseContainer
 @onready var main_menu_container: CenterContainer = %MainMenuContainer
 @onready var settings_container: SettingsContainer = %SettingsContainer
+@onready var join_game_container: CenterContainer = %JoinGameContainer
+@onready var host_field: LineEdit = %HostField
 @onready var resume_button: Button = %ResumeButton
 @onready var start_button: Button = %StartButton
 @onready var color_rect_fader: ColorRect = $ColorRectFader
@@ -180,4 +182,13 @@ func show_main_menu():
 	paused = true
 	pause_container.visible = false
 	main_menu_container.visible = true
+	join_game_container.visible = false
 	start_button.grab_focus()
+
+func _on_join_button_pressed():
+	main_menu_container.visible = false
+	join_game_container.visible = true
+
+func _on_connect_button_pressed():
+	Lobby.IS_CLIENT = true
+	Lobby.HOST = host_field.text

@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3 uid="uid://b4mrqfvtlycnc"]
+[gd_scene load_steps=16 format=3 uid="uid://b4mrqfvtlycnc"]
 
 [ext_resource type="Script" path="res://UserInterface/UserInterface.gd" id="1_pjpe8"]
 [ext_resource type="PackedScene" uid="uid://dss65i31egqc3" path="res://Levels/infinite_gallery.tscn" id="2_60fvu"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://UserInterface/Reticle.gd" id="3_hfmys"]
 [ext_resource type="Shader" uid="uid://wn6mnfchf1w7" path="res://UserInterface/ScreenSpaceBlur.tres" id="4_kynqp"]
 [ext_resource type="PackedScene" uid="uid://sbl4rscivr8g" path="res://UserInterface/SettingsContainer.tscn" id="5_qrem4"]
+[ext_resource type="FontFile" uid="uid://ij353qf6fdpf" path="res://UserInterface/Font/Staatliches-Regular.ttf" id="7_v6mlq"]
 
 [sub_resource type="GDScript" id="GDScript_ivi4s"]
 script/source = "extends MarginContainer
@@ -166,7 +167,6 @@ fit_content = true
 
 [node name="PauseScreen" type="Control" parent="."]
 process_mode = 3
-visible = false
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -241,13 +241,23 @@ theme_override_font_sizes/font_size = 128
 text = "Atul's Art Museum"
 horizontal_alignment = 1
 
-[node name="StartButton" type="Button" parent="PauseScreen/MainMenuContainer/VBoxContainer" node_paths=PackedStringArray("shortcut_context")]
+[node name="HBoxContainer" type="HBoxContainer" parent="PauseScreen/MainMenuContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="StartButton" type="Button" parent="PauseScreen/MainMenuContainer/VBoxContainer/HBoxContainer" node_paths=PackedStringArray("shortcut_context")]
 unique_name_in_owner = true
 layout_mode = 2
-shortcut_context = NodePath("../..")
+size_flags_horizontal = 3
+shortcut_context = NodePath("../../..")
 shortcut = SubResource("Shortcut_rg3uj")
 shortcut_in_tooltip = false
-text = "start"
+text = "solo"
+
+[node name="JoinButton" type="Button" parent="PauseScreen/MainMenuContainer/VBoxContainer/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "join"
 
 [node name="SettingsButton" type="Button" parent="PauseScreen/MainMenuContainer/VBoxContainer"]
 layout_mode = 2
@@ -259,7 +269,45 @@ text = "Quit Game"
 
 [node name="SettingsContainer" parent="PauseScreen" instance=ExtResource("5_qrem4")]
 unique_name_in_owner = true
+visible = false
 layout_mode = 1
+
+[node name="JoinGameContainer" type="CenterContainer" parent="PauseScreen"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="PauseScreen/JoinGameContainer"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="PauseScreen/JoinGameContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="PauseScreen/JoinGameContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+text = "Host: "
+
+[node name="HostField" type="LineEdit" parent="PauseScreen/JoinGameContainer/VBoxContainer/HBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(500, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_fonts/font = ExtResource("7_v6mlq")
+text = "127.0.0.1"
+
+[node name="ConnectButton" type="Button" parent="PauseScreen/JoinGameContainer/VBoxContainer"]
+layout_mode = 2
+text = "Connect"
+
+[node name="BackButton" type="Button" parent="PauseScreen/JoinGameContainer/VBoxContainer"]
+layout_mode = 2
+text = "Back"
 
 [node name="ColorRectFader" type="ColorRect" parent="."]
 visible = false
@@ -279,7 +327,9 @@ initial_position = 1
 [connection signal="pressed" from="PauseScreen/PauseContainer/VBoxContainer/ResumeButton" to="." method="_on_resume_button_pressed"]
 [connection signal="pressed" from="PauseScreen/PauseContainer/VBoxContainer/SettingsButton" to="." method="_on_settings_button_pressed"]
 [connection signal="pressed" from="PauseScreen/PauseContainer/VBoxContainer/QuitButton" to="." method="_on_quit_button_pressed"]
-[connection signal="pressed" from="PauseScreen/MainMenuContainer/VBoxContainer/StartButton" to="." method="_on_start_button_pressed"]
+[connection signal="pressed" from="PauseScreen/MainMenuContainer/VBoxContainer/HBoxContainer/StartButton" to="." method="_on_start_button_pressed"]
+[connection signal="pressed" from="PauseScreen/MainMenuContainer/VBoxContainer/HBoxContainer/JoinButton" to="." method="_on_join_button_pressed"]
 [connection signal="pressed" from="PauseScreen/MainMenuContainer/VBoxContainer/SettingsButton" to="." method="_on_settings_button_pressed"]
 [connection signal="pressed" from="PauseScreen/MainMenuContainer/VBoxContainer/QuitButton" to="." method="_on_quit_button_pressed"]
 [connection signal="exit" from="PauseScreen/SettingsContainer" to="." method="_on_settings_container_exit"]
+[connection signal="pressed" from="PauseScreen/JoinGameContainer/VBoxContainer/ConnectButton" to="." method="_on_connect_button_pressed"]
