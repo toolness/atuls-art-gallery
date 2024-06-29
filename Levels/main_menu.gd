@@ -49,6 +49,8 @@ func _ready():
     _parse_cmdline_args()
 
     if auto_start:
-        UserInterface.start_game()
+        # Calling deferred avoids a
+        # "Parent node is busy adding/removing children" error.
+        UserInterface.start_game.call_deferred()
     else:
         UserInterface.show_main_menu()
