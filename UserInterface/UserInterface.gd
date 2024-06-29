@@ -76,16 +76,17 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("toggle_reticle"):
 		toggle_reticle()
 
+func start_game() -> void:
+	get_tree().change_scene_to_packed(start_level)
+	hints.visible = true
+	main_menu_container.visible = false
+	pause_container.visible = true
+	in_main_menu = false
+
 func _on_start_button_pressed() -> void:
 	var tween := create_tween()
 	fade_out(tween)
-	tween.tween_callback(func on_faded_out():
-		get_tree().change_scene_to_packed(start_level)
-		hints.visible = true
-		main_menu_container.visible = false
-		pause_container.visible = true
-		in_main_menu = false
-	)
+	tween.tween_callback(start_game)
 	fade_in(tween)
 	paused = false
 
