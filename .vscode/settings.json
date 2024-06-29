@@ -1,5 +1,15 @@
 {
     "[rust]": {
         "editor.formatOnSave": true
-    }
+    },
+    "[gdscript]": {
+        // PLEASE STOP MIXING TABS AND SPACES VSCODE
+
+        // The number of spaces a tab is equal to.
+        "editor.tabSize": 4,
+        // Insert spaces when pressing Tab.
+        "editor.insertSpaces": false,
+        // When opening a file, `editor.tabSize` and `editor.insertSpaces` will be detected based on the file contents.
+        "editor.detectIndentation": false
+    },
 }
