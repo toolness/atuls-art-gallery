@@ -1,5 +1,6 @@
 mod layout;
 mod met_csv;
+mod random;
 
 use std::fs::{self, File};
 use std::path::PathBuf;
@@ -13,6 +14,7 @@ use gallery::gallery_wall::GalleryWall;
 use gallery::met_api::load_met_api_record;
 use layout::{place_paintings_along_wall, MetObjectLayoutFitter};
 use met_csv::iter_public_domain_2d_met_csv_objects;
+use random::Rng;
 use rusqlite::Connection;
 
 use std::io::BufReader;
@@ -36,6 +38,14 @@ struct Args {
     command: Commands,
 }
 
+#[derive(Copy, Clone, Default, clap::ValueEnum)]
+enum Sort {
+    #[default]
+    Id,
+    AccessionYear,
+    Random,
+}
+
 #[derive(Subcommand)]
 enum Commands {
     /// Import MetObjects.csv into database.
@@ -49,7 +59,15 @@ enum Commands {
         download: bool,
     },
     /// Layout gallery walls.
-    Layout {},
+    Layout {
+        /// How to sort the art in the galleries. Defaults to met object ID.
+        #[arg(short, long)]
+        sort: Option<Sort>,
+
+        /// Random seed to use, if sort is random. If absent, will use time since epoch, in seconds.
+        #[arg(short, long)]
+        random_seed: Option<u64>,
+    },
     /// Show layout for the given gallery.
     ShowLayout {
         /// Gallery id to show.
@@ -71,7 +89,7 @@ fn run() -> Result<()> {
     let db = GalleryDb::new(Connection::open(db_path)?);
     match args.command {
         Commands::Csv { max, download } => csv_command(args, cache, db, max, download),
-        Commands::Layout {} => layout_command(db),
+        Commands::Layout { sort, random_seed } => layout_command(db, sort, random_seed),
         Commands::ShowLayout { gallery_id } => show_layout_command(db, gallery_id),
     }
 }
@@ -98,11 +116,27 @@ fn show_layout_command(mut db: GalleryDb, gallery_id: i64) -> Result<()> {
     Ok(())
 }
 
-fn layout_command(mut db: GalleryDb) -> Result<()> {
+fn layout_command(mut db: GalleryDb, sort: Option<Sort>, random_seed: Option<u64>) -> Result<()> {
     let walls = get_walls()?;
     db.reset_layout_table()?;
-    let mut met_objects = db.get_all_met_objects_for_layout()?;
-    met_objects.reverse();
+    let mut met_objects = db.get_all_met_objects_for_layout(match sort.unwrap_or_default() {
+        Sort::Id => Some("id"),
+        Sort::AccessionYear => Some("accession_year, id"),
+        Sort::Random => None,
+    })?;
+    if matches!(sort, Some(Sort::Random)) {
+        let random_seed = random_seed.unwrap_or(
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_secs(),
+        );
+        let mut rng = Rng::new(random_seed);
+        println!("Randomizing layout using seed {random_seed}.");
+        rng.shuffle(&mut met_objects);
+    } else {
+        met_objects.reverse();
+    }
     println!(
         "Laying out {} met objects across galleries with {} walls each.",
         met_objects.len(),
@@ -223,7 +257,7 @@ mod tests {
         }
         db.add_public_domain_2d_met_objects(&records).unwrap();
 
-        let rows = db.get_all_met_objects_for_layout().unwrap();
+        let rows = db.get_all_met_objects_for_layout(None).unwrap();
         assert!(rows.len() > 0);
         let met_object_id = rows.get(0).unwrap().id;
 
