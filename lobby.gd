@@ -35,6 +35,9 @@ func _on_peer_disconnected(id):
 	print("Peer ", id, " disconnected.")
 
 func start():
+	if IS_OFFLINE_MODE:
+		return
+
 	multiplayer.connected_to_server.connect(_on_connected_to_server)
 	multiplayer.connection_failed.connect(_on_connection_failed)
 	multiplayer.server_disconnected.connect(_on_server_disconnected)
