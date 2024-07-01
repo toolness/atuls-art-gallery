@@ -70,6 +70,8 @@ func place_met_object_on_wall(
 class MovingPainting:
 	var painting: Painting
 	var offset: Vector3
+
+	# These are only used on the server.
 	var wall_x: float
 	var wall_y: float
 	var wall_id: String
@@ -89,6 +91,12 @@ class MovingPainting:
 		gallery_id = wall.gallery.gallery_id
 
 	func move_along_wall(raycast: RayCast3D) -> void:
+		if Lobby.IS_CLIENT:
+			# Don't actually do anything if we're the client: painting position, rotation, and parenting is
+			# server-authoritative, so if we change it on the client it will just result in jitter as
+			# the server will be sending updates to change these things too, only it will be from the past
+			# due to latency, resulting in "fighting" between client and server values.
+			return
 		var wall := Moma.try_to_find_wall_from_collision(raycast.get_collider())
 		if not wall:
 			return
@@ -203,6 +211,7 @@ func sort_walls_by_distance_from_player(walls: Array[Wall], player: Player):
 	walls.sort_custom(sort_by_distance_from_player)
 
 
+## This is only used on the server.
 func populate_with_paintings(players: Array[Player]) -> int:
 	var count := 0
 	var walls: Array[Wall] = []
@@ -251,6 +260,7 @@ func _ready():
 	gallery_label.text = str(gallery_id + GALLERY_LABEL_ID_OFFSET)
 
 
+## This is only used on the server.
 func populate(players: Array[Player]) -> void:
 	print("Initializing gallery ", gallery_id)
 	var count := await populate_with_paintings(players)
