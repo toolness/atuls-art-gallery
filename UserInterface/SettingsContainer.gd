@@ -5,9 +5,9 @@ extends MarginContainer
 signal exit()
 
 @export_category("FOV")
-@export var min_fov: float = 60
+@export var min_fov: float = 40
 @export var max_fov: float = 100
-@export var default_fov: float = 75
+@export var default_fov: float = 60
 
 @export_category("Mouse Sensitivity")
 @export var very_low_sens: float = 0.00025
