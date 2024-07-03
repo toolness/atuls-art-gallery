@@ -24,6 +24,8 @@ var original_albedo_color: Color
 ## The met object ID of the painting, set by the server.
 @export var met_object_id: int
 
+var image_size: Vector2i
+
 func _ready():
 	if inner_painting_scale:
 		painting.set_scale(inner_painting_scale)
@@ -75,6 +77,7 @@ func resize_and_label(met_object: MetObject) -> void:
 
 func set_image(image: Image):
 	image.generate_mipmaps()
+	image_size = image.get_size()
 	var texture := ImageTexture.create_from_image(image)
 	var material: StandardMaterial3D = painting.mesh.surface_get_material(PAINTING_SURFACE_IDX)
 	painting_surface_material = material.duplicate()
@@ -96,3 +99,22 @@ func start_interactive_placement():
 func finish_interactive_placement():
 	painting_surface_material.albedo_color = original_albedo_color
 	collision_shape.disabled = false
+
+func show_debug_info():
+	var pos := painting.global_position# + aabb.position
+	var camera := get_viewport().get_camera_3d()
+	if camera.is_position_behind(pos):
+		print("BEHIND pos ", pos)
+	elif image_size:
+		var top_left := painting.global_position + painting.global_transform.basis.y / 2 - painting.global_transform.basis.x / 2
+		var bottom_right := painting.global_position - painting.global_transform.basis.y / 2 + painting.global_transform.basis.x / 2
+		#print("HMM ", painting.global_transform.basis.x, " ", painting.global_transform.basis.y, " ", painting.global_transform.basis.z)
+		var top_left_unproj := camera.unproject_position(top_left)
+		var bottom_right_unproj := camera.unproject_position(bottom_right)
+		var width := bottom_right_unproj.x - top_left_unproj.x
+		var height := bottom_right_unproj.y - top_left_unproj.y
+		var unproj_rect := Rect2(top_left_unproj.x, top_left_unproj.y, width, height)
+		#print("pos ", pos, " unproj ", unproj, " scale ", painting.scale.x)
+		var scale_pct := Vector2(unproj_rect.size.x / image_size.x, unproj_rect.size.y / image_size.y)
+		print("HMM ", unproj_rect.size, " ", image_size, " ", scale_pct)
+		UserInterface.reticle.debug_rect = unproj_rect
