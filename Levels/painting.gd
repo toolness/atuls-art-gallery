@@ -114,7 +114,11 @@ func show_debug_info():
 		var width := bottom_right_unproj.x - top_left_unproj.x
 		var height := bottom_right_unproj.y - top_left_unproj.y
 		var unproj_rect := Rect2(top_left_unproj.x, top_left_unproj.y, width, height)
+		var image_area := image_size.x * image_size.y
+		var unproj_area := unproj_rect.size.x * unproj_rect.size.y
 		#print("pos ", pos, " unproj ", unproj, " scale ", painting.scale.x)
-		var scale_pct := Vector2(unproj_rect.size.x / image_size.x, unproj_rect.size.y / image_size.y)
-		print("HMM ", unproj_rect.size, " ", image_size, " ", scale_pct)
+		#var scale_pct := Vector2(unproj_rect.size.x / image_size.x, unproj_rect.size.y / image_size.y)
+		var area_ratio := unproj_area / image_area
+		print("AREA RATIO: ", area_ratio)
+		#print("HMM ", unproj_rect.size, " ", image_size, " ", scale_pct)
 		UserInterface.reticle.debug_rect = unproj_rect
