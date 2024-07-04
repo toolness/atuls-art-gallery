@@ -50,7 +50,7 @@ func _ready() -> void:
 	version_label.text = ProjectSettings.get_setting("application/config/version")
 
 	# Hook up main menu events.
-	main_menu_container.start_button.pressed.connect(_on_start_button_pressed)
+	main_menu_container.start_button.pressed.connect(fade_out_and_start_game)
 	main_menu_container.join_button.pressed.connect(_on_main_menu_join_button_pressed)
 	main_menu_container.host_button.pressed.connect(_on_main_menu_host_button_pressed)
 	main_menu_container.settings_button.pressed.connect(_on_settings_button_pressed)
@@ -58,7 +58,7 @@ func _ready() -> void:
 
 	# Hook up join game menu events.
 	join_game_container.connect_button.pressed.connect(_on_join_menu_connect_button_pressed)
-	join_game_container.back_button.pressed.connect(_on_back_to_main_menu_button_pressed)
+	join_game_container.back_button.pressed.connect(show_main_menu)
 
 func set_connection_status_text(value: String):
 	connection_status_label.text = value
@@ -104,7 +104,7 @@ func start_game() -> void:
 	pause_container.visible = true
 	in_main_menu = false
 
-func _on_start_button_pressed() -> void:
+func fade_out_and_start_game() -> void:
 	var tween := create_tween()
 	fade_out(tween)
 	tween.tween_callback(start_game)
@@ -216,15 +216,10 @@ func _on_main_menu_join_button_pressed():
 func _on_main_menu_host_button_pressed():
 	Lobby.IS_SERVER = true
 	main_menu_container.visible = false
-	_on_start_button_pressed()
+	fade_out_and_start_game()
 
 func _on_join_menu_connect_button_pressed():
 	Lobby.IS_CLIENT = true
 	Lobby.HOST = join_game_container.host_field.text
 	join_game_container.visible = false
-	_on_start_button_pressed()
-
-func _on_back_to_main_menu_button_pressed():
-	join_game_container.visible = false
-	main_menu_container.visible = true
-	main_menu_container.focus()
+	fade_out_and_start_game()
