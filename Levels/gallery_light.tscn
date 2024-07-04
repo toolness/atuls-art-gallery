@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://ee8y42mi5j4"]
 
-[node name="Room01-Light01" type="OmniLight3D"]
+[node name="Node3D" type="Node3D"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 2, 4)
-shadow_enabled = true
-omni_range = 10.0
+
+[node name="OmniLight3D" type="OmniLight3D" parent="."]
+omni_range = 7.5

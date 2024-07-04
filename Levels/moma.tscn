@@ -19,27 +19,21 @@ painting_scene = ExtResource("2_4p8tv")
 
 [node name="Room01-Light01" parent="." instance=ExtResource("3_tems5")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 3.1, 4)
-omni_range = 5.0
 
 [node name="Room01-Light02" parent="." instance=ExtResource("3_tems5")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.9, 3.1, 4)
-omni_range = 5.0
 
 [node name="Room02-Light01" parent="." instance=ExtResource("3_tems5")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.9, 3.1, -5.2)
-omni_range = 5.0
 
 [node name="Room03-Light01" parent="." instance=ExtResource("3_tems5")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.7, 3.1, -5.1)
-omni_range = 5.0
 
 [node name="Room03-Light02" parent="." instance=ExtResource("3_tems5")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.6, 3.1, -5.1)
-omni_range = 5.0
 
 [node name="Room04-Light01" parent="." instance=ExtResource("3_tems5")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, 3.1, 4.5)
-omni_range = 5.0
 
 [node name="gallery" parent="." instance=ExtResource("1_kk2r5")]
 
