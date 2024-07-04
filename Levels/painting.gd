@@ -5,6 +5,10 @@ extends Node3D
 
 const PAINTING_SURFACE_IDX = 1
 
+## The minimum ratio of the painting's size on screen to its
+## image texture's size that will trigger loading the large
+## version of the image.
+const LARGE_IMAGE_AREA_RATIO_THRESHOLD = 1.75
 
 var painting_surface_material: StandardMaterial3D
 
@@ -100,25 +104,29 @@ func finish_interactive_placement():
 	painting_surface_material.albedo_color = original_albedo_color
 	collision_shape.disabled = false
 
-func show_debug_info():
-	var pos := painting.global_position# + aabb.position
-	var camera := get_viewport().get_camera_3d()
-	if camera.is_position_behind(pos):
-		print("BEHIND pos ", pos)
-	elif image_size:
-		var top_left := painting.global_position + painting.global_transform.basis.y / 2 - painting.global_transform.basis.x / 2
-		var bottom_right := painting.global_position - painting.global_transform.basis.y / 2 + painting.global_transform.basis.x / 2
-		#print("HMM ", painting.global_transform.basis.x, " ", painting.global_transform.basis.y, " ", painting.global_transform.basis.z)
-		var top_left_unproj := camera.unproject_position(top_left)
-		var bottom_right_unproj := camera.unproject_position(bottom_right)
-		var width := bottom_right_unproj.x - top_left_unproj.x
-		var height := bottom_right_unproj.y - top_left_unproj.y
-		var unproj_rect := Rect2(top_left_unproj.x, top_left_unproj.y, width, height)
-		var image_area := image_size.x * image_size.y
-		var unproj_area := unproj_rect.size.x * unproj_rect.size.y
-		#print("pos ", pos, " unproj ", unproj, " scale ", painting.scale.x)
-		#var scale_pct := Vector2(unproj_rect.size.x / image_size.x, unproj_rect.size.y / image_size.y)
-		var area_ratio := unproj_area / image_area
-		print("AREA RATIO: ", area_ratio)
-		#print("HMM ", unproj_rect.size, " ", image_size, " ", scale_pct)
-		UserInterface.reticle.debug_rect = unproj_rect
+
+## Return the _approximate_ rectange corresponding to the image's
+## unproject size in the given camera's viewport. This is approximate
+## because it doesn't account for skew, e.g. it just assumes the player
+## is looking at the painting head-on.  It is also the rect of the
+## _back_ of the painting rather than the front.
+func _get_approx_unprojected_rect(camera: Camera3D) -> Rect2:
+	var top_left := painting.global_position + painting.global_transform.basis.y / 2 - painting.global_transform.basis.x / 2
+	var bottom_right := painting.global_position - painting.global_transform.basis.y / 2 + painting.global_transform.basis.x / 2
+	var top_left_unproj := camera.unproject_position(top_left)
+	var bottom_right_unproj := camera.unproject_position(bottom_right)
+	var width := bottom_right_unproj.x - top_left_unproj.x
+	var height := bottom_right_unproj.y - top_left_unproj.y
+	return Rect2(top_left_unproj.x, top_left_unproj.y, width, height)
+
+
+func handle_player_looking_at(camera: Camera3D):
+	if not image_size:
+		# We haven't loaded a small image yet.
+		return
+
+	var unproj_size := _get_approx_unprojected_rect(camera).size
+	var area_ratio := (unproj_size.x * unproj_size.y) / (image_size.x * image_size.y)
+
+	if area_ratio > LARGE_IMAGE_AREA_RATIO_THRESHOLD:
+		print("TODO: Load large image for met object id ", met_object_id, " (area ratio ", area_ratio, ")")

@@ -172,13 +172,12 @@ func _physics_process(delta: float) -> void:
 	if moving_painting:
 		moving_painting.move_along_wall(raycast)
 
-	if is_main_player and UserInterface.reticle.visible:
+	if is_main_player:
 		var painting := Moma.try_to_find_painting_from_collision(raycast.get_collider())
-		UserInterface.reticle.is_highlighted = painting != null
+		if UserInterface.reticle.visible:
+			UserInterface.reticle.is_highlighted = painting != null
 		if painting:
-			painting.show_debug_info()
-		else:
-			UserInterface.reticle.debug_rect = Rect2()
+			painting.handle_player_looking_at(camera)
 
 # Turn movent inputs into a locally oriented vector.
 func get_movement_direction() -> Vector3:
