@@ -30,7 +30,7 @@ var loaded_large_image := false
 ## The met object ID of the painting, set by the server.
 @export var met_object_id: int
 
-var image_size: Vector2i
+var small_image_texture: ImageTexture
 
 func _ready():
 	if inner_painting_scale:
@@ -39,15 +39,21 @@ func _ready():
 		print("Warning: No inner_painting_scale available for painting!")
 	if met_object_id:
 		# TODO: Only do this when the player is near the painting.
-		var image := await MetObjects.fetch_small_image(met_object_id)
+		var small_image := await MetObjects.fetch_small_image(met_object_id)
 		if not is_inside_tree():
 			# We despawned, exit.
 			return
-		if not image:
+		if not small_image:
 			# Oof, fetching the image failed.
 			visible = false
 			return
-		set_image(image)
+		small_image.generate_mipmaps()
+		small_image_texture = ImageTexture.create_from_image(small_image)
+		var material: StandardMaterial3D = painting.mesh.surface_get_material(PAINTING_SURFACE_IDX)
+		painting_surface_material = material.duplicate()
+		painting_surface_material.albedo_color = Color.TRANSPARENT
+		painting_surface_material.albedo_texture = small_image_texture
+		painting.set_surface_override_material(PAINTING_SURFACE_IDX, painting_surface_material)
 	else:
 		print("Warning: No met_object_id available for painting!")
 
@@ -81,18 +87,6 @@ func resize_and_label(met_object: MetObject) -> void:
 	painting.set_scale(inner_painting_scale)
 
 
-func set_image(image: Image):
-	image.generate_mipmaps()
-	image_size = image.get_size()
-	var texture := ImageTexture.create_from_image(image)
-	if not painting_surface_material:
-		var material: StandardMaterial3D = painting.mesh.surface_get_material(PAINTING_SURFACE_IDX)
-		painting_surface_material = material.duplicate()
-		painting_surface_material.albedo_color = Color.TRANSPARENT
-		painting.set_surface_override_material(PAINTING_SURFACE_IDX, painting_surface_material)
-	painting_surface_material.albedo_texture = texture
-
-
 func try_to_open_in_browser():
 	OS.shell_open("https://www.metmuseum.org/art/collection/search/" + str(met_object_id))
 
@@ -124,7 +118,7 @@ func _get_approx_unprojected_rect(camera: Camera3D) -> Rect2:
 
 
 func handle_player_looking_at(camera: Camera3D):
-	if not image_size:
+	if not small_image_texture:
 		# We haven't loaded a small image yet.
 		return
 
@@ -133,18 +127,28 @@ func handle_player_looking_at(camera: Camera3D):
 		return
 
 	var unproj_size := _get_approx_unprojected_rect(camera).size
-	var area_ratio := (unproj_size.x * unproj_size.y) / (image_size.x * image_size.y)
+	var small_image_size := small_image_texture.get_size()
+	var area_ratio := (unproj_size.x * unproj_size.y) / (small_image_size.x * small_image_size.y)
 
 	if area_ratio > LARGE_IMAGE_AREA_RATIO_THRESHOLD:
 		loaded_large_image = true
-		var large_image := await MetObjects.fetch_large_image(met_object_id)
+		var large_image := await MetObjects.fetch_large_image(met_object_id, _on_large_image_evict)
 		if not is_inside_tree():
 			# We despawned, exit.
 			return
 		if not large_image:
 			# Downloading failed.
 			return
-		set_image(large_image)
+		large_image.generate_mipmaps()
+		var large_image_texture := ImageTexture.create_from_image(large_image)
+		painting_surface_material.albedo_texture = large_image_texture
 		var new_size := large_image.get_size()
 		print("Loaded large ", new_size.x, "x", new_size.y, " image for met object id ", met_object_id, " (area ratio was ", area_ratio, ").")
-		# TODO: We should really swap out the image when the player wanders off, it uses lots of memory.
+
+
+func _on_large_image_evict():
+	if not is_inside_tree():
+		return
+	print("Evicting large image for met object id ", met_object_id, ".")
+	painting_surface_material.albedo_texture = small_image_texture
+	loaded_large_image = false
