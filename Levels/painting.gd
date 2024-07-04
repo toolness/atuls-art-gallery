@@ -14,6 +14,8 @@ var painting_surface_material: StandardMaterial3D
 
 var original_albedo_color: Color
 
+var loaded_large_image := false
+
 @onready var painting: MeshInstance3D = $painting/Painting
 
 @onready var collision_shape: CollisionShape3D = $painting/Painting/StaticBody3D/CollisionShape3D
@@ -83,11 +85,12 @@ func set_image(image: Image):
 	image.generate_mipmaps()
 	image_size = image.get_size()
 	var texture := ImageTexture.create_from_image(image)
-	var material: StandardMaterial3D = painting.mesh.surface_get_material(PAINTING_SURFACE_IDX)
-	painting_surface_material = material.duplicate()
-	painting_surface_material.albedo_color = Color.TRANSPARENT
+	if not painting_surface_material:
+		var material: StandardMaterial3D = painting.mesh.surface_get_material(PAINTING_SURFACE_IDX)
+		painting_surface_material = material.duplicate()
+		painting_surface_material.albedo_color = Color.TRANSPARENT
+		painting.set_surface_override_material(PAINTING_SURFACE_IDX, painting_surface_material)
 	painting_surface_material.albedo_texture = texture
-	painting.set_surface_override_material(PAINTING_SURFACE_IDX, painting_surface_material)
 
 
 func try_to_open_in_browser():
@@ -125,8 +128,20 @@ func handle_player_looking_at(camera: Camera3D):
 		# We haven't loaded a small image yet.
 		return
 
+	if loaded_large_image:
+		# We already loaded the large image, nothing to do.
+		return
+
 	var unproj_size := _get_approx_unprojected_rect(camera).size
 	var area_ratio := (unproj_size.x * unproj_size.y) / (image_size.x * image_size.y)
 
 	if area_ratio > LARGE_IMAGE_AREA_RATIO_THRESHOLD:
-		print("TODO: Load large image for met object id ", met_object_id, " (area ratio ", area_ratio, ")")
+		loaded_large_image = true
+		var large_image := await MetObjects.fetch_large_image(met_object_id)
+		if not is_inside_tree():
+			# We despawned, exit.
+			return
+		set_image(large_image)
+		var new_size := large_image.get_size()
+		print("Loaded large ", new_size.x, "x", new_size.y, " image for met object id ", met_object_id, " (area ratio was ", area_ratio, ").")
+		# TODO: We should really swap out the image when the player wanders off, it uses lots of memory.
