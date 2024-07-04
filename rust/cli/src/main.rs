@@ -11,7 +11,7 @@ use clap::{Parser, Subcommand};
 use gallery::gallery_cache::GalleryCache;
 use gallery::gallery_db::{GalleryDb, LayoutRecord, PublicDomain2DMetObjectRecord};
 use gallery::gallery_wall::GalleryWall;
-use gallery::met_api::load_met_api_record;
+use gallery::met_api::{load_met_api_record, ImageSize};
 use layout::{place_paintings_along_wall, MetObjectLayoutFitter};
 use met_csv::iter_public_domain_2d_met_csv_objects;
 use random::Rng;
@@ -195,7 +195,7 @@ fn csv_command(
         }
         if download {
             let obj_record = load_met_api_record(&cache, csv_record.object_id)?;
-            obj_record.try_to_download_small_image(&cache)?;
+            obj_record.try_to_download_image(&cache, ImageSize::Small)?;
         }
         records_to_commit.push(csv_record);
         if records_to_commit.len() >= TRANSACTION_BATCH_SIZE {

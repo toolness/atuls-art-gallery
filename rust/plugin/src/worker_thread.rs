@@ -9,7 +9,7 @@ use anyhow::Result;
 use gallery::{
     gallery_cache::GalleryCache,
     gallery_db::{GalleryDb, LayoutRecord},
-    met_api::load_met_api_record,
+    met_api::{load_met_api_record, ImageSize},
 };
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
@@ -34,8 +34,9 @@ pub enum RequestBody {
         gallery_id: i64,
         wall_id: String,
     },
-    FetchSmallImage {
+    FetchImage {
         object_id: u64,
+        size: ImageSize,
     },
 }
 
@@ -106,14 +107,14 @@ fn get_met_objects_for_gallery_wall(
     Ok(result)
 }
 
-fn fetch_small_image(cache: &GalleryCache, met_object_id: u64) -> Option<PathBuf> {
+fn fetch_image(cache: &GalleryCache, met_object_id: u64, size: ImageSize) -> Option<PathBuf> {
     match load_met_api_record(&cache, met_object_id) {
-        Ok(obj_record) => match obj_record.try_to_download_small_image(&cache) {
-            Ok(Some((_width, _height, small_image))) => Some(cache.cache_dir().join(small_image)),
+        Ok(obj_record) => match obj_record.try_to_download_image(&cache, size) {
+            Ok(Some((_width, _height, image))) => Some(cache.cache_dir().join(image)),
             Ok(None) => None,
             Err(err) => {
                 eprintln!(
-                    "Unable to download small image for met object ID {}: {:?}",
+                    "Unable to download {size} image for met object ID {}: {:?}",
                     met_object_id, err
                 );
                 None
@@ -237,9 +238,9 @@ pub fn work_thread(
                             get_met_objects_for_gallery_wall(&mut db, gallery_id, wall_id)?;
                         send_response(ResponseBody::MetObjectsForGalleryWall(objects));
                     }
-                    RequestBody::FetchSmallImage { object_id } => {
-                        let small_image = fetch_small_image(&cache, object_id);
-                        send_response(ResponseBody::Image(small_image));
+                    RequestBody::FetchImage { object_id, size } => {
+                        let image_path = fetch_image(&cache, object_id, size);
+                        send_response(ResponseBody::Image(image_path));
                     }
                 }
             }

@@ -5,6 +5,7 @@ use std::{
     thread::{self, JoinHandle},
 };
 
+use gallery::met_api::ImageSize;
 use godot::{
     engine::{
         multiplayer_api::RpcMode,
@@ -318,7 +319,18 @@ impl GalleryClient {
 
     #[func]
     fn fetch_small_image(&mut self, object_id: u64) -> u32 {
-        self.send_request(RequestBody::FetchSmallImage { object_id })
+        self.send_request(RequestBody::FetchImage {
+            object_id,
+            size: ImageSize::Small,
+        })
+    }
+
+    #[func]
+    fn fetch_large_image(&mut self, object_id: u64) -> u32 {
+        self.send_request(RequestBody::FetchImage {
+            object_id,
+            size: ImageSize::Large,
+        })
     }
 
     fn new_request_id(&mut self) -> u32 {
@@ -430,11 +442,11 @@ impl GalleryClient {
                                 )),
                             }))
                         }
-                        ResponseBody::Image(small_image) => {
-                            let image = small_image
-                                .map(|small_image| {
+                        ResponseBody::Image(image_path) => {
+                            let image = image_path
+                                .map(|image_path| {
                                     Image::load_from_file(GString::from(
-                                        small_image.to_string_lossy().into_owned(),
+                                        image_path.to_string_lossy().into_owned(),
                                     ))
                                 })
                                 .flatten();
