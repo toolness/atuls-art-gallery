@@ -41,36 +41,8 @@ func fetch_small_image(object_id: int) -> Image:
 	return await _fetch_image(object_id, "small")
 
 
-class LargeImage:
-	var image: Image
-	signal evict
-
-
-## The most large image's we'll have in-memory at once.
-const MAX_LARGE_IMAGES = 5
-
-## Note that this contains strong references to LargeImages. This is
-## because we need _something_ to store strong references to them, or
-## else they'll just disappear if they're weak refs.  The downside to
-## this is that we'll keep them around in memory even if we don't
-## really need them, though.
-var large_image_lru_cache: Array[LargeImage] = []
-
-
-func fetch_large_image(object_id: int, on_evict: Callable) -> Image:
-	var image := await _fetch_image(object_id, "large")
-	if not image:
-		return null
-	var large_image := LargeImage.new()
-	large_image.image = image
-	large_image.evict.connect(on_evict)
-
-	while len(large_image_lru_cache) >= MAX_LARGE_IMAGES:
-		var old_large_image: LargeImage = large_image_lru_cache.pop_front()
-		old_large_image.evict.emit()
-
-	large_image_lru_cache.push_back(large_image)
-	return image
+func fetch_large_image(object_id: int) -> Image:
+	return await _fetch_image(object_id, "large")
 
 
 func get_met_objects_for_gallery_wall(gallery_id: int, wall_id: String) -> Array[MetObject]:

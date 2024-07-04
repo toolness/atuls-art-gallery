@@ -117,6 +117,29 @@ func _get_approx_unprojected_rect(camera: Camera3D) -> Rect2:
 	return Rect2(top_left_unproj.x, top_left_unproj.y, width, height)
 
 
+## The most paintings with large images we'll have in-memory at once.
+const MAX_PAINTINGS_WITH_LARGE_IMAGES = 5
+
+## An array of weak references to paintings with large images. We'll keep
+## them weak so they can get freed from memory without us having to
+## explicitly free them ourselves.
+static var paintings_with_large_images: Array[WeakRef] = []
+
+
+static func _set_large_image(_painting: Painting, large_image: Image):
+	while len(paintings_with_large_images) >= MAX_PAINTINGS_WITH_LARGE_IMAGES:
+		var weak_old_painting: WeakRef = paintings_with_large_images.pop_front()
+		var old_painting: Painting = weak_old_painting.get_ref()
+		if old_painting and old_painting.is_inside_tree():
+			print("Evicting large image for met object id ", old_painting.met_object_id, ".")
+			old_painting.painting_surface_material.albedo_texture = old_painting.small_image_texture
+			old_painting.loaded_large_image = false
+	paintings_with_large_images.push_back(weakref(_painting))
+	large_image.generate_mipmaps()
+	var large_image_texture := ImageTexture.create_from_image(large_image)
+	_painting.painting_surface_material.albedo_texture = large_image_texture
+
+
 func handle_player_looking_at(camera: Camera3D):
 	if not small_image_texture:
 		# We haven't loaded a small image yet.
@@ -132,23 +155,13 @@ func handle_player_looking_at(camera: Camera3D):
 
 	if area_ratio > LARGE_IMAGE_AREA_RATIO_THRESHOLD:
 		loaded_large_image = true
-		var large_image := await MetObjects.fetch_large_image(met_object_id, _on_large_image_evict)
+		var large_image := await MetObjects.fetch_large_image(met_object_id)
 		if not is_inside_tree():
 			# We despawned, exit.
 			return
 		if not large_image:
 			# Downloading failed.
 			return
-		large_image.generate_mipmaps()
-		var large_image_texture := ImageTexture.create_from_image(large_image)
-		painting_surface_material.albedo_texture = large_image_texture
+		Painting._set_large_image(self, large_image)
 		var new_size := large_image.get_size()
 		print("Loaded large ", new_size.x, "x", new_size.y, " image for met object id ", met_object_id, " (area ratio was ", area_ratio, ").")
-
-
-func _on_large_image_evict():
-	if not is_inside_tree():
-		return
-	print("Evicting large image for met object id ", met_object_id, ".")
-	painting_surface_material.albedo_texture = small_image_texture
-	loaded_large_image = false
