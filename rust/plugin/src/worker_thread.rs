@@ -184,7 +184,7 @@ pub fn work_thread(
     from_worker_tx: Sender<MessageFromWorker>,
 ) -> Result<()> {
     let cache = GalleryCache::new(root_dir);
-    let db_path = cache.get_cached_path("gallery.sqlite");
+    let db_path = cache.get_cached_path("gallery2.sqlite");
     // Check for existence, we don't want SQLite making a zero-byte DB file.
     if !db_path.exists() {
         return Err(anyhow!("DB does not exist: {}", db_path.display()));

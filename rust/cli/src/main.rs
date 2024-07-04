@@ -84,7 +84,7 @@ fn run() -> Result<()> {
     let db_path = if let Some(db_path) = &args.db_path {
         db_path.clone()
     } else {
-        cache.get_cached_path("gallery.sqlite")
+        cache.get_cached_path("gallery2.sqlite")
     };
     let db = GalleryDb::new(Connection::open(db_path)?);
     match args.command {
