@@ -18,17 +18,31 @@ class ImageRequest:
 	signal responded
 
 
-func fetch_small_image(object_id: int) -> Image:
+func _fetch_image(object_id: int, size: String) -> Image:
 	if Lobby.IS_HEADLESS:
 		return Image.create(1, 1, false, Image.FORMAT_L8)
 	var request := ImageRequest.new()
-	var request_id := gallery_client.fetch_small_image(object_id)
+	var request_id: int
+	if size == "small":
+		request_id = gallery_client.fetch_small_image(object_id)
+	elif size == "large":
+		request_id = gallery_client.fetch_large_image(object_id)
+	else:
+		crash("Invalid image size: " +  size)
 	if request_id == NULL_REQUEST_ID:
 		# Oof, something went wrong.
 		return null
 	requests[request_id] = request
 	await request.responded
 	return request.response
+
+
+func fetch_small_image(object_id: int) -> Image:
+	return await _fetch_image(object_id, "small")
+
+
+func fetch_large_image(object_id: int) -> Image:
+	return await _fetch_image(object_id, "large")
 
 
 func get_met_objects_for_gallery_wall(gallery_id: int, wall_id: String) -> Array[MetObject]:

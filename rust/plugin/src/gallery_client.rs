@@ -325,6 +325,14 @@ impl GalleryClient {
         })
     }
 
+    #[func]
+    fn fetch_large_image(&mut self, object_id: u64) -> u32 {
+        self.send_request(RequestBody::FetchImage {
+            object_id,
+            size: ImageSize::Large,
+        })
+    }
+
     fn new_request_id(&mut self) -> u32 {
         let request_id = self.next_request_id;
         self.next_request_id += 1;
