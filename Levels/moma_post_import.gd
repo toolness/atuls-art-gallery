@@ -5,7 +5,7 @@ extends EditorScenePostImport
 func _post_import(scene: Node) -> Node:
 	var wall_data: Array[Dictionary] = []
 	for child in scene.get_children():
-		var wall := Moma.Wall.try_from_object(child)
+		var wall := Moma.Wall.try_from_object(child, true)
 		if wall:
 			var datum := {
 				"name": child.name,

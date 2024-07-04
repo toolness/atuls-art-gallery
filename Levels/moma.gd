@@ -147,7 +147,7 @@ class Wall:
 	var normal: Vector3
 	var gallery: Moma
 
-	func _try_to_configure(object: Object) -> bool:
+	func _try_to_configure(object: Object, is_importing: bool) -> bool:
 		if not is_instance_of(object, MeshInstance3D):
 			return false
 		mesh_instance = object
@@ -181,8 +181,9 @@ class Wall:
 		else:
 			# This isn't a big enough wall to mount anything on.
 			return false
-		gallery = mesh_instance.find_parent(GALLERY_PATTERN)
-		assert(gallery is Moma)
+		if not is_importing:
+			gallery = mesh_instance.find_parent(GALLERY_PATTERN)
+			assert(gallery is Moma)
 		return true
 
 	func get_base_position() -> Vector3:
@@ -191,9 +192,9 @@ class Wall:
 	func get_global_base_position() -> Vector3:
 		return mesh_instance.global_position + mesh_instance.get_aabb().position
 
-	static func try_from_object(object: Object) -> Wall:
+	static func try_from_object(object: Object, is_importing: bool = false) -> Wall:
 		var wall: Wall = Wall.new()
-		if not wall._try_to_configure(object):
+		if not wall._try_to_configure(object, is_importing):
 			return null
 		return wall
 
