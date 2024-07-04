@@ -1,0 +1,50 @@
+[gd_scene load_steps=5 format=3 uid="uid://clcrin3hg2tg5"]
+
+[ext_resource type="Script" path="res://UserInterface/JoinGameContainer.gd" id="1_jivkb"]
+[ext_resource type="FontFile" uid="uid://ij353qf6fdpf" path="res://UserInterface/Font/Staatliches-Regular.ttf" id="1_maw8s"]
+
+[sub_resource type="InputEventAction" id="InputEventAction_mp2s8"]
+action = &"ui_cancel"
+pressed = true
+
+[sub_resource type="Shortcut" id="Shortcut_alxiy"]
+events = [SubResource("InputEventAction_mp2s8")]
+
+[node name="JoinGameContainer" type="CenterContainer"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_jivkb")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="VBoxContainer/HBoxContainer"]
+layout_mode = 2
+text = "Host: "
+
+[node name="HostField" type="LineEdit" parent="VBoxContainer/HBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(500, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_fonts/font = ExtResource("1_maw8s")
+text = "127.0.0.1"
+
+[node name="ConnectButton" type="Button" parent="VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Connect"
+
+[node name="BackButton" type="Button" parent="VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+shortcut = SubResource("Shortcut_alxiy")
+text = "Back"

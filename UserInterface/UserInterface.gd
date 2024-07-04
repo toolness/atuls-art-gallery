@@ -3,14 +3,12 @@ class_name UI
 
 @onready var pause_screen: Control = $PauseScreen
 @onready var pause_container: CenterContainer = %PauseContainer
-@onready var main_menu_container: CenterContainer = %MainMenuContainer
+@onready var main_menu_container: MainMenuContainer = %MainMenuContainer
 @onready var settings_container: SettingsContainer = %SettingsContainer
-@onready var join_game_container: CenterContainer = %JoinGameContainer
+@onready var join_game_container: JoinGameContainer = %JoinGameContainer
 @onready var connection_status_label: Label = %ConnectionStatusLabel
 @onready var version_label: Label = %VersionLabel
-@onready var host_field: LineEdit = %HostField
 @onready var resume_button: Button = %ResumeButton
-@onready var start_button: Button = %StartButton
 @onready var color_rect_fader: ColorRect = $ColorRectFader
 @onready var inspect_mode_hints: Control = %InspectModeHints
 @onready var hints: Control = %Hints
@@ -47,8 +45,20 @@ func _ready() -> void:
 	pause_screen.visible = false
 	pause_container.visible = true
 	main_menu_container.visible = false
+	join_game_container.visible = false
 	settings_container.visible = false
 	version_label.text = ProjectSettings.get_setting("application/config/version")
+
+	# Hook up main menu events.
+	main_menu_container.start_button.pressed.connect(_on_start_button_pressed)
+	main_menu_container.join_button.pressed.connect(_on_main_menu_join_button_pressed)
+	main_menu_container.host_button.pressed.connect(_on_main_menu_host_button_pressed)
+	main_menu_container.settings_button.pressed.connect(_on_settings_button_pressed)
+	main_menu_container.quit_button.pressed.connect(_on_quit_button_pressed)
+
+	# Hook up join game menu events.
+	join_game_container.connect_button.pressed.connect(_on_join_menu_connect_button_pressed)
+	join_game_container.back_button.pressed.connect(_on_back_to_main_menu_button_pressed)
 
 func set_connection_status_text(value: String):
 	connection_status_label.text = value
@@ -121,7 +131,7 @@ func _on_settings_container_exit() -> void:
 	settings_container.visible = false
 	if in_main_menu:
 		main_menu_container.visible = true
-		start_button.grab_focus()
+		main_menu_container.focus()
 	else:
 		pause_container.visible = true
 		resume_button.grab_focus()
@@ -196,25 +206,25 @@ func show_main_menu():
 	pause_container.visible = false
 	main_menu_container.visible = true
 	join_game_container.visible = false
-	start_button.grab_focus()
+	main_menu_container.focus()
 
-func _on_join_button_pressed():
+func _on_main_menu_join_button_pressed():
 	main_menu_container.visible = false
 	join_game_container.visible = true
-	host_field.grab_focus()
+	join_game_container.focus()
 
-func _on_host_button_pressed():
+func _on_main_menu_host_button_pressed():
 	Lobby.IS_SERVER = true
 	main_menu_container.visible = false
 	_on_start_button_pressed()
 
-func _on_connect_button_pressed():
+func _on_join_menu_connect_button_pressed():
 	Lobby.IS_CLIENT = true
-	Lobby.HOST = host_field.text
+	Lobby.HOST = join_game_container.host_field.text
 	join_game_container.visible = false
 	_on_start_button_pressed()
 
-func _on_back_button_pressed():
+func _on_back_to_main_menu_button_pressed():
 	join_game_container.visible = false
 	main_menu_container.visible = true
-	start_button.grab_focus()
+	main_menu_container.focus()

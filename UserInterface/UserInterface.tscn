@@ -1,4 +1,4 @@
-[gd_scene load_steps=18 format=3 uid="uid://b4mrqfvtlycnc"]
+[gd_scene load_steps=17 format=3 uid="uid://b4mrqfvtlycnc"]
 
 [ext_resource type="Script" path="res://UserInterface/UserInterface.gd" id="1_pjpe8"]
 [ext_resource type="PackedScene" uid="uid://dss65i31egqc3" path="res://Levels/infinite_gallery.tscn" id="2_60fvu"]
@@ -6,7 +6,8 @@
 [ext_resource type="Script" path="res://UserInterface/Reticle.gd" id="3_hfmys"]
 [ext_resource type="Shader" uid="uid://wn6mnfchf1w7" path="res://UserInterface/ScreenSpaceBlur.tres" id="4_kynqp"]
 [ext_resource type="PackedScene" uid="uid://sbl4rscivr8g" path="res://UserInterface/SettingsContainer.tscn" id="5_qrem4"]
-[ext_resource type="FontFile" uid="uid://ij353qf6fdpf" path="res://UserInterface/Font/Staatliches-Regular.ttf" id="7_v6mlq"]
+[ext_resource type="PackedScene" uid="uid://dkh1asxc7gtkx" path="res://UserInterface/MainMenuContainer.tscn" id="6_6k6vc"]
+[ext_resource type="PackedScene" uid="uid://clcrin3hg2tg5" path="res://UserInterface/JoinGameContainer.tscn" id="8_ftfw4"]
 
 [sub_resource type="GDScript" id="GDScript_ivi4s"]
 script/source = "extends MarginContainer
@@ -48,13 +49,6 @@ pressed = true
 
 [sub_resource type="Shortcut" id="Shortcut_rg3uj"]
 events = [SubResource("InputEventAction_gbevd")]
-
-[sub_resource type="InputEventAction" id="InputEventAction_mp2s8"]
-action = &"ui_cancel"
-pressed = true
-
-[sub_resource type="Shortcut" id="Shortcut_alxiy"]
-events = [SubResource("InputEventAction_mp2s8")]
 
 [node name="UserInterface" type="CanvasLayer"]
 script = ExtResource("1_pjpe8")
@@ -260,99 +254,24 @@ text = "Settings"
 layout_mode = 2
 text = "Quit Game"
 
-[node name="MainMenuContainer" type="CenterContainer" parent="PauseScreen"]
+[node name="MainMenuContainer" parent="PauseScreen" instance=ExtResource("6_6k6vc")]
 unique_name_in_owner = true
 visible = false
 layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="VBoxContainer" type="VBoxContainer" parent="PauseScreen/MainMenuContainer"]
-custom_minimum_size = Vector2(512, 0)
-layout_mode = 2
-
-[node name="Label" type="Label" parent="PauseScreen/MainMenuContainer/VBoxContainer"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 128
-text = "Atul's Art Museum"
-horizontal_alignment = 1
-
-[node name="HBoxContainer" type="HBoxContainer" parent="PauseScreen/MainMenuContainer/VBoxContainer"]
-layout_mode = 2
-
-[node name="StartButton" type="Button" parent="PauseScreen/MainMenuContainer/VBoxContainer/HBoxContainer" node_paths=PackedStringArray("shortcut_context")]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-shortcut_context = NodePath("../../..")
-shortcut_in_tooltip = false
-text = "solo"
-
-[node name="JoinButton" type="Button" parent="PauseScreen/MainMenuContainer/VBoxContainer/HBoxContainer"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-text = "join"
-
-[node name="HostButton" type="Button" parent="PauseScreen/MainMenuContainer/VBoxContainer/HBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "host"
-
-[node name="SettingsButton" type="Button" parent="PauseScreen/MainMenuContainer/VBoxContainer"]
-layout_mode = 2
-text = "Settings"
-
-[node name="QuitButton" type="Button" parent="PauseScreen/MainMenuContainer/VBoxContainer"]
-layout_mode = 2
-text = "Quit Game"
 
 [node name="SettingsContainer" parent="PauseScreen" instance=ExtResource("5_qrem4")]
 unique_name_in_owner = true
 visible = false
 layout_mode = 1
 
-[node name="JoinGameContainer" type="CenterContainer" parent="PauseScreen"]
+[node name="JoinGameContainer" parent="PauseScreen" instance=ExtResource("8_ftfw4")]
 unique_name_in_owner = true
-visible = false
 layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="VBoxContainer" type="VBoxContainer" parent="PauseScreen/JoinGameContainer"]
-layout_mode = 2
-
-[node name="HBoxContainer" type="HBoxContainer" parent="PauseScreen/JoinGameContainer/VBoxContainer"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="PauseScreen/JoinGameContainer/VBoxContainer/HBoxContainer"]
-layout_mode = 2
-text = "Host: "
-
-[node name="HostField" type="LineEdit" parent="PauseScreen/JoinGameContainer/VBoxContainer/HBoxContainer"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(500, 0)
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_fonts/font = ExtResource("7_v6mlq")
-text = "127.0.0.1"
-
-[node name="ConnectButton" type="Button" parent="PauseScreen/JoinGameContainer/VBoxContainer"]
-layout_mode = 2
-text = "Connect"
-
-[node name="BackButton" type="Button" parent="PauseScreen/JoinGameContainer/VBoxContainer"]
-layout_mode = 2
-shortcut = SubResource("Shortcut_alxiy")
-text = "Back"
+anchors_preset = 15
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 1.0
 
 [node name="VersionLabel" type="Label" parent="PauseScreen"]
 unique_name_in_owner = true
@@ -387,11 +306,4 @@ initial_position = 1
 [connection signal="pressed" from="PauseScreen/PauseContainer/VBoxContainer/ResumeButton" to="." method="_on_resume_button_pressed"]
 [connection signal="pressed" from="PauseScreen/PauseContainer/VBoxContainer/SettingsButton" to="." method="_on_settings_button_pressed"]
 [connection signal="pressed" from="PauseScreen/PauseContainer/VBoxContainer/QuitButton" to="." method="_on_quit_button_pressed"]
-[connection signal="pressed" from="PauseScreen/MainMenuContainer/VBoxContainer/HBoxContainer/StartButton" to="." method="_on_start_button_pressed"]
-[connection signal="pressed" from="PauseScreen/MainMenuContainer/VBoxContainer/HBoxContainer/JoinButton" to="." method="_on_join_button_pressed"]
-[connection signal="pressed" from="PauseScreen/MainMenuContainer/VBoxContainer/HBoxContainer/HostButton" to="." method="_on_host_button_pressed"]
-[connection signal="pressed" from="PauseScreen/MainMenuContainer/VBoxContainer/SettingsButton" to="." method="_on_settings_button_pressed"]
-[connection signal="pressed" from="PauseScreen/MainMenuContainer/VBoxContainer/QuitButton" to="." method="_on_quit_button_pressed"]
 [connection signal="exit" from="PauseScreen/SettingsContainer" to="." method="_on_settings_container_exit"]
-[connection signal="pressed" from="PauseScreen/JoinGameContainer/VBoxContainer/ConnectButton" to="." method="_on_connect_button_pressed"]
-[connection signal="pressed" from="PauseScreen/JoinGameContainer/VBoxContainer/BackButton" to="." method="_on_back_button_pressed"]
