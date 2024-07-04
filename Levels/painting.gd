@@ -126,7 +126,10 @@ const MAX_PAINTINGS_WITH_LARGE_IMAGES = 5
 static var paintings_with_large_images: Array[WeakRef] = []
 
 
-static func _set_large_image(_painting: Painting, large_image: Image):
+## Sets the texture for the painting to the given large image.
+## If too many other paintings have large images, the oldest one will switch
+## back to a small image, to preserve memory.
+func _set_large_image(large_image: Image):
 	while len(paintings_with_large_images) >= MAX_PAINTINGS_WITH_LARGE_IMAGES:
 		var weak_old_painting: WeakRef = paintings_with_large_images.pop_front()
 		var old_painting: Painting = weak_old_painting.get_ref()
@@ -134,10 +137,10 @@ static func _set_large_image(_painting: Painting, large_image: Image):
 			print("Evicting large image for met object id ", old_painting.met_object_id, ".")
 			old_painting.painting_surface_material.albedo_texture = old_painting.small_image_texture
 			old_painting.loaded_large_image = false
-	paintings_with_large_images.push_back(weakref(_painting))
+	paintings_with_large_images.push_back(weakref(self))
 	large_image.generate_mipmaps()
 	var large_image_texture := ImageTexture.create_from_image(large_image)
-	_painting.painting_surface_material.albedo_texture = large_image_texture
+	painting_surface_material.albedo_texture = large_image_texture
 
 
 func handle_player_looking_at(camera: Camera3D):
@@ -162,6 +165,6 @@ func handle_player_looking_at(camera: Camera3D):
 		if not large_image:
 			# Downloading failed.
 			return
-		Painting._set_large_image(self, large_image)
+		_set_large_image(large_image)
 		var new_size := large_image.get_size()
 		print("Loaded large ", new_size.x, "x", new_size.y, " image for met object id ", met_object_id, " (area ratio was ", area_ratio, ").")
