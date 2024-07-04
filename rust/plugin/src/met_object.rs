@@ -8,6 +8,8 @@ pub struct MetObject {
     #[var]
     pub title: GString,
     #[var]
+    pub artist: GString,
+    #[var]
     pub date: GString,
     #[var]
     pub width: f64,

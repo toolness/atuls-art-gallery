@@ -83,7 +83,10 @@ func init_with_met_object(object: MetObject):
 
 
 func resize_and_label(met_object: MetObject) -> void:
-	configure_wall_label(inner_painting_scale.x, inner_painting_scale.y, met_object.title + "\n" + met_object.date)
+	var artist :=  met_object.artist
+	if not artist:
+		artist = "Anonymous"
+	configure_wall_label(inner_painting_scale.x, inner_painting_scale.y, artist + "\n" + met_object.title + "\n" + met_object.date)
 	painting.set_scale(inner_painting_scale)
 
 

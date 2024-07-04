@@ -13,6 +13,9 @@ pub struct MetObjectCsvRecord {
     #[serde(rename = "Object ID")]
     pub object_id: u64,
 
+    #[serde(rename = "Artist Display Name")]
+    pub artist_display_name: String,
+
     #[serde(rename = "AccessionYear", deserialize_with = "deserialize_csv_year")]
     pub accession_year: Option<u16>,
 
@@ -87,6 +90,7 @@ fn try_into_public_domain_2d_met_object(
         if lower_medium.contains(medium_keyword) {
             return Some(PublicDomain2DMetObjectRecord {
                 object_id: csv_record.object_id,
+                artist: csv_record.artist_display_name,
                 accession_year,
                 object_date: csv_record.object_date,
                 title: csv_record.title,

@@ -96,6 +96,7 @@ impl GalleryDb {
             CREATE TABLE met_objects (
                 id INTEGER PRIMARY KEY,
                 title TEXT NOT NULL,
+                artist TEXT NOT NULL,
                 date TEXT NOT NULL,
                 medium TEXT NOT NULL,
                 width REAL NOT NULL,
@@ -122,7 +123,7 @@ impl GalleryDb {
         for record in records {
             tx.execute(
             "
-                INSERT INTO met_objects (id, title, date, medium, width, height, accession_year) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+                INSERT INTO met_objects (id, title, date, medium, width, height, accession_year, artist) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
                 ",
         (
                     &record.object_id,
@@ -131,7 +132,8 @@ impl GalleryDb {
                     &record.medium,
                     &record.width,
                     &record.height,
-                    &record.accession_year
+                    &record.accession_year,
+                    &record.artist,
                 ),
             )?;
         }
@@ -159,7 +161,8 @@ impl GalleryDb {
                 mo.medium,
                 mo.width,
                 mo.height,
-                mo.accession_year
+                mo.accession_year,
+                mo.artist
             FROM
                 met_objects AS mo
             INNER JOIN
@@ -183,6 +186,7 @@ impl GalleryDb {
                 width: row.get(6)?,
                 height: row.get(7)?,
                 accession_year: row.get(8)?,
+                artist: row.get(9)?,
             };
             result.push((object, location));
         }
@@ -196,6 +200,7 @@ pub struct PublicDomain2DMetObjectRecord {
     pub object_id: u64,
     pub accession_year: u16,
     pub object_date: String,
+    pub artist: String,
     pub title: String,
     pub medium: String,
     pub width: f64,
