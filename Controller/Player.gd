@@ -176,8 +176,32 @@ func _physics_process(delta: float) -> void:
 		var painting := Moma.try_to_find_painting_from_collision(raycast.get_collider())
 		if UserInterface.reticle.visible:
 			UserInterface.reticle.is_highlighted = painting != null
-		if painting:
+		if painting_look_debouncer.has_been_stable(delta, painting):
 			painting.handle_player_looking_at(camera)
+
+
+class NodeDebouncer:
+	var prev_node: Node
+	var stable_time: float
+	var stable_threshold: float
+
+	static func create(threshold_secs: float) -> NodeDebouncer:
+		var debouncer := NodeDebouncer.new()
+		debouncer.stable_threshold = threshold_secs
+		return debouncer
+
+	func has_been_stable(delta: float, node: Node) -> bool:
+		if node != prev_node:
+			stable_time = 0.0
+			prev_node = node
+		elif node:
+			stable_time += delta
+			return stable_time > stable_threshold
+		return false
+
+
+var painting_look_debouncer := NodeDebouncer.create(2.5)
+
 
 # Turn movent inputs into a locally oriented vector.
 func get_movement_direction() -> Vector3:
