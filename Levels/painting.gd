@@ -141,6 +141,9 @@ func handle_player_looking_at(camera: Camera3D):
 		if not is_inside_tree():
 			# We despawned, exit.
 			return
+		if not large_image:
+			# Downloading failed.
+			return
 		set_image(large_image)
 		var new_size := large_image.get_size()
 		print("Loaded large ", new_size.x, "x", new_size.y, " image for met object id ", met_object_id, " (area ratio was ", area_ratio, ").")
