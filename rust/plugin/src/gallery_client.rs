@@ -465,7 +465,6 @@ impl GalleryClient {
 
 impl Drop for GalleryClient {
     fn drop(&mut self) {
-        godot_print!("drop GalleryClient!");
         if let Some(connection) = self.connection.take() {
             connection.disconnect();
         }
