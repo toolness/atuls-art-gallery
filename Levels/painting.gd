@@ -201,6 +201,11 @@ func _set_large_image(large_image: Image):
 	paintings_with_large_images.push_back(weakref(self))
 	large_image.generate_mipmaps()
 	var large_image_texture := ImageTexture.create_from_image(large_image)
+	# TODO: Godot actually supports the concept of a "detail texture, with the ability
+	# to mix between standard and detail. We could potentially use this feature to tween
+	# between the standard and the large version of the image:
+	#
+	#   https://docs.godotengine.org/en/stable/tutorials/3d/standard_material_3d.html#detail
 	painting_surface_material.albedo_texture = large_image_texture
 
 
