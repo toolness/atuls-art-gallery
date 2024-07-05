@@ -4,4 +4,4 @@
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 2, 4)
 
 [node name="OmniLight3D" type="OmniLight3D" parent="."]
-omni_range = 7.5
+omni_range = 10.0
