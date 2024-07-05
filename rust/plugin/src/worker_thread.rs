@@ -79,6 +79,7 @@ pub enum MessageFromWorker {
 pub struct SimplifiedRecord {
     pub object_id: u64,
     pub artist: String,
+    pub medium: String,
     pub title: String,
     pub date: String,
     pub width: f64,
@@ -102,6 +103,7 @@ fn get_met_objects_for_gallery_wall(
             width: object.width,
             height: object.height,
             artist: object.artist,
+            medium: object.medium,
             x,
             y,
         });

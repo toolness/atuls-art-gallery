@@ -438,6 +438,7 @@ impl GalleryClient {
                                             x: object.x,
                                             y: object.y,
                                             artist: object.artist.into_godot(),
+                                            medium: object.medium.into_godot(),
                                         })
                                     }),
                                 )),
