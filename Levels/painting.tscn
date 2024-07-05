@@ -1,7 +1,9 @@
-[gd_scene load_steps=4 format=3 uid="uid://dfs7nhm0sjhah"]
+[gd_scene load_steps=6 format=3 uid="uid://dfs7nhm0sjhah"]
 
 [ext_resource type="Script" path="res://Levels/painting.gd" id="1_wlgeq"]
 [ext_resource type="PackedScene" uid="uid://d34mwxnh7jtgj" path="res://Levels/painting.glb" id="2_ysfke"]
+[ext_resource type="FontFile" uid="uid://c5lxu845lhmyk" path="res://UserInterface/Font/OpenSans-Bold.ttf" id="3_edymk"]
+[ext_resource type="FontFile" uid="uid://4m8as5alui32" path="res://UserInterface/Font/OpenSans-Regular.ttf" id="4_28sjk"]
 
 [sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_537ux"]
 properties/0/path = NodePath(".:position")
@@ -43,8 +45,8 @@ pixel_size = 0.0008
 double_sided = false
 modulate = Color(0, 0, 0, 1)
 outline_modulate = Color(0, 0, 0, 0)
-text = "A Very Long Title For An Artwork
-1902"
+text = "Leonardo Da Vinci"
+font = ExtResource("3_edymk")
 font_size = 16
 outline_size = 0
 horizontal_alignment = 0
@@ -54,13 +56,31 @@ width = 300.0
 
 [node name="wall_label_secondary" type="Label3D" parent="."]
 unique_name_in_owner = true
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.55, -0.0504187, 0.01)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.55, -0.0247093, 0.01)
+layers = 524288
+pixel_size = 0.0008
+double_sided = false
+modulate = Color(0, 0, 0, 1)
+outline_modulate = Color(0, 0, 0, 0)
+text = "A Very Long Title For An Artwork, 1902"
+font = ExtResource("4_28sjk")
+font_size = 16
+outline_size = 0
+horizontal_alignment = 0
+vertical_alignment = 0
+autowrap_mode = 2
+width = 300.0
+
+[node name="wall_label_tertiary" type="Label3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.55, -0.0538116, 0.01)
 layers = 524288
 pixel_size = 0.0008
 double_sided = false
 modulate = Color(0, 0, 0, 1)
 outline_modulate = Color(0, 0, 0, 0)
 text = "Oil on canvas"
+font = ExtResource("4_28sjk")
 font_size = 12
 outline_size = 0
 horizontal_alignment = 0

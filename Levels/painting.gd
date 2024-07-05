@@ -10,7 +10,9 @@ const PAINTING_SURFACE_IDX = 1
 ## version of the image.
 const LARGE_IMAGE_AREA_RATIO_THRESHOLD = 1.75
 
-const WALL_LABEL_SECONDARY_TOP_PADDING = 0.02
+const WALL_LABEL_SECONDARY_TOP_PADDING = 0.005
+
+const WALL_LABEL_TERTIARY_TOP_PADDING = 0.02
 
 var painting_surface_material: StandardMaterial3D
 
@@ -25,6 +27,8 @@ var loaded_large_image := false
 @onready var wall_label_primary: Label3D = %wall_label_primary
 
 @onready var wall_label_secondary: Label3D = %wall_label_secondary
+
+@onready var wall_label_tertiary: Label3D = %wall_label_tertiary
 
 ## The scaling applied to the actual painting canvas, set by the server in multiplayer. (We can't
 ## simply synchronize the actual scale because it's in an imported scene that our synchronizer
@@ -87,25 +91,38 @@ func configure_wall_label() -> void:
 	var aabb_size := painting.get_aabb().size
 	var x := wall_label_primary.position.x
 	var wall_label_x_offset := absf(x) - aabb_size.x / 2
-	wall_label_primary.position.x = _get_side_multiplier(x) * (inner_painting_scale.x / 2 + wall_label_x_offset)
+	var left_edge := _get_side_multiplier(x) * (inner_painting_scale.x / 2 + wall_label_x_offset)
+	wall_label_primary.position.x = left_edge
 	var y := wall_label_primary.position.y
 	var wall_label_y_offset := absf(y) - aabb_size.y / 2
 	wall_label_primary.position.y = _get_side_multiplier(y) * (inner_painting_scale.y / 2 + wall_label_y_offset)
-	var date_suffix := ""
-	if date:
-		date_suffix = ", " + date
-	wall_label_primary.text = _default_str(artist, "Anonymous") + "\n" + _default_str(title, "Untitled") + date_suffix
-	wall_label_secondary.visible = false
+	wall_label_primary.text = _default_str(artist, "Anonymous")
 
 	# This is a bit annoying, we have to wait a full frame for the primary label to populate its AABB.
-	# I was hoping that generate_triangle_mesh() would populate it, but it doesn't.
+	# I was hoping that generate_triangle_mesh() would populate it, but it doesn't. So we'll have to hide the
+	# wall labels that go below the first one, and incrementally position them each a frame apart from one another,
+	# displaying them only when we know their position.
+	wall_label_secondary.visible = false
+	wall_label_tertiary.visible = false
 	await get_tree().process_frame
 	if not is_inside_tree():
 		return
-	wall_label_secondary.position.x = wall_label_primary.position.x
+
+	wall_label_secondary.position.x = left_edge
 	wall_label_secondary.position.y = wall_label_primary.position.y - wall_label_primary.get_aabb().size.y - WALL_LABEL_SECONDARY_TOP_PADDING
-	wall_label_secondary.text = medium
+	var date_suffix := ""
+	if date:
+		date_suffix = ", " + date
+	wall_label_secondary.text = _default_str(title, "Untitled") + date_suffix
 	wall_label_secondary.visible = true
+
+	await get_tree().process_frame
+	if not is_inside_tree():
+		return
+	wall_label_tertiary.position.x = left_edge
+	wall_label_tertiary.position.y = wall_label_secondary.position.y - wall_label_secondary.get_aabb().size.y - WALL_LABEL_TERTIARY_TOP_PADDING
+	wall_label_tertiary.text = medium
+	wall_label_tertiary.visible = true
 
 
 func _default_str(value: String, default: String) -> String:
