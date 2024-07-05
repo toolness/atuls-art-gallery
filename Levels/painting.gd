@@ -74,6 +74,14 @@ func _ready():
 		painting_surface_material = material.duplicate()
 		painting_surface_material.albedo_color = Color.TRANSPARENT
 		painting_surface_material.albedo_texture = small_image_texture
+
+		# It's easier to experiment with these settings via script rather than setting them in Blender
+		# and constantly re-exporting/re-importing.
+		painting_surface_material.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
+		painting_surface_material.metallic = 0.0
+		painting_surface_material.roughness = 1.0
+		painting_surface_material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+
 		painting.set_surface_override_material(PAINTING_SURFACE_IDX, painting_surface_material)
 	else:
 		print("Warning: No met_object_id available for painting!")
