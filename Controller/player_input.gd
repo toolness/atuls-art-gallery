@@ -6,6 +6,8 @@ class_name PlayerInput
 
 var clicked := false
 
+var jumped := false
+
 func _ready():
 	pass
 
@@ -20,11 +22,17 @@ func _process(_delta: float) -> void:
 func click():
 	clicked = true
 
+@rpc("call_local")
+func jump():
+	jumped = true
+
 func _unhandled_input(event: InputEvent) -> void:
 	if is_authority():
-		# Capture the mouse if it is uncaptured.
 		if event.is_action_pressed("click"):
+			# Capture the mouse if it is uncaptured.
 			if Input.get_mouse_mode() != Input.MOUSE_MODE_CAPTURED:
 				Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 			elif UserInterface.reticle.visible:
 				click.rpc()
+		if event.is_action_pressed("jump"):
+			jump.rpc()

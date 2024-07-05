@@ -132,19 +132,26 @@ func _physics_process(delta: float) -> void:
 	# Add gravity.
 	if not is_on_floor():
 		# if holding jump and ascending be floaty.
-		if velocity.y >= 0 and Input.is_action_pressed("ui_accept"):
+
+		# TODO: Not supporting this for multiplayer right now, can add support
+		# back later.
+		var is_still_holding_jump = false
+
+		if velocity.y >= 0 and is_still_holding_jump:
 			velocity.y -= gravity * delta
 		else:
 			# Double fall speed, after peak of jump or release of jump button.
 			velocity.y -= gravity * delta * fall_multiplier
 		
 	# Handle jump.
-	if is_main_player and Input.is_action_just_pressed("jump") and is_on_floor():
-		# Projectile motion to turn jump height into a velocity.
-		velocity.y = sqrt(jump_height * 2.0 * gravity)
-		jump_particles.restart()
-		#jump_audio.play()
-		#run_audio.play()
+	if player_input.jumped:
+		player_input.jumped = false
+		if is_on_floor():
+			# Projectile motion to turn jump height into a velocity.
+			velocity.y = sqrt(jump_height * 2.0 * gravity)
+			jump_particles.restart()
+			#jump_audio.play()
+			#run_audio.play()
 	
 	# Handle movement.
 	var direction = get_movement_direction()
