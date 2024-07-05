@@ -1,7 +1,18 @@
-[gd_scene format=3 uid="uid://ee8y42mi5j4"]
+[gd_scene load_steps=2 format=3 uid="uid://ee8y42mi5j4"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ar6he"]
+emission_enabled = true
+emission = Color(1, 1, 1, 1)
 
 [node name="Node3D" type="Node3D"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 2, 4)
+
+[node name="CSGBox3D" type="CSGBox3D" parent="."]
+material_override = SubResource("StandardMaterial3D_ar6he")
+cast_shadow = 0
+size = Vector3(1, 0.1, 1)
 
 [node name="OmniLight3D" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1, 0)
+light_energy = 1.25
+shadow_enabled = true
 omni_range = 10.0

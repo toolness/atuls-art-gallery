@@ -18,24 +18,6 @@ properties/1/replication_mode = 2
 script = ExtResource("1_k8oh2")
 painting_scene = ExtResource("2_4p8tv")
 
-[node name="Room01-Light01" parent="." instance=ExtResource("3_tems5")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 3.1, 4)
-
-[node name="Room01-Light02" parent="." instance=ExtResource("3_tems5")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.9, 3.1, 4)
-
-[node name="Room02-Light01" parent="." instance=ExtResource("3_tems5")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.9, 3.1, -5.2)
-
-[node name="Room03-Light01" parent="." instance=ExtResource("3_tems5")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.7, 3.1, -5.1)
-
-[node name="Room03-Light02" parent="." instance=ExtResource("3_tems5")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.6, 3.1, -5.1)
-
-[node name="Room04-Light01" parent="." instance=ExtResource("3_tems5")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, 3.1, 4.5)
-
 [node name="gallery" parent="." instance=ExtResource("1_kk2r5")]
 
 [node name="GalleryLabel" type="Label3D" parent="."]
@@ -52,3 +34,24 @@ replication_config = SubResource("SceneReplicationConfig_k6ynt")
 [node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="."]
 _spawnable_scenes = PackedStringArray("res://Levels/painting.tscn")
 spawn_path = NodePath("..")
+
+[node name="Lights" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.216965, 0)
+
+[node name="Room01-Light01" parent="Lights" instance=ExtResource("3_tems5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 3.62475, 4)
+
+[node name="Room01-Light02" parent="Lights" instance=ExtResource("3_tems5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.9, 3.62475, 4)
+
+[node name="Room02-Light01" parent="Lights" instance=ExtResource("3_tems5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.9, 3.62475, -5.2)
+
+[node name="Room03-Light01" parent="Lights" instance=ExtResource("3_tems5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.7, 3.62475, -5.1)
+
+[node name="Room03-Light02" parent="Lights" instance=ExtResource("3_tems5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.6, 3.62475, -5.1)
+
+[node name="Room04-Light01" parent="Lights" instance=ExtResource("3_tems5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, 3.62475, 4.5)
