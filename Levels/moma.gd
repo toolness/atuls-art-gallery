@@ -46,6 +46,7 @@ static func try_to_find_wall_from_collision(collision: Object) -> Wall:
 	return null
 
 
+## This is only used on the server.
 func make_painting(met_object: MetObject) -> Painting:
 	var painting: Painting = painting_scene.instantiate()
 	painting.name = PAINTING_BASE_NAME + str(met_object.object_id)
@@ -54,12 +55,12 @@ func make_painting(met_object: MetObject) -> Painting:
 	return painting
 
 
+## This is only used on the server.
 func place_met_object_on_wall(
 	met_object: MetObject,
 	wall: Wall
 ) -> void:
 	var painting := make_painting(met_object)
-	painting.resize_and_label(met_object)
 	var width_offset := wall.horizontal_direction * met_object.x
 	var height_offset := Vector3.UP * met_object.y
 	var painting_mount_point := wall.get_base_position() + width_offset + height_offset

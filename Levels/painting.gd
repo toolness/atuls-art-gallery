@@ -30,10 +30,23 @@ var loaded_large_image := false
 ## The met object ID of the painting, set by the server.
 @export var met_object_id: int
 
+## The title of the painting, set by the server.
+@export var title: String
+
+## The artist of the painting, set by the server.
+@export var artist: String
+
+## The medium of the painting (e.g., "oil on canvas"), set by the server.
+@export var medium: String
+
+## The date the painting was created, set by the server.
+@export var date: String
+
 var small_image_texture: ImageTexture
 
 func _ready():
 	if inner_painting_scale:
+		configure_wall_label()
 		painting.set_scale(inner_painting_scale)
 	else:
 		print("Warning: No inner_painting_scale available for painting!")
@@ -66,28 +79,28 @@ func _get_side_multiplier(value: float) -> float:
 	return 1.0
 
 
-func configure_wall_label(painting_width: float, painting_height: float, text: String) -> void:
+func configure_wall_label() -> void:
 	var aabb_size := painting.get_aabb().size
 	var x := wall_label.position.x
 	var wall_label_x_offset := absf(x) - aabb_size.x / 2
-	wall_label.position.x = _get_side_multiplier(x) * (painting_width / 2 + wall_label_x_offset)
+	wall_label.position.x = _get_side_multiplier(x) * (inner_painting_scale.x / 2 + wall_label_x_offset)
 	var y := wall_label.position.y
 	var wall_label_y_offset := absf(y) - aabb_size.y / 2
-	wall_label.position.y = _get_side_multiplier(y) * (painting_height / 2 + wall_label_y_offset)
-	wall_label.text = text
+	wall_label.position.y = _get_side_multiplier(y) * (inner_painting_scale.y / 2 + wall_label_y_offset)
+
+	var artist_display := artist
+	if not artist_display:
+		artist_display = "Anonymous"
+	wall_label.text = artist_display + "\n" + title + "\n" + medium + "\n" + date
 
 
 func init_with_met_object(object: MetObject):
 	inner_painting_scale = Vector3(object.width, object.height, 1.0)
 	met_object_id = object.object_id
-
-
-func resize_and_label(met_object: MetObject) -> void:
-	var artist :=  met_object.artist
-	if not artist:
-		artist = "Anonymous"
-	configure_wall_label(inner_painting_scale.x, inner_painting_scale.y, artist + "\n" + met_object.title + "\n" + met_object.medium + "\n" + met_object.date)
-	painting.set_scale(inner_painting_scale)
+	artist = object.artist
+	title = object.title
+	medium = object.medium
+	date = object.date
 
 
 func try_to_open_in_browser():
