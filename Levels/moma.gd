@@ -244,14 +244,28 @@ func populate_with_paintings(players: Array[Player]) -> int:
 			# print(gallery_id, " ", child.name, " ", met_object.title, " ", met_object.x, " ", met_object.y)
 			place_met_object_on_wall(met_object, wall)
 			count += 1
-			if not Lobby.IS_HEADLESS:
-				# Give the rest of the engine time to process the full frame, we're not in a rush and
-				# processing all paintings synchronously will cause stutter.
-				await get_tree().process_frame
-				if not is_inside_tree():
-					# We've been removed from the scene tree, bail.
-					return count
+			# Give the rest of the engine time to process the full frame, we're not in a rush and
+			# processing all paintings synchronously will cause stutter.
+			await _let_engine_breathe_between_painting_spawns()
+			if not is_inside_tree():
+				# We've been removed from the scene tree, bail.
+				return count
 	return count
+
+
+func _let_engine_breathe_between_painting_spawns():
+	var frame_count := 1
+	if Lobby.IS_SERVER:
+		# If we're the server, we want to wait _extra_ long. This is because
+		# network latency is going to cause clients to get lots of spawns at
+		# once, effectively causing them to spawn everything in a single frame,
+		# so we're going to really take our time here to ensure that they
+		# don't get overwhelmed and stutter.
+		frame_count = 10
+	for i in range(frame_count):
+		await get_tree().process_frame
+		if not is_inside_tree():
+			return
 
 
 func init(new_gallery_id: int):
