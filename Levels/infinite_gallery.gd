@@ -39,6 +39,16 @@ func sync_galleries() -> void:
 	for player in get_tree().get_nodes_in_group("Player"):
 		players.push_back(player)
 
+	# We're going to take the union of all the galleries surrounding every player,
+	# spawn them, and rely on Godot's MultiplayerSpawner/MultiplayerSynchronizer
+	# to synchronize everything.
+	#
+	# Note that a big downside of this is that while it's fairly straightforward to
+	# implement, performance degrades as this union grows in size. If there are 8
+	# players in the same gallery, it should work OK, but if those players are
+	# in totally different galleries, every client is going to synchronize with
+	# at least 8 different galleries and all the paintings in them, which isn't
+	# great.
 	var galleries_to_exist := {}
 	for player in players:
 		var middle_gallery_id := get_gallery_id(player.position.x)
