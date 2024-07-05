@@ -1,9 +1,10 @@
-[gd_scene load_steps=6 format=3 uid="uid://mv0032qsc6tk"]
+[gd_scene load_steps=7 format=3 uid="uid://mv0032qsc6tk"]
 
 [ext_resource type="Script" path="res://Levels/moma.gd" id="1_k8oh2"]
 [ext_resource type="PackedScene" uid="uid://blnio8022b1fn" path="res://Levels/moma-gallery.glb" id="1_kk2r5"]
 [ext_resource type="PackedScene" uid="uid://dfs7nhm0sjhah" path="res://Levels/painting.tscn" id="2_4p8tv"]
 [ext_resource type="PackedScene" uid="uid://ee8y42mi5j4" path="res://Levels/gallery_light.tscn" id="3_tems5"]
+[ext_resource type="FontFile" uid="uid://4m8as5alui32" path="res://UserInterface/Font/OpenSans-Regular.ttf" id="5_xwoal"]
 
 [sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_k6ynt"]
 properties/0/path = NodePath(".:position")
@@ -41,6 +42,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, 3.1, 4.5)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.49, 1.6, 3.009)
 modulate = Color(0, 0, 0, 1)
 text = "1"
+font = ExtResource("5_xwoal")
 font_size = 48
 outline_size = 0
 
