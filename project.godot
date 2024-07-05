@@ -22,6 +22,7 @@ boot_splash/image="res://GDTVAssetPack/Textures/GDTVSplash.png"
 Lobby="*res://lobby.gd"
 MetObjects="*res://met_objects.gd"
 UserInterface="*res://UserInterface/UserInterface.tscn"
+Panku="*res://addons/panku_console/console.tscn"
 
 [debug]
 
@@ -34,6 +35,10 @@ gdscript/warnings/unsafe_call_argument=1
 
 window/size/viewport_width=1920
 window/size/viewport_height=1080
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/panku_console/plugin.cfg")
 
 [file_customization]
 
