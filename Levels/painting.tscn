@@ -33,8 +33,10 @@ properties/7/replication_mode = 2
 script = ExtResource("1_wlgeq")
 
 [node name="painting" parent="." instance=ExtResource("2_ysfke")]
+unique_name_in_owner = true
 
-[node name="wall_label" type="Label3D" parent="."]
+[node name="wall_label_primary" type="Label3D" parent="."]
+unique_name_in_owner = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.55, 0, 0.01)
 layers = 524288
 pixel_size = 0.0008
@@ -48,7 +50,23 @@ outline_size = 0
 horizontal_alignment = 0
 vertical_alignment = 0
 autowrap_mode = 2
-width = 150.0
+width = 300.0
+
+[node name="wall_label_secondary" type="Label3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.55, -0.0504187, 0.01)
+layers = 524288
+pixel_size = 0.0008
+double_sided = false
+modulate = Color(0, 0, 0, 1)
+outline_modulate = Color(0, 0, 0, 0)
+text = "Oil on canvas"
+font_size = 12
+outline_size = 0
+horizontal_alignment = 0
+vertical_alignment = 0
+autowrap_mode = 2
+width = 300.0
 
 [node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
 replication_config = SubResource("SceneReplicationConfig_537ux")

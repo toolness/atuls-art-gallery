@@ -10,17 +10,21 @@ const PAINTING_SURFACE_IDX = 1
 ## version of the image.
 const LARGE_IMAGE_AREA_RATIO_THRESHOLD = 1.75
 
+const WALL_LABEL_SECONDARY_TOP_PADDING = 0.02
+
 var painting_surface_material: StandardMaterial3D
 
 var original_albedo_color: Color
 
 var loaded_large_image := false
 
-@onready var painting: MeshInstance3D = $painting/Painting
+@onready var painting: MeshInstance3D = %painting/Painting
 
 @onready var collision_shape: CollisionShape3D = $painting/Painting/StaticBody3D/CollisionShape3D
 
-@onready var wall_label: Label3D = $wall_label
+@onready var wall_label_primary: Label3D = %wall_label_primary
+
+@onready var wall_label_secondary: Label3D = %wall_label_secondary
 
 ## The scaling applied to the actual painting canvas, set by the server in multiplayer. (We can't
 ## simply synchronize the actual scale because it's in an imported scene that our synchronizer
@@ -81,17 +85,33 @@ func _get_side_multiplier(value: float) -> float:
 
 func configure_wall_label() -> void:
 	var aabb_size := painting.get_aabb().size
-	var x := wall_label.position.x
+	var x := wall_label_primary.position.x
 	var wall_label_x_offset := absf(x) - aabb_size.x / 2
-	wall_label.position.x = _get_side_multiplier(x) * (inner_painting_scale.x / 2 + wall_label_x_offset)
-	var y := wall_label.position.y
+	wall_label_primary.position.x = _get_side_multiplier(x) * (inner_painting_scale.x / 2 + wall_label_x_offset)
+	var y := wall_label_primary.position.y
 	var wall_label_y_offset := absf(y) - aabb_size.y / 2
-	wall_label.position.y = _get_side_multiplier(y) * (inner_painting_scale.y / 2 + wall_label_y_offset)
+	wall_label_primary.position.y = _get_side_multiplier(y) * (inner_painting_scale.y / 2 + wall_label_y_offset)
+	var date_suffix := ""
+	if date:
+		date_suffix = ", " + date
+	wall_label_primary.text = _default_str(artist, "Anonymous") + "\n" + _default_str(title, "Untitled") + date_suffix
+	wall_label_secondary.visible = false
 
-	var artist_display := artist
-	if not artist_display:
-		artist_display = "Anonymous"
-	wall_label.text = artist_display + "\n" + title + "\n" + medium + "\n" + date
+	# This is a bit annoying, we have to wait a full frame for the primary label to populate its AABB.
+	# I was hoping that generate_triangle_mesh() would populate it, but it doesn't.
+	await get_tree().process_frame
+	if not is_inside_tree():
+		return
+	wall_label_secondary.position.x = wall_label_primary.position.x
+	wall_label_secondary.position.y = wall_label_primary.position.y - wall_label_primary.get_aabb().size.y - WALL_LABEL_SECONDARY_TOP_PADDING
+	wall_label_secondary.text = medium
+	wall_label_secondary.visible = true
+
+
+func _default_str(value: String, default: String) -> String:
+	if value:
+		return value
+	return default
 
 
 func init_with_met_object(object: MetObject):
