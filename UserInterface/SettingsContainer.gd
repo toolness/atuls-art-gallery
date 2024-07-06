@@ -27,6 +27,7 @@ var _player: Player
 @onready var ssaa_option_button: OptionButton = %SSAAOptionButton
 @onready var msaa_option_button: OptionButton = %MSAAOptionButton
 @onready var fullscreen_check_button: CheckButton = %FullscreenCheckButton
+@onready var potato_mode_check_button: CheckButton = %PotatoModeCheckButton
 
 @onready var master_slider: HSlider = %MasterSlider
 @onready var music_slider: HSlider = %MusicSlider
@@ -105,6 +106,9 @@ func _update_fullscreen_state(new_value: bool):
 
 func _on_fullscreen_check_button_toggled(button_pressed: bool) -> void:
 	_update_fullscreen_state(button_pressed)
+
+func _on_potato_mode_check_button_toggled(toggled_on: bool):
+	UserInterface.potato_mode = toggled_on
 
 func _on_shadow_option_button_item_selected(index: int) -> void:
 	match index:

@@ -1,0 +1,8 @@
+[gd_resource type="Environment" format=3 uid="uid://vcgufrg4npao"]
+
+[resource]
+tonemap_mode = 2
+ssao_enabled = true
+sdfgi_enabled = true
+sdfgi_read_sky_light = false
+glow_enabled = true

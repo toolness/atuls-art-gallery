@@ -15,6 +15,9 @@ extends Node3D
 
 @onready var world_environment: WorldEnvironment = %WorldEnvironment
 
+## SDFGI is weird and we need to reset it once all our level geometry
+## is loaded, which happens asynchronously in multiplayer. This keeps
+## track of whether we've reset it yet.
 var did_reset_lighting = false
 
 ## The width, along the x-axis, of the gallery chunk scene.
@@ -138,6 +141,9 @@ func _on_peer_disconnected(id: int):
 
 
 func _on_multiplayer_spawner_spawned(_node: Node):
+	if UserInterface.potato_mode:
+		# Potato mode doesn't support SDFGI, so no need to reset it.
+		return
 	if not did_reset_lighting:
 		var galleries := get_tree().get_nodes_in_group("MomaGallery")
 		var num_expected_galleries := GALLERY_SPAWN_RADIUS * 2 + 1
@@ -145,6 +151,10 @@ func _on_multiplayer_spawner_spawned(_node: Node):
 			print("All galleries loaded, resetting SDFGI for proper lighting.")
 			did_reset_lighting = true
 			world_environment.environment.sdfgi_enabled = false
+			# TODO: Technically there's a tiny chance the user could enable
+			# potato mode while we're waiting, in which case we're going to
+			# be enabling SDFGI in an environment that isn't even supposed to
+			# support it.
 			for i in range(5):
 				await get_tree().process_frame
 				if not is_inside_tree():

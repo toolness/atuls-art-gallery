@@ -4,13 +4,7 @@
 [ext_resource type="PackedScene" uid="uid://vwr8ajoufse8" path="res://Controller/Player.tscn" id="2_4hb5h"]
 [ext_resource type="PackedScene" uid="uid://mv0032qsc6tk" path="res://Levels/moma.tscn" id="3_3c1uq"]
 [ext_resource type="Script" path="res://auto_saver.gd" id="4_114bu"]
-
-[sub_resource type="Environment" id="Environment_ckp8a"]
-tonemap_mode = 2
-ssao_enabled = true
-sdfgi_enabled = true
-sdfgi_read_sky_light = false
-glow_enabled = true
+[ext_resource type="Script" path="res://Levels/WorldEnvironment.gd" id="4_ll1ux"]
 
 [node name="InfiniteGallery" type="Node3D" groups=["InfiniteGallery"]]
 script = ExtResource("1_drnpr")
@@ -19,7 +13,7 @@ player_scene = ExtResource("2_4hb5h")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 unique_name_in_owner = true
-environment = SubResource("Environment_ckp8a")
+script = ExtResource("4_ll1ux")
 
 [node name="Moma_for_reference_only" parent="." instance=ExtResource("3_3c1uq")]
 unique_name_in_owner = true

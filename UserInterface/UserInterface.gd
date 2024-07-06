@@ -25,6 +25,8 @@ var in_main_menu: bool = false
 
 signal before_reload(hard_reset: bool)
 
+signal potato_mode_changed(value: bool)
+
 var paused := false:
 	set(value):
 		paused = value
@@ -39,7 +41,12 @@ var paused := false:
 			# Capture the mouse and unpause the game.
 			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 			get_tree().paused = false
-		
+
+var potato_mode := false:
+	set(value):
+		potato_mode = value
+		potato_mode_changed.emit(potato_mode)
+
 func _ready() -> void:
 	fade_in(create_tween())
 	pause_screen.visible = false
