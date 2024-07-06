@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, fs::create_dir_all};
 
 use crate::gallery_cache::GalleryCache;
 use anyhow::{anyhow, Result};
@@ -19,6 +19,40 @@ impl Display for ImageSize {
             ImageSize::Large => write!(f, "large"),
         }
     }
+}
+
+pub fn migrate_met_api_cache(cache: &GalleryCache) -> Result<()> {
+    let mut created_subdir = false;
+    let root_cache_subdir = cache.get_cached_path(ROOT_CACHE_SUBDIR);
+    for entry_result in std::fs::read_dir(cache.cache_dir())? {
+        let entry = entry_result?;
+        let path = entry.path();
+        if path.is_file() {
+            let os_filename = entry.file_name();
+            let filename = os_filename.to_string_lossy();
+            if filename.starts_with("object-")
+                && (filename.ends_with(".json") || filename.ends_with(".jpg"))
+            {
+                if !created_subdir {
+                    println!(
+                        "Migrating met api cache files into {}.",
+                        root_cache_subdir.display()
+                    );
+                    create_dir_all(root_cache_subdir.clone())?;
+                    created_subdir = true;
+                }
+                let dest_path = root_cache_subdir.join(filename.as_ref());
+                if let Err(err) = std::fs::rename(path.clone(), dest_path.clone()) {
+                    eprintln!(
+                        "Unable to move {} to {}: {err:?}",
+                        path.display(),
+                        dest_path.display()
+                    );
+                }
+            }
+        }
+    }
+    Ok(())
 }
 
 pub fn load_met_api_record(cache: &GalleryCache, object_id: u64) -> Result<MetObjectApiRecord> {
