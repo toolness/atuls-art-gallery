@@ -6,6 +6,9 @@ use gallery::{
 /// Try to push paintings down closer to eye level if possible.
 const PAINTING_EYE_LEVEL_Y_OFFSET: f64 = 0.5;
 
+/// This is only used when vertically stacking paintings: if we
+/// stack, we'll only do so if the stacked painting is this far
+/// from the floor.
 const PAINTING_MIN_DISTANCE_FROM_FLOOR: f64 = 0.75;
 
 const PAINTING_HORIZ_MARGIN: f64 = 0.5;
