@@ -57,6 +57,13 @@ enum Commands {
         /// Download objects?
         #[arg(short, long, default_value_t = false)]
         download: bool,
+
+        /// Normally we filter to ensure that only art that is flat and matte
+        /// is in the gallery. This disables the filter, which will result in
+        /// more photos of artifacts that are in the collection showing up
+        /// in your gallery.
+        #[arg(long, default_value_t = false)]
+        all_media: bool,
     },
     /// Layout gallery walls.
     Layout {
@@ -88,7 +95,11 @@ fn run() -> Result<()> {
     };
     let db = GalleryDb::new(Connection::open(db_path)?);
     match args.command {
-        Commands::Csv { max, download } => csv_command(args, cache, db, max, download),
+        Commands::Csv {
+            max,
+            download,
+            all_media,
+        } => csv_command(args, cache, db, max, download, all_media),
         Commands::Layout { sort, random_seed } => layout_command(db, sort, random_seed),
         Commands::ShowLayout { gallery_id } => show_layout_command(db, gallery_id),
     }
@@ -175,6 +186,7 @@ fn csv_command(
     mut db: GalleryDb,
     max: Option<usize>,
     download: bool,
+    all_media: bool,
 ) -> Result<()> {
     let csv_file = cache.get_cached_path("MetObjects.csv");
     let reader = BufReader::new(File::open(csv_file)?);
@@ -182,7 +194,7 @@ fn csv_command(
     db.reset_met_objects_table()?;
     let mut count: usize = 0;
     let mut records_to_commit = vec![];
-    for result in iter_public_domain_2d_met_csv_objects(rdr) {
+    for result in iter_public_domain_2d_met_csv_objects(rdr, all_media) {
         // Notice that we need to provide a type hint for automatic
         // deserialization.
         let csv_record: PublicDomain2DMetObjectRecord = result?;
@@ -252,7 +264,7 @@ mod tests {
         let reader = BufReader::new(File::open(csv_file).unwrap());
         let rdr = csv::Reader::from_reader(reader);
         let mut records = vec![];
-        for result in iter_public_domain_2d_met_csv_objects(rdr) {
+        for result in iter_public_domain_2d_met_csv_objects(rdr, false) {
             records.push(result.unwrap());
         }
         db.add_public_domain_2d_met_objects(&records).unwrap();

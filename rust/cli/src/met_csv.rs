@@ -57,7 +57,15 @@ where
     }
 }
 
-const MEDIUM_KEYWORDS: [&str; 12] = [
+/// This list was obtained by running the CLI with `--all-media`, then
+/// running the following SQL query on the generated DB:
+///
+///     select medium, count(*) as c from met_objects group by medium order by c desc limit 60;
+///
+/// I then ignored any medium that wasn't flat, two-dimensional art with a
+/// matte surface. Examples of these are stone, glass, silk, iron, ceramic,
+/// pottery, etc.
+const MEDIUM_KEYWORDS: [&str; 17] = [
     "watercolor",
     "lithograph",
     "oil",
@@ -70,11 +78,17 @@ const MEDIUM_KEYWORDS: [&str; 12] = [
     "paper",
     "print",
     "aquatint",
+    "charcoal",
+    "graphite",
+    "woodblock",
+    "etching",
+    "tempera",
 ];
 
 fn try_into_public_domain_2d_met_object(
     dimension_parser: &DimensionParser,
     csv_record: MetObjectCsvRecord,
+    all_media: bool,
 ) -> Option<PublicDomain2DMetObjectRecord> {
     if !csv_record.public_domain {
         return None;
@@ -87,7 +101,7 @@ fn try_into_public_domain_2d_met_object(
     };
     let lower_medium = csv_record.medium.to_lowercase();
     for medium_keyword in MEDIUM_KEYWORDS.iter() {
-        if lower_medium.contains(medium_keyword) {
+        if all_media || lower_medium.contains(medium_keyword) {
             return Some(PublicDomain2DMetObjectRecord {
                 object_id: csv_record.object_id,
                 artist: csv_record.artist_display_name,
@@ -108,15 +122,18 @@ pub type MetObjectCsvResult = Result<PublicDomain2DMetObjectRecord, csv::Error>;
 
 pub fn iter_public_domain_2d_met_csv_objects<R: std::io::Read>(
     reader: csv::Reader<R>,
+    all_media: bool,
 ) -> impl Iterator<Item = MetObjectCsvResult> {
     let parser = DimensionParser::new();
     reader
         .into_deserialize::<MetObjectCsvRecord>()
         .filter_map(move |result| match result {
-            Ok(csv_record) => match try_into_public_domain_2d_met_object(&parser, csv_record) {
-                Some(record) => Some(Ok(record)),
-                None => None,
-            },
+            Ok(csv_record) => {
+                match try_into_public_domain_2d_met_object(&parser, csv_record, all_media) {
+                    Some(record) => Some(Ok(record)),
+                    None => None,
+                }
+            }
             Err(err) => Some(Err(err)),
         })
 }
