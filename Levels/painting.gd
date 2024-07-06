@@ -80,7 +80,8 @@ func _ready():
 		painting_surface_material.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
 		painting_surface_material.metallic = 0.0
 		painting_surface_material.roughness = 1.0
-		painting_surface_material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+		if not UserInterface.potato_mode:
+			painting_surface_material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 
 		painting.set_surface_override_material(PAINTING_SURFACE_IDX, painting_surface_material)
 	else:
@@ -210,6 +211,10 @@ func _set_large_image(large_image: Image):
 
 
 func handle_player_looking_at(camera: Camera3D):
+	if UserInterface.potato_mode:
+		# Don't load large images in potato mode.
+		return
+
 	if not small_image_texture:
 		# We haven't loaded a small image yet.
 		return
