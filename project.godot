@@ -150,6 +150,10 @@ reset_and_reload_scene={
 3d_physics/layer_1="Walls"
 3d_physics/layer_2="Players"
 
+[panku]
+
+custom_default_config="res://panku_config.cfg"
+
 [rendering]
 
 anti_aliasing/quality/msaa_3d=2
