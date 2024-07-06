@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://auto_saver.gd" id="4_114bu"]
 
 [sub_resource type="Environment" id="Environment_ckp8a"]
+tonemap_mode = 2
 ssao_enabled = true
 sdfgi_enabled = true
 sdfgi_read_sky_light = false
