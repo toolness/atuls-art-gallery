@@ -33,14 +33,55 @@ func get_gallery_id(x: float) -> int:
 	return floori(x / float(GALLERY_CHUNK_WIDTH))
 
 
+## This should only be executed from Panku Console for now.
+##
+## Respawn the galleries. This can be used if e.g. the database has
+## been changed and we want to re-sync the world state with the db,
+## without despawning the players.
+func DEBUG_respawn_galleries() -> void:
+	# This will effectively abort all paintings currently being moved.
+	for player in get_players():
+		if player.moving_painting:
+			player.moving_painting = null
+
+	_despawn_all_galleries_except({})
+	sync_galleries()
+
+
+## Despawn all galleries except the ones whose IDs are keys in the given
+## dictionary.
+##
+## Returns a dictionary whose keys are the IDs of galleries that were not
+## despawned.
+func _despawn_all_galleries_except(exceptions: Dictionary) -> Dictionary:
+	var new_gallery_chunks: Array[Moma] = []
+	var galleries_existing := {}
+	for gallery_chunk in gallery_chunks:
+		var gallery_id := gallery_chunk.gallery_id
+		if !exceptions.has(gallery_id):
+			print("Despawning gallery with id ", gallery_id, " at ", gallery_chunk.position.x)
+			remove_child(gallery_chunk)
+			gallery_chunk.queue_free()
+		else:
+			galleries_existing[gallery_id] = null
+			new_gallery_chunks.push_back(gallery_chunk)
+	gallery_chunks = new_gallery_chunks
+	return galleries_existing
+
+
+func get_players() -> Array[Player]:
+	var players: Array[Player] = []
+	for player in get_tree().get_nodes_in_group("Player"):
+		players.push_back(player)
+	return players
+
+
 func sync_galleries() -> void:
 	if Lobby.IS_CLIENT:
 		# We should never be running this from the client.
 		return
 
-	var players: Array[Player] = []
-	for player in get_tree().get_nodes_in_group("Player"):
-		players.push_back(player)
+	var players := get_players()
 
 	# We're going to take the union of all the galleries surrounding every player,
 	# spawn them, and rely on Godot's MultiplayerSpawner/MultiplayerSynchronizer
@@ -61,17 +102,7 @@ func sync_galleries() -> void:
 			galleries_to_exist[i] = null
 
 	# Get rid of galleries that are far from the players.
-	var new_gallery_chunks: Array[Moma] = []
-	var galleries_existing := {}
-	for gallery_chunk in gallery_chunks:
-		var gallery_id := gallery_chunk.gallery_id
-		if !galleries_to_exist.has(gallery_id):
-			print("Despawning gallery with id ", gallery_id, " at ", gallery_chunk.position.x)
-			gallery_chunk.queue_free()
-		else:
-			galleries_existing[gallery_id] = null
-			new_gallery_chunks.push_back(gallery_chunk)
-	gallery_chunks = new_gallery_chunks
+	var galleries_existing := _despawn_all_galleries_except(galleries_to_exist)
 
 	# Spawn galleries that are near the players.
 	for gallery_id: int in galleries_to_exist.keys():
