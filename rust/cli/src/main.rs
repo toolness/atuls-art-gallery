@@ -167,6 +167,7 @@ fn layout_command(mut db: GalleryDb, sort: Option<Sort>, random_seed: Option<u64
             0.0,
             wall.width,
             wall.height,
+            true,
             &mut layout_records,
         );
         wall_idx += 1;

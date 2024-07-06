@@ -4,11 +4,18 @@ use gallery::{
 };
 
 /// Try to push paintings down closer to eye level if possible.
-const PAINTING_Y_OFFSET: f64 = 0.5;
+const PAINTING_EYE_LEVEL_Y_OFFSET: f64 = 0.5;
+
+/// TODO: Make this non-zero.
+const PAINTING_MIN_DISTANCE_FROM_FLOOR: f64 = 0.0;
 
 const PAINTING_HORIZ_MARGIN: f64 = 0.5;
 
-const PAINTING_MIN_MOUNT_AREA: f64 = 2.0;
+const PAINTING_VERT_MARGIN: f64 = 0.25;
+
+const PAINTING_HORIZ_MIN_MOUNT_AREA: f64 = 2.0;
+
+const PAINTING_VERT_MIN_MOUNT_AREA: f64 = 1.0;
 
 pub struct MetObjectLayoutFitter {
     unused: Vec<MetObjectLayoutInfo>,
@@ -76,6 +83,7 @@ pub fn place_paintings_along_wall<'a>(
     x_start: f64,
     max_width: f64,
     max_height: f64,
+    center_vertically: bool,
     layout_records: &mut Vec<LayoutRecord<&'a str>>,
 ) {
     let max_painting_width = max_width - PAINTING_HORIZ_MARGIN * 2.0;
@@ -84,10 +92,18 @@ pub fn place_paintings_along_wall<'a>(
     }
     if let Some(met_object) = finder.get_object_fitting_in(max_painting_width, max_height, &walls) {
         let x = x_start + max_width / 2.0;
-        let mut y = max_height / 2.0;
-        if met_object.height < max_height - PAINTING_Y_OFFSET * 2.0 {
-            y -= PAINTING_Y_OFFSET;
-        }
+        let y = if center_vertically {
+            let base_y = max_height / 2.0;
+            if met_object.height < max_height - PAINTING_EYE_LEVEL_Y_OFFSET * 2.0 {
+                base_y - PAINTING_EYE_LEVEL_Y_OFFSET
+            } else {
+                base_y
+            }
+        } else {
+            max_height - met_object.height / 2.0 - PAINTING_VERT_MARGIN
+        };
+        let margin_height = y - met_object.height / 2.0;
+        let margin_width = max_width / 2.0 - met_object.width / 2.0;
         layout_records.push(LayoutRecord {
             gallery_id,
             wall_id: &wall_name,
@@ -95,8 +111,29 @@ pub fn place_paintings_along_wall<'a>(
             x,
             y,
         });
-        let margin_width = max_width / 2.0 - met_object.width / 2.0;
-        if margin_width > PAINTING_MIN_MOUNT_AREA {
+        let vertical_space_below = if center_vertically {
+            margin_height - PAINTING_MIN_DISTANCE_FROM_FLOOR
+        } else {
+            margin_height
+        };
+        if vertical_space_below > PAINTING_VERT_MIN_MOUNT_AREA {
+            let left_edge =
+                x_start + (max_width / 2.0 - met_object.width / 2.0 - PAINTING_HORIZ_MARGIN);
+            let right_edge =
+                x_start + (max_width / 2.0 + met_object.width / 2.0 + PAINTING_HORIZ_MARGIN);
+            place_paintings_along_wall(
+                gallery_id,
+                walls,
+                wall_name,
+                finder,
+                left_edge,
+                right_edge - left_edge,
+                vertical_space_below,
+                false,
+                layout_records,
+            );
+        }
+        if margin_width > PAINTING_HORIZ_MIN_MOUNT_AREA {
             place_paintings_along_wall(
                 gallery_id,
                 walls,
@@ -105,6 +142,7 @@ pub fn place_paintings_along_wall<'a>(
                 x_start,
                 margin_width,
                 max_height,
+                center_vertically,
                 layout_records,
             );
             place_paintings_along_wall(
@@ -115,6 +153,7 @@ pub fn place_paintings_along_wall<'a>(
                 x_start + (max_width / 2.0 + met_object.width / 2.0),
                 margin_width,
                 max_height,
+                center_vertically,
                 layout_records,
             );
         }
