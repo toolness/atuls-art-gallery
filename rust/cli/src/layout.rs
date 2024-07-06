@@ -6,8 +6,7 @@ use gallery::{
 /// Try to push paintings down closer to eye level if possible.
 const PAINTING_EYE_LEVEL_Y_OFFSET: f64 = 0.5;
 
-/// TODO: Make this non-zero.
-const PAINTING_MIN_DISTANCE_FROM_FLOOR: f64 = 0.0;
+const PAINTING_MIN_DISTANCE_FROM_FLOOR: f64 = 0.75;
 
 const PAINTING_HORIZ_MARGIN: f64 = 0.5;
 
@@ -15,7 +14,7 @@ const PAINTING_VERT_MARGIN: f64 = 0.25;
 
 const PAINTING_HORIZ_MIN_MOUNT_AREA: f64 = 2.0;
 
-const PAINTING_VERT_MIN_MOUNT_AREA: f64 = 1.0;
+const PAINTING_VERT_MIN_MOUNT_AREA: f64 = 0.5;
 
 pub struct MetObjectLayoutFitter {
     unused: Vec<MetObjectLayoutInfo>,
@@ -81,6 +80,7 @@ pub fn place_paintings_along_wall<'a>(
     wall_name: &'a str,
     finder: &mut MetObjectLayoutFitter,
     x_start: f64,
+    y_start: f64,
     max_width: f64,
     max_height: f64,
     center_vertically: bool,
@@ -92,16 +92,17 @@ pub fn place_paintings_along_wall<'a>(
     }
     if let Some(met_object) = finder.get_object_fitting_in(max_painting_width, max_height, &walls) {
         let x = x_start + max_width / 2.0;
-        let y = if center_vertically {
-            let base_y = max_height / 2.0;
-            if met_object.height < max_height - PAINTING_EYE_LEVEL_Y_OFFSET * 2.0 {
-                base_y - PAINTING_EYE_LEVEL_Y_OFFSET
+        let y = y_start
+            + if center_vertically {
+                let base_y = max_height / 2.0;
+                if met_object.height < max_height - PAINTING_EYE_LEVEL_Y_OFFSET * 2.0 {
+                    base_y - PAINTING_EYE_LEVEL_Y_OFFSET
+                } else {
+                    base_y
+                }
             } else {
-                base_y
-            }
-        } else {
-            max_height - met_object.height / 2.0 - PAINTING_VERT_MARGIN
-        };
+                max_height - met_object.height / 2.0 - PAINTING_VERT_MARGIN
+            };
         let margin_height = y - met_object.height / 2.0;
         let margin_width = max_width / 2.0 - met_object.width / 2.0;
         layout_records.push(LayoutRecord {
@@ -111,27 +112,28 @@ pub fn place_paintings_along_wall<'a>(
             x,
             y,
         });
-        let vertical_space_below = if center_vertically {
-            margin_height - PAINTING_MIN_DISTANCE_FROM_FLOOR
-        } else {
-            margin_height
-        };
-        if vertical_space_below > PAINTING_VERT_MIN_MOUNT_AREA {
-            let left_edge =
-                x_start + (max_width / 2.0 - met_object.width / 2.0 - PAINTING_HORIZ_MARGIN);
-            let right_edge =
-                x_start + (max_width / 2.0 + met_object.width / 2.0 + PAINTING_HORIZ_MARGIN);
-            place_paintings_along_wall(
-                gallery_id,
-                walls,
-                wall_name,
-                finder,
-                left_edge,
-                right_edge - left_edge,
-                vertical_space_below,
-                false,
-                layout_records,
-            );
+        if center_vertically {
+            let vertical_space_below = margin_height - PAINTING_MIN_DISTANCE_FROM_FLOOR;
+            let below_y_start = y_start + PAINTING_MIN_DISTANCE_FROM_FLOOR;
+            if vertical_space_below > PAINTING_VERT_MIN_MOUNT_AREA {
+                let left_edge =
+                    x_start + (max_width / 2.0 - met_object.width / 2.0 - PAINTING_HORIZ_MARGIN);
+                let right_edge =
+                    x_start + (max_width / 2.0 + met_object.width / 2.0 + PAINTING_HORIZ_MARGIN);
+                // println!("PLACING PAINTING VERTICALLY margin_height={margin_height} below_y_start={below_y_start}");
+                place_paintings_along_wall(
+                    gallery_id,
+                    walls,
+                    wall_name,
+                    finder,
+                    left_edge,
+                    below_y_start,
+                    right_edge - left_edge,
+                    vertical_space_below,
+                    false,
+                    layout_records,
+                );
+            }
         }
         if margin_width > PAINTING_HORIZ_MIN_MOUNT_AREA {
             place_paintings_along_wall(
@@ -140,6 +142,7 @@ pub fn place_paintings_along_wall<'a>(
                 wall_name,
                 finder,
                 x_start,
+                y_start,
                 margin_width,
                 max_height,
                 center_vertically,
@@ -151,6 +154,7 @@ pub fn place_paintings_along_wall<'a>(
                 wall_name,
                 finder,
                 x_start + (max_width / 2.0 + met_object.width / 2.0),
+                y_start,
                 margin_width,
                 max_height,
                 center_vertically,
