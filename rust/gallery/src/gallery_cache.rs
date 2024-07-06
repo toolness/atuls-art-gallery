@@ -1,5 +1,9 @@
 use anyhow::{anyhow, Result};
-use std::{fs::File, path::PathBuf, time::Duration};
+use std::{
+    fs::{create_dir_all, File},
+    path::PathBuf,
+    time::Duration,
+};
 use ureq::{Agent, AgentBuilder};
 
 const TIMEOUT_SECS: u64 = 10;
@@ -23,8 +27,12 @@ impl GalleryCache {
         &self.cache_dir
     }
 
-    pub fn get_cached_path<T: AsRef<str>>(&self, filename: T) -> PathBuf {
-        self.cache_dir.join(filename.as_ref())
+    pub fn get_cached_path<T: AsRef<str>>(&self, relative_pathname: T) -> PathBuf {
+        let mut result = self.cache_dir.clone();
+        for path_part in relative_pathname.as_ref().split("/") {
+            result.push(path_part);
+        }
+        result
     }
 
     pub fn cache_binary_url<T: AsRef<str>, U: AsRef<str>>(
@@ -32,24 +40,25 @@ impl GalleryCache {
         url: T,
         filename: U,
     ) -> Result<()> {
-        let filename_path = self.get_cached_path(filename);
-        if filename_path.exists() {
+        let cached_path = self.get_cached_path(filename);
+        if cached_path.exists() {
             return Ok(());
         }
-        println!("Caching {} -> {}...", url.as_ref(), filename_path.display());
+        ensure_parent_dir(&cached_path)?;
+        println!("Caching {} -> {}...", url.as_ref(), cached_path.display());
         let response = self.agent.get(url.as_ref()).call()?;
         if response.status() != 200 {
             return Err(anyhow!("Got HTTP {}", response.status()));
         }
         let mut response_body = response.into_reader();
-        let mut outfile = File::create(filename_path.clone())?;
+        let mut outfile = File::create(cached_path.clone())?;
         match std::io::copy(&mut response_body, &mut outfile) {
             Ok(_) => Ok(()),
             Err(err) => {
                 // Note: I haven't actually tested this manually, hopefully it works!
                 drop(outfile);
-                if filename_path.exists() {
-                    let _ = std::fs::remove_file(filename_path);
+                if cached_path.exists() {
+                    let _ = std::fs::remove_file(cached_path);
                 }
                 Err(err.into())
             }
@@ -57,11 +66,12 @@ impl GalleryCache {
     }
 
     pub fn cache_json_url<T: AsRef<str>, U: AsRef<str>>(&self, url: T, filename: U) -> Result<()> {
-        let filename_path = self.get_cached_path(filename);
-        if filename_path.exists() {
+        let cached_path = self.get_cached_path(filename);
+        if cached_path.exists() {
             return Ok(());
         }
-        println!("Caching {} -> {}...", url.as_ref(), filename_path.display());
+        ensure_parent_dir(&cached_path)?;
+        println!("Caching {} -> {}...", url.as_ref(), cached_path.display());
         let response = self.agent.get(url.as_ref()).call()?;
         if response.status() != 200 {
             return Err(anyhow!("Got HTTP {}", response.status()));
@@ -73,7 +83,7 @@ impl GalleryCache {
         let json_body: serde_json::Value = serde_json::from_str(response_body.as_ref())?;
         let pretty_printed = serde_json::to_string_pretty(&json_body)?;
 
-        std::fs::write(filename_path, pretty_printed)?;
+        std::fs::write(cached_path, pretty_printed)?;
 
         Ok(())
     }
@@ -81,4 +91,11 @@ impl GalleryCache {
     pub fn load_cached_string<T: AsRef<str>>(&self, filename: T) -> Result<String> {
         Ok(std::fs::read_to_string(self.get_cached_path(filename))?)
     }
+}
+
+fn ensure_parent_dir(cached_path: &PathBuf) -> Result<()> {
+    if let Some(parent_dir) = cached_path.parent() {
+        create_dir_all(parent_dir)?;
+    }
+    Ok(())
 }

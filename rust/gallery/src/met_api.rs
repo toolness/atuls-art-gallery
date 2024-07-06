@@ -4,6 +4,8 @@ use crate::gallery_cache::GalleryCache;
 use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 
+const ROOT_CACHE_SUBDIR: &'static str = "met-api";
+
 #[derive(Debug, Deserialize, Serialize, Copy, Clone)]
 pub enum ImageSize {
     Small,
@@ -20,7 +22,7 @@ impl Display for ImageSize {
 }
 
 pub fn load_met_api_record(cache: &GalleryCache, object_id: u64) -> Result<MetObjectApiRecord> {
-    let filename = format!("object-{}.json", object_id);
+    let filename = format!("{ROOT_CACHE_SUBDIR}/object-{}.json", object_id);
     cache.cache_json_url(
         format!(
             "https://collectionapi.metmuseum.org/public/collection/v1/objects/{}",
@@ -91,7 +93,8 @@ impl MetObjectApiRecord {
                 ImageSize::Large => &self.primary_image,
             };
             if image_url.ends_with(".jpg") {
-                let image_filename = format!("object-{}-{size}.jpg", self.object_id);
+                let image_filename =
+                    format!("{ROOT_CACHE_SUBDIR}/object-{}-{size}.jpg", self.object_id);
                 cache.cache_binary_url(&image_url, &image_filename)?;
                 return Ok(Some((width, height, image_filename)));
             }
