@@ -74,6 +74,10 @@ enum Commands {
         /// Random seed to use, if sort is random. If absent, will use time since epoch, in seconds.
         #[arg(short, long)]
         random_seed: Option<u64>,
+
+        /// Whether to use a dense layout (stack some art vertically).
+        #[arg(long = "dense", default_value_t = false)]
+        use_dense_layout: bool,
     },
     /// Show layout for the given gallery.
     ShowLayout {
@@ -100,7 +104,11 @@ fn run() -> Result<()> {
             download,
             all_media,
         } => csv_command(args, cache, db, max, download, all_media),
-        Commands::Layout { sort, random_seed } => layout_command(db, sort, random_seed),
+        Commands::Layout {
+            sort,
+            random_seed,
+            use_dense_layout,
+        } => layout_command(db, sort, random_seed, use_dense_layout),
         Commands::ShowLayout { gallery_id } => show_layout_command(db, gallery_id),
     }
 }
@@ -127,7 +135,12 @@ fn show_layout_command(mut db: GalleryDb, gallery_id: i64) -> Result<()> {
     Ok(())
 }
 
-fn layout_command(mut db: GalleryDb, sort: Option<Sort>, random_seed: Option<u64>) -> Result<()> {
+fn layout_command(
+    mut db: GalleryDb,
+    sort: Option<Sort>,
+    random_seed: Option<u64>,
+    use_dense_layout: bool,
+) -> Result<()> {
     let walls = get_walls()?;
     db.reset_layout_table()?;
     let mut met_objects = db.get_all_met_objects_for_layout(match sort.unwrap_or_default() {
@@ -169,6 +182,7 @@ fn layout_command(mut db: GalleryDb, sort: Option<Sort>, random_seed: Option<u64
             wall.width,
             wall.height,
             true,
+            use_dense_layout,
             &mut layout_records,
         );
         wall_idx += 1;

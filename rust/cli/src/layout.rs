@@ -84,6 +84,7 @@ pub fn place_paintings_along_wall<'a>(
     max_width: f64,
     max_height: f64,
     center_vertically: bool,
+    use_dense_layout: bool,
     layout_records: &mut Vec<LayoutRecord<&'a str>>,
 ) {
     let max_painting_width = max_width - PAINTING_HORIZ_MARGIN * 2.0;
@@ -112,7 +113,8 @@ pub fn place_paintings_along_wall<'a>(
             x,
             y,
         });
-        if center_vertically {
+        // Only put at most one painting below the one that's centered vertically.
+        if use_dense_layout && center_vertically {
             let vertical_space_below = margin_height - PAINTING_MIN_DISTANCE_FROM_FLOOR;
             let below_y_start = y_start + PAINTING_MIN_DISTANCE_FROM_FLOOR;
             if vertical_space_below > PAINTING_VERT_MIN_MOUNT_AREA {
@@ -120,7 +122,6 @@ pub fn place_paintings_along_wall<'a>(
                     x_start + (max_width / 2.0 - met_object.width / 2.0 - PAINTING_HORIZ_MARGIN);
                 let right_edge =
                     x_start + (max_width / 2.0 + met_object.width / 2.0 + PAINTING_HORIZ_MARGIN);
-                // println!("PLACING PAINTING VERTICALLY margin_height={margin_height} below_y_start={below_y_start}");
                 place_paintings_along_wall(
                     gallery_id,
                     walls,
@@ -130,6 +131,7 @@ pub fn place_paintings_along_wall<'a>(
                     below_y_start,
                     right_edge - left_edge,
                     vertical_space_below,
+                    false,
                     false,
                     layout_records,
                 );
@@ -146,6 +148,7 @@ pub fn place_paintings_along_wall<'a>(
                 margin_width,
                 max_height,
                 center_vertically,
+                use_dense_layout,
                 layout_records,
             );
             place_paintings_along_wall(
@@ -158,6 +161,7 @@ pub fn place_paintings_along_wall<'a>(
                 margin_width,
                 max_height,
                 center_vertically,
+                use_dense_layout,
                 layout_records,
             );
         }
