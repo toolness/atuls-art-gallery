@@ -62,10 +62,9 @@ impl RequestBody {
     // TODO: It'd be nice to have a completely separate enum for proxyable requests,
     // so we can get exhaustiveness checking.
     pub fn is_proxyable_to_server(&self) -> bool {
-        matches!(
-            &self,
-            RequestBody::MoveMetObject { .. } | RequestBody::GetMetObjectsForGalleryWall { .. }
-        )
+        // Right now we don't allow _any_ requests to be proxied to the server, as
+        // everything is called directly by the server itself.
+        false
     }
 }
 
