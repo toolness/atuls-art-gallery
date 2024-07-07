@@ -244,8 +244,10 @@ func _on_join_menu_connect_button_pressed():
 func _on_new_gallery_button_pressed():
 	layout_config_container.visible = true
 	pause_container.visible = false
+	layout_config_container.focus()
 
 
 func _on_layout_config_container_exit():
 	layout_config_container.visible = false
 	pause_container.visible = true
+	resume_button.grab_focus()
