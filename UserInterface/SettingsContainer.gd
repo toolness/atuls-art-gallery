@@ -37,10 +37,44 @@ var _player: Player
 
 @onready var is_fullscreen := DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN
 
+@onready var config_file := SettingsConfig.new()
+
 func focus() -> void:
 	button.grab_focus()
 
+class SettingsConfig:
+	var file := ConfigFile.new()
+
+	const SETTINGS_SECTION = "settings"
+	const POTATO_MODE = "potato_mode"
+
+	func url() -> String:
+		return MetObjects.ROOT_DIR + "settings.cfg"
+
+	func load():
+		if file.load(url()) != OK:
+			# This is fine, the settings file just doesn't exist yet.
+			pass
+
+	func save():
+		if file.save(url()) != OK:
+			push_error("Saving " + url() + " failed.")
+
+	func set_bool(cfg_name: String, value: bool):
+		file.set_value(SETTINGS_SECTION, cfg_name, value)
+
+	func get_bool(cfg_name: String, default: bool) -> bool:
+		var value = file.get_value(SETTINGS_SECTION, cfg_name, default)
+		if value is bool:
+			return value
+		return default
+
+
 func _ready() -> void:
+	config_file.load()
+
+	potato_mode_check_button.set_pressed(config_file.get_bool(config_file.POTATO_MODE, false))
+
 	fov_slider.min_value = min_fov
 	fov_slider.max_value = max_fov
 	fov_slider.value = default_fov
@@ -68,6 +102,7 @@ func _ready() -> void:
 	sfx_slider.value = db_to_linear(AudioServer.get_bus_volume_db(AudioServer.get_bus_index("SFX")))
 	
 func _on_button_pressed() -> void:
+	config_file.save()
 	exit.emit()
 
 
@@ -108,6 +143,7 @@ func _on_fullscreen_check_button_toggled(button_pressed: bool) -> void:
 	_update_fullscreen_state(button_pressed)
 
 func _on_potato_mode_check_button_toggled(toggled_on: bool):
+	config_file.set_bool(config_file.POTATO_MODE, toggled_on)
 	UserInterface.potato_mode = toggled_on
 
 func _on_shadow_option_button_item_selected(index: int) -> void:
