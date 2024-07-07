@@ -73,6 +73,7 @@ func _ready() -> void:
 
 	# Hook up layout config menu events.
 	layout_config_container.exit.connect(_on_layout_config_container_exit)
+	layout_config_container.new_layout_complete.connect(_on_new_layout_complete)
 
 
 func set_connection_status_text(value: String):
@@ -251,3 +252,8 @@ func _on_layout_config_container_exit():
 	layout_config_container.visible = false
 	pause_container.visible = true
 	resume_button.grab_focus()
+
+
+func _on_new_layout_complete():
+	_on_layout_config_container_exit()
+	paused = false

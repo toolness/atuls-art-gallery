@@ -61,4 +61,5 @@ layout_mode = 2
 shortcut = SubResource("Shortcut_dsp40")
 text = "BACK"
 
+[connection signal="pressed" from="VBoxContainer/DoLayoutContainer/DoLayoutButton" to="." method="_on_do_layout_button_pressed"]
 [connection signal="pressed" from="VBoxContainer/BackButton" to="." method="_on_back_button_pressed"]

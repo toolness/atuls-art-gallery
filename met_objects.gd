@@ -53,6 +53,7 @@ func layout(dense: bool) -> void:
 	var request := EmptyRequest.new()
 	var request_id := gallery_client.layout("res://Levels/moma-gallery.walls.json", dense)
 	if request_id == NULL_REQUEST_ID:
+		push_error("Creating new layout failed!")
 		# Oof, something went wrong.
 		return
 	requests[request_id] = request
