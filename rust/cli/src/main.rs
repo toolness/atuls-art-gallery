@@ -1,6 +1,4 @@
-mod layout;
 mod met_csv;
-mod random;
 
 use std::fs::{self, File};
 use std::path::PathBuf;
@@ -9,14 +7,12 @@ use std::process;
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use gallery::gallery_cache::GalleryCache;
-use gallery::gallery_db::{
-    GalleryDb, LayoutRecord, PublicDomain2DMetObjectRecord, DEFAULT_GALLERY_DB_FILENAME,
-};
+use gallery::gallery_db::{GalleryDb, PublicDomain2DMetObjectRecord, DEFAULT_GALLERY_DB_FILENAME};
 use gallery::gallery_wall::GalleryWall;
+use gallery::layout::layout;
 use gallery::met_api::{load_met_api_record, ImageSize};
-use layout::{place_paintings_along_wall, MetObjectLayoutFitter};
+use gallery::random::Rng;
 use met_csv::iter_public_domain_2d_met_csv_objects;
-use random::Rng;
 use rusqlite::Connection;
 
 use std::io::BufReader;
@@ -145,20 +141,15 @@ fn layout_command(
 ) -> Result<()> {
     let walls = get_walls()?;
     db.reset_layout_table()?;
+
     let mut met_objects = db.get_all_met_objects_for_layout(match sort.unwrap_or_default() {
         Sort::Id => Some("id"),
         Sort::AccessionYear => Some("accession_year, id"),
         Sort::Random => None,
     })?;
     if matches!(sort, Some(Sort::Random)) {
-        let random_seed = random_seed.unwrap_or(
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_secs(),
-        );
         let mut rng = Rng::new(random_seed);
-        println!("Randomizing layout using seed {random_seed}.");
+        println!("Randomizing layout using seed {}.", rng.seed);
         rng.shuffle(&mut met_objects);
     } else {
         met_objects.reverse();
@@ -168,33 +159,17 @@ fn layout_command(
         met_objects.len(),
         walls.len()
     );
-    let mut finder = MetObjectLayoutFitter::new(met_objects);
-    let mut layout_records: Vec<LayoutRecord<&str>> = vec![];
-    let mut wall_idx = 0;
-    let mut gallery_id = LAYOUT_START_GALLERY_ID;
-    while !finder.is_empty() {
-        let wall = walls.get(wall_idx).unwrap();
-        place_paintings_along_wall(
-            gallery_id,
-            &walls,
-            &wall.name,
-            &mut finder,
-            0.0,
-            0.0,
-            wall.width,
-            wall.height,
-            true,
-            use_dense_layout,
-            &mut layout_records,
-        );
-        wall_idx += 1;
-        if wall_idx == walls.len() {
-            wall_idx = 0;
-            gallery_id += 1;
-        }
-    }
+
+    let (galleries_created, layout_records) = layout(
+        use_dense_layout,
+        LAYOUT_START_GALLERY_ID,
+        &walls,
+        met_objects,
+    )?;
+
     db.upsert_layout_records(&layout_records)?;
-    println!("Created a layout with {} galleries.", gallery_id);
+    println!("Created a layout with {} galleries.", galleries_created);
+
     Ok(())
 }
 

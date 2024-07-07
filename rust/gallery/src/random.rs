@@ -4,7 +4,7 @@ const INCREMENT: u64 = 1013904223;
 
 #[derive(Default, Debug)]
 pub struct Rng {
-    seed: u64,
+    pub seed: u64,
 }
 
 /// A simple linear congruential random number generator, as described in
@@ -13,8 +13,10 @@ pub struct Rng {
 /// The parameters for this RNG are taken from Numerical Recipes
 /// by Knuth and H. W. Lewis.
 impl Rng {
-    pub fn new(seed: u64) -> Self {
-        Rng { seed }
+    pub fn new(seed: Option<u64>) -> Self {
+        Rng {
+            seed: seed.unwrap_or_else(|| seed_from_current_time()),
+        }
     }
 
     pub fn random(&mut self) -> f64 {
@@ -40,4 +42,11 @@ impl Iterator for Rng {
     fn next(&mut self) -> Option<Self::Item> {
         Some(self.random())
     }
+}
+
+fn seed_from_current_time() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs()
 }

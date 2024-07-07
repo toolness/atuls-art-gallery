@@ -1,7 +1,9 @@
-use gallery::{
+use super::{
     gallery_db::{LayoutRecord, MetObjectLayoutInfo},
     gallery_wall::GalleryWall,
 };
+
+use anyhow::Result;
 
 /// Try to push paintings down closer to eye level if possible.
 const PAINTING_EYE_LEVEL_Y_OFFSET: f64 = 0.5;
@@ -169,4 +171,40 @@ pub fn place_paintings_along_wall<'a>(
             );
         }
     }
+}
+
+pub fn layout<'a>(
+    use_dense_layout: bool,
+    gallery_start_id: i64,
+    walls: &'a Vec<GalleryWall>,
+    met_objects: Vec<MetObjectLayoutInfo>,
+) -> Result<(usize, Vec<LayoutRecord<&'a str>>)> {
+    let mut finder = MetObjectLayoutFitter::new(met_objects);
+    let mut layout_records: Vec<LayoutRecord<&'a str>> = vec![];
+    let mut wall_idx = 0;
+    let mut gallery_id = gallery_start_id;
+    let mut galleries_created: usize = 0;
+    while !finder.is_empty() {
+        let wall = walls.get(wall_idx).unwrap();
+        place_paintings_along_wall(
+            gallery_id,
+            &walls,
+            &wall.name,
+            &mut finder,
+            0.0,
+            0.0,
+            wall.width,
+            wall.height,
+            true,
+            use_dense_layout,
+            &mut layout_records,
+        );
+        wall_idx += 1;
+        if wall_idx == walls.len() {
+            wall_idx = 0;
+            gallery_id += 1;
+            galleries_created += 1;
+        }
+    }
+    Ok((galleries_created, layout_records))
 }
