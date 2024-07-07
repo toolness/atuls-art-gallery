@@ -41,8 +41,9 @@ var paused := false:
 			resume_button.grab_focus()
 
 			# For now we're only supporting the layout config (new gallery) button in
-			# offline mode.
-			layout_config_button.visible = Lobby.IS_OFFLINE_MODE
+			# offline mode, and when the server is running. We're not going to support
+			# clients doing this yet because they don't have authority over paintings.
+			layout_config_button.visible = not Lobby.IS_CLIENT
 
 			# This menu ignores pause mode so it can still be used.
 			get_tree().paused = true
