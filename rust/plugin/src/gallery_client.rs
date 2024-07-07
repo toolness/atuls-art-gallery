@@ -338,6 +338,11 @@ impl GalleryClient {
         })
     }
 
+    #[func]
+    fn layout(&mut self, dense: bool) -> u32 {
+        self.send_request(RequestBody::Layout { dense })
+    }
+
     fn new_request_id(&mut self) -> u32 {
         let request_id = self.next_request_id;
         self.next_request_id += 1;
@@ -429,6 +434,10 @@ impl GalleryClient {
                     None
                 } else {
                     match response.body {
+                        ResponseBody::Empty => Some(Gd::from_object(MetResponse {
+                            request_id,
+                            response: InnerMetResponse::None,
+                        })),
                         ResponseBody::MetObjectsForGalleryWall(objects) => {
                             Some(Gd::from_object(MetResponse {
                                 request_id,

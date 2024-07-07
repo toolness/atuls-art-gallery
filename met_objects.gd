@@ -18,6 +18,10 @@ class ImageRequest:
 	signal responded
 
 
+class EmptyRequest:
+	signal responded
+
+
 func _fetch_image(object_id: int, size: String) -> Image:
 	if Lobby.IS_HEADLESS:
 		return Image.create(1, 1, false, Image.FORMAT_L8)
@@ -43,6 +47,17 @@ func fetch_small_image(object_id: int) -> Image:
 
 func fetch_large_image(object_id: int) -> Image:
 	return await _fetch_image(object_id, "large")
+
+
+func layout(dense: bool) -> void:
+	var request := EmptyRequest.new()
+	var request_id := gallery_client.layout(dense)
+	if request_id == NULL_REQUEST_ID:
+		# Oof, something went wrong.
+		return
+	requests[request_id] = request
+	await request.responded
+	print("Layout complete.")
 
 
 func get_met_objects_for_gallery_wall(gallery_id: int, wall_id: String) -> Array[MetObject]:
@@ -151,6 +166,9 @@ func _process(_delta) -> void:
 		elif request is MetObjectsRequest:
 			var r: MetObjectsRequest = request
 			r.response = obj.take_met_objects()
+			r.responded.emit()
+		elif request is EmptyRequest:
+			var r: EmptyRequest = request
 			r.responded.emit()
 		else:
 			assert(false, "Unknown request type, cannot fill response")

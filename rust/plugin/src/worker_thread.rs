@@ -38,6 +38,9 @@ pub enum RequestBody {
         object_id: u64,
         size: ImageSize,
     },
+    Layout {
+        dense: bool,
+    },
 }
 
 #[derive(Debug)]
@@ -51,6 +54,7 @@ pub struct Response {
 pub enum ResponseBody {
     MetObjectsForGalleryWall(Vec<SimplifiedRecord>),
     Image(Option<PathBuf>),
+    Empty,
 }
 
 pub enum MessageToWorker {
@@ -219,6 +223,10 @@ pub fn work_thread(
                 };
                 //println!("work_thread received request: {:?}", request.body);
                 match request.body {
+                    RequestBody::Layout { dense } => {
+                        println!("TODO: Do layout with dense={dense}.");
+                        send_response(ResponseBody::Empty);
+                    }
                     RequestBody::MoveMetObject {
                         met_object_id,
                         gallery_id,
