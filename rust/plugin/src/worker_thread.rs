@@ -9,6 +9,7 @@ use anyhow::Result;
 use gallery::{
     gallery_cache::GalleryCache,
     gallery_db::{GalleryDb, LayoutRecord, DEFAULT_GALLERY_DB_FILENAME},
+    gallery_wall::GalleryWall,
     met_api::{load_met_api_record, migrate_met_api_cache, ImageSize},
 };
 use rusqlite::Connection;
@@ -39,6 +40,7 @@ pub enum RequestBody {
         size: ImageSize,
     },
     Layout {
+        walls_json_path: PathBuf,
         dense: bool,
     },
 }
@@ -223,8 +225,16 @@ pub fn work_thread(
                 };
                 //println!("work_thread received request: {:?}", request.body);
                 match request.body {
-                    RequestBody::Layout { dense } => {
-                        println!("TODO: Do layout with dense={dense}.");
+                    RequestBody::Layout {
+                        walls_json_path,
+                        dense,
+                    } => {
+                        let walls: Vec<GalleryWall> =
+                            serde_json::from_str(&std::fs::read_to_string(walls_json_path)?)?;
+                        println!(
+                            "TODO: Do layout with dense={dense} for {} walls.",
+                            walls.len()
+                        );
                         send_response(ResponseBody::Empty);
                     }
                     RequestBody::MoveMetObject {

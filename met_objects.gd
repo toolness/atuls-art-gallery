@@ -51,7 +51,7 @@ func fetch_large_image(object_id: int) -> Image:
 
 func layout(dense: bool) -> void:
 	var request := EmptyRequest.new()
-	var request_id := gallery_client.layout(dense)
+	var request_id := gallery_client.layout("res://Levels/moma-gallery.walls.json", dense)
 	if request_id == NULL_REQUEST_ID:
 		# Oof, something went wrong.
 		return

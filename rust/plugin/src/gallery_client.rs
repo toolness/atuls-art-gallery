@@ -335,8 +335,12 @@ impl GalleryClient {
     }
 
     #[func]
-    fn layout(&mut self, dense: bool) -> u32 {
-        self.send_request(RequestBody::Layout { dense })
+    fn layout(&mut self, walls_json_path: GString, dense: bool) -> u32 {
+        let walls_json_path = globalize_path(walls_json_path);
+        self.send_request(RequestBody::Layout {
+            walls_json_path,
+            dense,
+        })
     }
 
     fn new_request_id(&mut self) -> u32 {
