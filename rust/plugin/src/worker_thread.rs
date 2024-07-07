@@ -10,6 +10,7 @@ use gallery::{
     gallery_cache::GalleryCache,
     gallery_db::{GalleryDb, LayoutRecord, DEFAULT_GALLERY_DB_FILENAME},
     gallery_wall::GalleryWall,
+    layout::layout,
     met_api::{load_met_api_record, migrate_met_api_cache, ImageSize},
 };
 use rusqlite::Connection;
@@ -231,8 +232,14 @@ pub fn work_thread(
                     } => {
                         let walls: Vec<GalleryWall> =
                             serde_json::from_str(&std::fs::read_to_string(walls_json_path)?)?;
+                        let met_objects = db.get_all_met_objects_for_layout(None)?;
+                        let gallery_start_id = 1;
+                        let (galleries_created, layout_records) =
+                            layout(dense, gallery_start_id, &walls, met_objects)?;
+                        db.upsert_layout_records(&layout_records)?;
                         println!(
-                            "TODO: Do layout with dense={dense} for {} walls.",
+                            "Created layout across {} galleries with {} walls each, dense={dense}.",
+                            galleries_created,
                             walls.len()
                         );
                         send_response(ResponseBody::Empty);

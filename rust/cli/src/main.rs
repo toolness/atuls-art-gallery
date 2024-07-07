@@ -151,8 +151,6 @@ fn layout_command(
         let mut rng = Rng::new(random_seed);
         println!("Randomizing layout using seed {}.", rng.seed);
         rng.shuffle(&mut met_objects);
-    } else {
-        met_objects.reverse();
     }
     println!(
         "Laying out {} met objects across galleries with {} walls each.",
