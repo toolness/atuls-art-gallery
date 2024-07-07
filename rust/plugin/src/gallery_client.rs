@@ -141,11 +141,7 @@ impl GalleryClient {
 
     #[func]
     fn connect(&mut self, root_dir: GString) {
-        let globalized_root_dir: PathBuf = normalize_path(
-            ProjectSettings::singleton()
-                .globalize_path(root_dir)
-                .to_string(),
-        );
+        let globalized_root_dir = globalize_path(root_dir);
         self.connection = Some(Connection::connect(globalized_root_dir));
     }
 
@@ -484,4 +480,13 @@ impl Drop for GalleryClient {
             connection.disconnect();
         }
     }
+}
+
+/// Convert a Godot URL like `user://blah.json` to an absolute path.
+fn globalize_path(godot_url: GString) -> PathBuf {
+    normalize_path(
+        ProjectSettings::singleton()
+            .globalize_path(godot_url)
+            .to_string(),
+    )
 }
