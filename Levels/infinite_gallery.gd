@@ -18,7 +18,7 @@ extends Node3D
 ## SDFGI is weird and we need to reset it once all our level geometry
 ## is loaded, which happens asynchronously in multiplayer. This keeps
 ## track of whether we've reset it yet.
-var did_reset_lighting = false
+var did_reset_lighting_in_multiplayer = false
 
 ## The width, along the x-axis, of the gallery chunk scene.
 const GALLERY_CHUNK_WIDTH = 28
@@ -135,6 +135,8 @@ func _ready() -> void:
 		var player := _spawn_player(1)
 		auto_saver.init(player)
 
+	UserInterface.debug_draw_changed.connect(_on_debug_draw_changed)
+
 	sync_galleries()
 
 
@@ -171,23 +173,37 @@ func _on_peer_disconnected(id: int):
 	player.queue_free()
 
 
-func _on_multiplayer_spawner_spawned(_node: Node):
+func _on_debug_draw_changed(value: Viewport.DebugDraw):
+	if value == Viewport.DEBUG_DRAW_DISABLED:
+		# SDFGI gets weirdly tinted green when switching from some debug
+		# draw modes to regular mode, so reset the lighting to make sure
+		# that doesn't happen.
+		reset_lighting()
+
+
+func reset_lighting():
 	if UserInterface.potato_mode:
 		# Potato mode doesn't support SDFGI, so no need to reset it.
 		return
-	if not did_reset_lighting:
+
+	print("Resetting SDFGI for proper lighting.")
+
+	world_environment.environment.sdfgi_enabled = false
+	# TODO: Technically there's a tiny chance the user could enable
+	# potato mode while we're waiting, in which case we're going to
+	# be enabling SDFGI in an environment that isn't even supposed to
+	# support it.
+	for i in range(5):
+		await get_tree().process_frame
+		if not is_inside_tree():
+			return
+	world_environment.environment.sdfgi_enabled = true
+
+
+func _on_multiplayer_spawner_spawned(_node: Node):
+	if not did_reset_lighting_in_multiplayer:
 		var galleries := get_tree().get_nodes_in_group("MomaGallery")
 		var num_expected_galleries := GALLERY_SPAWN_RADIUS * 2 + 1
 		if len(galleries) == num_expected_galleries:
-			print("All galleries loaded, resetting SDFGI for proper lighting.")
-			did_reset_lighting = true
-			world_environment.environment.sdfgi_enabled = false
-			# TODO: Technically there's a tiny chance the user could enable
-			# potato mode while we're waiting, in which case we're going to
-			# be enabling SDFGI in an environment that isn't even supposed to
-			# support it.
-			for i in range(5):
-				await get_tree().process_frame
-				if not is_inside_tree():
-					return
-			world_environment.environment.sdfgi_enabled = true
+			did_reset_lighting_in_multiplayer = true
+			reset_lighting()

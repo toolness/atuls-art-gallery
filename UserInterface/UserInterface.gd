@@ -27,6 +27,8 @@ signal before_reload(hard_reset: bool)
 
 signal potato_mode_changed(value: bool)
 
+signal debug_draw_changed(value: Viewport.DebugDraw)
+
 var paused := false:
 	set(value):
 		paused = value
@@ -85,6 +87,7 @@ func cycle_debug_draw():
 		curr_index = 0
 	var next_index := (curr_index + 1) % DEBUG_DRAW_CYCLE.size()
 	vp.debug_draw = DEBUG_DRAW_CYCLE[next_index]
+	debug_draw_changed.emit(vp.debug_draw)
 
 func _unhandled_input(event: InputEvent) -> void:
 	# When the player presses the escape key, pause the game.
