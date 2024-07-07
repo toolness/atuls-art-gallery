@@ -24,6 +24,11 @@ func focus():
 
 func _on_do_layout_button_pressed():
 	var use_dense_layout := dense_layout_checkbox.button_pressed
+
+	# We need to un-pause the tree so we can poll for the response to our
+	# request to the Rust worker thread--otherwise the subsequent `await`
+	# will never return.
 	get_tree().paused = false
+
 	await MetObjects.layout(use_dense_layout)
 	new_layout_complete.emit()
