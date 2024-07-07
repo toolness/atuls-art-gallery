@@ -33,12 +33,10 @@ func get_gallery_id(x: float) -> int:
 	return floori(x / float(GALLERY_CHUNK_WIDTH))
 
 
-## This should only be executed from Panku Console for now.
-##
 ## Respawn the galleries. This can be used if e.g. the database has
 ## been changed and we want to re-sync the world state with the db,
 ## without despawning the players.
-func DEBUG_respawn_galleries() -> void:
+func _respawn_galleries() -> void:
 	# This will effectively abort all paintings currently being moved.
 	for player in get_players():
 		if player.moving_painting:
@@ -136,8 +134,13 @@ func _ready() -> void:
 		auto_saver.init(player)
 
 	UserInterface.debug_draw_changed.connect(_on_debug_draw_changed)
+	UserInterface.layout_config_container.new_layout_complete.connect(_on_new_layout_complete)
 
 	sync_galleries()
+
+
+func _on_new_layout_complete():
+	_respawn_galleries()
 
 
 func _process(_delta) -> void:

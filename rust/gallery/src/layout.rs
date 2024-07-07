@@ -177,8 +177,11 @@ pub fn layout<'a>(
     use_dense_layout: bool,
     gallery_start_id: i64,
     walls: &'a Vec<GalleryWall>,
-    met_objects: Vec<MetObjectLayoutInfo>,
+    mut met_objects: Vec<MetObjectLayoutInfo>,
 ) -> Result<(usize, Vec<LayoutRecord<&'a str>>)> {
+    // Reverse the objects, since we'll be popping them off the end of the vec.
+    // This isn't terribly efficient but it'll do for now.
+    met_objects.reverse();
     let mut finder = MetObjectLayoutFitter::new(met_objects);
     let mut layout_records: Vec<LayoutRecord<&'a str>> = vec![];
     let mut wall_idx = 0;

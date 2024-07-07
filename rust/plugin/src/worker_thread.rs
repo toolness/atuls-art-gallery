@@ -9,6 +9,8 @@ use anyhow::Result;
 use gallery::{
     gallery_cache::GalleryCache,
     gallery_db::{GalleryDb, LayoutRecord, DEFAULT_GALLERY_DB_FILENAME},
+    gallery_wall::GalleryWall,
+    layout::layout,
     met_api::{load_met_api_record, migrate_met_api_cache, ImageSize},
 };
 use rusqlite::Connection;
@@ -38,6 +40,10 @@ pub enum RequestBody {
         object_id: u64,
         size: ImageSize,
     },
+    Layout {
+        walls_json_path: PathBuf,
+        dense: bool,
+    },
 }
 
 #[derive(Debug)]
@@ -51,6 +57,7 @@ pub struct Response {
 pub enum ResponseBody {
     MetObjectsForGalleryWall(Vec<SimplifiedRecord>),
     Image(Option<PathBuf>),
+    Empty,
 }
 
 pub enum MessageToWorker {
@@ -219,6 +226,24 @@ pub fn work_thread(
                 };
                 //println!("work_thread received request: {:?}", request.body);
                 match request.body {
+                    RequestBody::Layout {
+                        walls_json_path,
+                        dense,
+                    } => {
+                        let walls: Vec<GalleryWall> =
+                            serde_json::from_str(&std::fs::read_to_string(walls_json_path)?)?;
+                        let met_objects = db.get_all_met_objects_for_layout(None)?;
+                        let gallery_start_id = 1;
+                        let (galleries_created, layout_records) =
+                            layout(dense, gallery_start_id, &walls, met_objects)?;
+                        db.upsert_layout_records(&layout_records)?;
+                        println!(
+                            "Created layout across {} galleries with {} walls each, dense={dense}.",
+                            galleries_created,
+                            walls.len()
+                        );
+                        send_response(ResponseBody::Empty);
+                    }
                     RequestBody::MoveMetObject {
                         met_object_id,
                         gallery_id,

@@ -141,11 +141,7 @@ impl GalleryClient {
 
     #[func]
     fn connect(&mut self, root_dir: GString) {
-        let globalized_root_dir: PathBuf = normalize_path(
-            ProjectSettings::singleton()
-                .globalize_path(root_dir)
-                .to_string(),
-        );
+        let globalized_root_dir = globalize_path(root_dir);
         self.connection = Some(Connection::connect(globalized_root_dir));
     }
 
@@ -338,6 +334,15 @@ impl GalleryClient {
         })
     }
 
+    #[func]
+    fn layout(&mut self, walls_json_path: GString, dense: bool) -> u32 {
+        let walls_json_path = globalize_path(walls_json_path);
+        self.send_request(RequestBody::Layout {
+            walls_json_path,
+            dense,
+        })
+    }
+
     fn new_request_id(&mut self) -> u32 {
         let request_id = self.next_request_id;
         self.next_request_id += 1;
@@ -429,6 +434,10 @@ impl GalleryClient {
                     None
                 } else {
                     match response.body {
+                        ResponseBody::Empty => Some(Gd::from_object(MetResponse {
+                            request_id,
+                            response: InnerMetResponse::None,
+                        })),
                         ResponseBody::MetObjectsForGalleryWall(objects) => {
                             Some(Gd::from_object(MetResponse {
                                 request_id,
@@ -475,4 +484,13 @@ impl Drop for GalleryClient {
             connection.disconnect();
         }
     }
+}
+
+/// Convert a Godot URL like `user://blah.json` to an absolute path.
+fn globalize_path(godot_url: GString) -> PathBuf {
+    normalize_path(
+        ProjectSettings::singleton()
+            .globalize_path(godot_url)
+            .to_string(),
+    )
 }
