@@ -9,7 +9,9 @@ use std::process;
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use gallery::gallery_cache::GalleryCache;
-use gallery::gallery_db::{GalleryDb, LayoutRecord, PublicDomain2DMetObjectRecord};
+use gallery::gallery_db::{
+    GalleryDb, LayoutRecord, PublicDomain2DMetObjectRecord, DEFAULT_GALLERY_DB_FILENAME,
+};
 use gallery::gallery_wall::GalleryWall;
 use gallery::met_api::{load_met_api_record, ImageSize};
 use layout::{place_paintings_along_wall, MetObjectLayoutFitter};
@@ -95,7 +97,7 @@ fn run() -> Result<()> {
     let db_path = if let Some(db_path) = &args.db_path {
         db_path.clone()
     } else {
-        cache.get_cached_path("gallery2.sqlite")
+        cache.get_cached_path(DEFAULT_GALLERY_DB_FILENAME)
     };
     let db = GalleryDb::new(Connection::open(db_path)?);
     match args.command {

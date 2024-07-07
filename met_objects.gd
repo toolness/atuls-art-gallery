@@ -66,9 +66,8 @@ func crash(message: String):
 	get_tree().quit(1)
 
 
-func copy_initial_db() -> void:
-	# If we change this, we'll need to change some Rust code too.
-	var GALLERY_DB_PATH := ROOT_DIR + "gallery2.sqlite"
+func copy_initial_db(db_filename: String) -> void:
+	var GALLERY_DB_PATH := ROOT_DIR + db_filename
 
 	if not FileAccess.file_exists(GALLERY_DB_PATH):
 		const INITIAL_DB_PATH = "res://initial-db.sqlite"
@@ -119,8 +118,8 @@ func _ready() -> void:
 		#
 		#   https://docs.godotengine.org/en/stable/tutorials/io/data_paths.html#accessing-persistent-user-data-user
 		ROOT_DIR = "user://"
-	copy_initial_db()
 	gallery_client = GalleryClient.new()
+	copy_initial_db(gallery_client.default_db_filename())
 	gallery_client.name = "GalleryClient"
 	add_child(gallery_client)
 	gallery_client.connect(ROOT_DIR)

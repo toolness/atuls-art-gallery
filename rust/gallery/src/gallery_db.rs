@@ -1,6 +1,8 @@
 use anyhow::Result;
 use rusqlite::Connection;
 
+pub const DEFAULT_GALLERY_DB_FILENAME: &'static str = "gallery2.sqlite";
+
 pub struct GalleryDb {
     conn: Connection,
 }

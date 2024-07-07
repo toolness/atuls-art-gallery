@@ -5,7 +5,7 @@ use std::{
     thread::{self, JoinHandle},
 };
 
-use gallery::met_api::ImageSize;
+use gallery::{gallery_db::DEFAULT_GALLERY_DB_FILENAME, met_api::ImageSize};
 use godot::{
     engine::{
         multiplayer_api::RpcMode,
@@ -134,6 +134,11 @@ impl INode for GalleryClient {
 
 #[godot_api]
 impl GalleryClient {
+    #[func]
+    fn default_db_filename(&mut self) -> GString {
+        DEFAULT_GALLERY_DB_FILENAME.into_godot()
+    }
+
     #[func]
     fn connect(&mut self, root_dir: GString) {
         let globalized_root_dir: PathBuf = normalize_path(

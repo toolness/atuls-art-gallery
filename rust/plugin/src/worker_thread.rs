@@ -8,7 +8,7 @@ use anyhow::anyhow;
 use anyhow::Result;
 use gallery::{
     gallery_cache::GalleryCache,
-    gallery_db::{GalleryDb, LayoutRecord},
+    gallery_db::{GalleryDb, LayoutRecord, DEFAULT_GALLERY_DB_FILENAME},
     met_api::{load_met_api_record, migrate_met_api_cache, ImageSize},
 };
 use rusqlite::Connection;
@@ -187,7 +187,7 @@ pub fn work_thread(
 ) -> Result<()> {
     let cache = GalleryCache::new(root_dir);
     migrate_met_api_cache(&cache)?;
-    let db_path = cache.get_cached_path("gallery2.sqlite");
+    let db_path = cache.get_cached_path(DEFAULT_GALLERY_DB_FILENAME);
     // Check for existence, we don't want SQLite making a zero-byte DB file.
     if !db_path.exists() {
         return Err(anyhow!("DB does not exist: {}", db_path.display()));
