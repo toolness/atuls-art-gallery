@@ -249,7 +249,8 @@ text = "resume"
 layout_mode = 2
 text = "Settings"
 
-[node name="NewGalleryButton" type="Button" parent="PauseScreen/PauseContainer/VBoxContainer"]
+[node name="LayoutConfigButton" type="Button" parent="PauseScreen/PauseContainer/VBoxContainer"]
+unique_name_in_owner = true
 layout_mode = 2
 text = "New gallery..."
 
@@ -314,6 +315,6 @@ initial_position = 1
 
 [connection signal="pressed" from="PauseScreen/PauseContainer/VBoxContainer/ResumeButton" to="." method="_on_resume_button_pressed"]
 [connection signal="pressed" from="PauseScreen/PauseContainer/VBoxContainer/SettingsButton" to="." method="_on_settings_button_pressed"]
-[connection signal="pressed" from="PauseScreen/PauseContainer/VBoxContainer/NewGalleryButton" to="." method="_on_new_gallery_button_pressed"]
+[connection signal="pressed" from="PauseScreen/PauseContainer/VBoxContainer/LayoutConfigButton" to="." method="_on_new_gallery_button_pressed"]
 [connection signal="pressed" from="PauseScreen/PauseContainer/VBoxContainer/QuitButton" to="." method="_on_quit_button_pressed"]
 [connection signal="exit" from="PauseScreen/SettingsContainer" to="." method="_on_settings_container_exit"]

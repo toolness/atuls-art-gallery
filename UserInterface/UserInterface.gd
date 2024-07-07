@@ -7,6 +7,7 @@ class_name UI
 @onready var settings_container: SettingsContainer = %SettingsContainer
 @onready var join_game_container: JoinGameContainer = %JoinGameContainer
 @onready var layout_config_container: LayoutConfigContainer = %LayoutConfigContainer
+@onready var layout_config_button: Button = %LayoutConfigButton
 @onready var connection_status_label: Label = %ConnectionStatusLabel
 @onready var version_label: Label = %VersionLabel
 @onready var resume_button: Button = %ResumeButton
@@ -38,6 +39,11 @@ var paused := false:
 			# Make the mouse visible, focus the resume button and pause the tree.
 			Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 			resume_button.grab_focus()
+
+			# For now we're only supporting the layout config (new gallery) button in
+			# offline mode.
+			layout_config_button.visible = Lobby.IS_OFFLINE_MODE
+
 			# This menu ignores pause mode so it can still be used.
 			get_tree().paused = true
 		else:
