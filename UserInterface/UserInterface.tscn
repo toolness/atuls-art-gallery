@@ -1,4 +1,4 @@
-[gd_scene load_steps=17 format=3 uid="uid://b4mrqfvtlycnc"]
+[gd_scene load_steps=18 format=3 uid="uid://b4mrqfvtlycnc"]
 
 [ext_resource type="Script" path="res://UserInterface/UserInterface.gd" id="1_pjpe8"]
 [ext_resource type="PackedScene" uid="uid://dss65i31egqc3" path="res://Levels/infinite_gallery.tscn" id="2_60fvu"]
@@ -8,6 +8,7 @@
 [ext_resource type="PackedScene" uid="uid://sbl4rscivr8g" path="res://UserInterface/SettingsContainer.tscn" id="5_qrem4"]
 [ext_resource type="PackedScene" uid="uid://dkh1asxc7gtkx" path="res://UserInterface/MainMenuContainer.tscn" id="6_6k6vc"]
 [ext_resource type="PackedScene" uid="uid://clcrin3hg2tg5" path="res://UserInterface/JoinGameContainer.tscn" id="8_ftfw4"]
+[ext_resource type="PackedScene" uid="uid://cclmpn4711vm7" path="res://UserInterface/LayoutConfigContainer.tscn" id="9_4l50m"]
 
 [sub_resource type="GDScript" id="GDScript_ivi4s"]
 script/source = "extends MarginContainer
@@ -199,7 +200,6 @@ vertical_alignment = 1
 
 [node name="PauseScreen" type="Control" parent="."]
 process_mode = 3
-visible = false
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -220,7 +220,6 @@ texture = SubResource("PlaceholderTexture2D_dk3bb")
 
 [node name="PauseContainer" type="CenterContainer" parent="PauseScreen"]
 unique_name_in_owner = true
-visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -250,6 +249,10 @@ text = "resume"
 layout_mode = 2
 text = "Settings"
 
+[node name="NewGalleryButton" type="Button" parent="PauseScreen/PauseContainer/VBoxContainer"]
+layout_mode = 2
+text = "New gallery..."
+
 [node name="QuitButton" type="Button" parent="PauseScreen/PauseContainer/VBoxContainer"]
 layout_mode = 2
 text = "Quit Game"
@@ -266,12 +269,18 @@ layout_mode = 1
 
 [node name="JoinGameContainer" parent="PauseScreen" instance=ExtResource("8_ftfw4")]
 unique_name_in_owner = true
+visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_left = 0.0
 anchor_top = 0.0
 anchor_right = 1.0
 anchor_bottom = 1.0
+
+[node name="LayoutConfigContainer" parent="PauseScreen" instance=ExtResource("9_4l50m")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
 
 [node name="VersionLabel" type="Label" parent="PauseScreen"]
 unique_name_in_owner = true
@@ -305,5 +314,6 @@ initial_position = 1
 
 [connection signal="pressed" from="PauseScreen/PauseContainer/VBoxContainer/ResumeButton" to="." method="_on_resume_button_pressed"]
 [connection signal="pressed" from="PauseScreen/PauseContainer/VBoxContainer/SettingsButton" to="." method="_on_settings_button_pressed"]
+[connection signal="pressed" from="PauseScreen/PauseContainer/VBoxContainer/NewGalleryButton" to="." method="_on_new_gallery_button_pressed"]
 [connection signal="pressed" from="PauseScreen/PauseContainer/VBoxContainer/QuitButton" to="." method="_on_quit_button_pressed"]
 [connection signal="exit" from="PauseScreen/SettingsContainer" to="." method="_on_settings_container_exit"]

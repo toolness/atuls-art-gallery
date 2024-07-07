@@ -6,6 +6,7 @@ class_name UI
 @onready var main_menu_container: MainMenuContainer = %MainMenuContainer
 @onready var settings_container: SettingsContainer = %SettingsContainer
 @onready var join_game_container: JoinGameContainer = %JoinGameContainer
+@onready var layout_config_container: LayoutConfigContainer = %LayoutConfigContainer
 @onready var connection_status_label: Label = %ConnectionStatusLabel
 @onready var version_label: Label = %VersionLabel
 @onready var resume_button: Button = %ResumeButton
@@ -56,6 +57,7 @@ func _ready() -> void:
 	main_menu_container.visible = false
 	join_game_container.visible = false
 	settings_container.visible = false
+	layout_config_container.visible = false
 	version_label.text = ProjectSettings.get_setting("application/config/version")
 
 	# Hook up main menu events.
@@ -68,6 +70,10 @@ func _ready() -> void:
 	# Hook up join game menu events.
 	join_game_container.connect_button.pressed.connect(_on_join_menu_connect_button_pressed)
 	join_game_container.back_button.pressed.connect(show_main_menu)
+
+	# Hook up layout config menu events.
+	layout_config_container.exit.connect(_on_layout_config_container_exit)
+
 
 func set_connection_status_text(value: String):
 	connection_status_label.text = value
@@ -233,3 +239,13 @@ func _on_join_menu_connect_button_pressed():
 	Lobby.HOST = join_game_container.host_field.text
 	join_game_container.visible = false
 	fade_out_and_start_game()
+
+
+func _on_new_gallery_button_pressed():
+	layout_config_container.visible = true
+	pause_container.visible = false
+
+
+func _on_layout_config_container_exit():
+	layout_config_container.visible = false
+	pause_container.visible = true

@@ -1,0 +1,64 @@
+[gd_scene load_steps=5 format=3 uid="uid://cclmpn4711vm7"]
+
+[ext_resource type="Theme" uid="uid://bq6qbvmwxf5gm" path="res://UserInterface/UITheme.tres" id="1_ljagq"]
+[ext_resource type="Script" path="res://UserInterface/LayoutConfigContainer.gd" id="2_sm31m"]
+
+[sub_resource type="InputEventAction" id="InputEventAction_54n6r"]
+action = &"ui_cancel"
+pressed = true
+
+[sub_resource type="Shortcut" id="Shortcut_dsp40"]
+events = [SubResource("InputEventAction_54n6r")]
+
+[node name="LayoutConfigContainer" type="CenterContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("1_ljagq")
+script = ExtResource("2_sm31m")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+custom_minimum_size = Vector2(640, 480)
+layout_mode = 2
+
+[node name="Label" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 128
+text = "New gallery"
+horizontal_alignment = 1
+
+[node name="DenseLayoutContainer" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="DenseLayoutCheckBox" type="CheckBox" parent="VBoxContainer/DenseLayoutContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="DenseLayoutLabel" type="Label" parent="VBoxContainer/DenseLayoutContainer"]
+layout_mode = 2
+text = "Use dense layout"
+
+[node name="DoLayoutContainer" type="VBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 10
+
+[node name="DoLayoutWarning" type="RichTextLabel" parent="VBoxContainer/DoLayoutContainer"]
+layout_mode = 2
+theme_override_font_sizes/normal_font_size = 16
+bbcode_enabled = true
+text = "[color=#ff0000]WARNING:[/color] Creating a new gallery will destroy your current one. Any curation you've done will be lost."
+fit_content = true
+
+[node name="DoLayoutButton" type="Button" parent="VBoxContainer/DoLayoutContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Create new gallery"
+
+[node name="BackButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+shortcut = SubResource("Shortcut_dsp40")
+text = "BACK"
+
+[connection signal="pressed" from="VBoxContainer/BackButton" to="." method="_on_back_button_pressed"]
