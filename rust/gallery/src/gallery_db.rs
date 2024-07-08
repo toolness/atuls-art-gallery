@@ -3,6 +3,11 @@ use rusqlite::{Connection, Transaction};
 
 pub const DEFAULT_GALLERY_DB_FILENAME: &'static str = "gallery2.sqlite";
 
+#[derive(Default)]
+pub struct MetObjectQueryOptions {
+    pub order_by: Option<String>,
+}
+
 pub struct GalleryDb {
     conn: Connection,
 }
@@ -86,13 +91,17 @@ impl GalleryDb {
 
     pub fn get_all_met_objects_for_layout(
         &mut self,
-        order_by: Option<&str>,
+        options: &MetObjectQueryOptions,
     ) -> Result<Vec<MetObjectLayoutInfo>> {
         let mut statement = self.conn.prepare(&format!(
             "
             SELECT id, width, height FROM met_objects ORDER BY {}
             ",
-            order_by.unwrap_or("id")
+            &options
+                .order_by
+                .as_ref()
+                .map(|value| value.as_str())
+                .unwrap_or("id")
         ))?;
         let mut rows = statement.query([])?;
         let mut result: Vec<MetObjectLayoutInfo> = Vec::new();

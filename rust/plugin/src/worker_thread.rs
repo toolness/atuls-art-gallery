@@ -232,7 +232,7 @@ pub fn work_thread(
                     } => {
                         let walls: Vec<GalleryWall> =
                             serde_json::from_str(&std::fs::read_to_string(walls_json_path)?)?;
-                        let met_objects = db.get_all_met_objects_for_layout(None)?;
+                        let met_objects = db.get_all_met_objects_for_layout(&Default::default())?;
                         let gallery_start_id = 1;
                         let (galleries_created, layout_records) =
                             layout(dense, gallery_start_id, &walls, met_objects)?;

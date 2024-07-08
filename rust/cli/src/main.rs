@@ -7,7 +7,9 @@ use std::process;
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use gallery::gallery_cache::GalleryCache;
-use gallery::gallery_db::{GalleryDb, PublicDomain2DMetObjectRecord, DEFAULT_GALLERY_DB_FILENAME};
+use gallery::gallery_db::{
+    GalleryDb, MetObjectQueryOptions, PublicDomain2DMetObjectRecord, DEFAULT_GALLERY_DB_FILENAME,
+};
 use gallery::gallery_wall::GalleryWall;
 use gallery::layout::layout;
 use gallery::met_api::{load_met_api_record, ImageSize};
@@ -142,10 +144,13 @@ fn layout_command(
     let walls = get_walls()?;
     db.reset_layout_table()?;
 
-    let mut met_objects = db.get_all_met_objects_for_layout(match sort.unwrap_or_default() {
-        Sort::Id => Some("id"),
-        Sort::AccessionYear => Some("accession_year, id"),
-        Sort::Random => None,
+    let mut met_objects = db.get_all_met_objects_for_layout(&MetObjectQueryOptions {
+        order_by: match sort.unwrap_or_default() {
+            Sort::Id => Some("id".to_owned()),
+            Sort::AccessionYear => Some("accession_year, id".to_owned()),
+            Sort::Random => None,
+        },
+        ..Default::default()
     })?;
     if matches!(sort, Some(Sort::Random)) {
         let mut rng = Rng::new(random_seed);
@@ -260,7 +265,9 @@ mod tests {
         }
         db.add_public_domain_2d_met_objects(&records).unwrap();
 
-        let rows = db.get_all_met_objects_for_layout(None).unwrap();
+        let rows = db
+            .get_all_met_objects_for_layout(&Default::default())
+            .unwrap();
         assert!(rows.len() > 0);
         let met_object_id = rows.get(0).unwrap().id;
 
