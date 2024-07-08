@@ -236,7 +236,7 @@ pub fn work_thread(
                         let gallery_start_id = 1;
                         let (galleries_created, layout_records) =
                             layout(dense, gallery_start_id, &walls, met_objects)?;
-                        db.upsert_layout_records(&layout_records)?;
+                        db.set_layout_records(&layout_records)?;
                         println!(
                             "Created layout across {} galleries with {} walls each, dense={dense}.",
                             galleries_created,

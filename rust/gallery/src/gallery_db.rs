@@ -1,5 +1,5 @@
 use anyhow::Result;
-use rusqlite::Connection;
+use rusqlite::{Connection, Transaction};
 
 pub const DEFAULT_GALLERY_DB_FILENAME: &'static str = "gallery2.sqlite";
 
@@ -36,12 +36,10 @@ impl GalleryDb {
         Ok(())
     }
 
-    pub fn upsert_layout_records<T: AsRef<str>>(
-        &mut self,
+    pub fn upsert_layout_records_with_transaction<T: AsRef<str>>(
+        tx: &Transaction,
         records: &Vec<LayoutRecord<T>>,
     ) -> Result<()> {
-        let tx = self.conn.transaction()?;
-
         for record in records {
             tx.execute(
             "
@@ -61,9 +59,28 @@ impl GalleryDb {
                 ),
             )?;
         }
+        Ok(())
+    }
 
+    pub fn upsert_layout_records<T: AsRef<str>>(
+        &mut self,
+        records: &Vec<LayoutRecord<T>>,
+    ) -> Result<()> {
+        let tx = self.conn.transaction()?;
+        GalleryDb::upsert_layout_records_with_transaction(&tx, records)?;
         tx.commit()?;
+        Ok(())
+    }
 
+    /// Clears the layout and fills it with the given records.
+    pub fn set_layout_records<T: AsRef<str>>(
+        &mut self,
+        records: &Vec<LayoutRecord<T>>,
+    ) -> Result<()> {
+        let tx = self.conn.transaction()?;
+        tx.execute("DELETE FROM layout", ())?;
+        GalleryDb::upsert_layout_records_with_transaction(&tx, records)?;
+        tx.commit()?;
         Ok(())
     }
 

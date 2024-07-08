@@ -165,7 +165,7 @@ fn layout_command(
         met_objects,
     )?;
 
-    db.upsert_layout_records(&layout_records)?;
+    db.set_layout_records(&layout_records)?;
     println!("Created a layout with {} galleries.", galleries_created);
 
     Ok(())
@@ -265,7 +265,7 @@ mod tests {
         let met_object_id = rows.get(0).unwrap().id;
 
         // Add a painting to the layout.
-        db.upsert_layout_records(&vec![LayoutRecord {
+        db.set_layout_records(&vec![LayoutRecord {
             gallery_id: 5,
             wall_id: "wall_1",
             met_object_id,
