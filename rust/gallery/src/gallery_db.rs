@@ -5,6 +5,10 @@ pub const DEFAULT_GALLERY_DB_FILENAME: &'static str = "gallery2.sqlite";
 
 #[derive(Default)]
 pub struct MetObjectQueryOptions {
+    pub filter: Option<String>,
+    /// TODO: This is currently a string that's just interpolated into the
+    /// query, exposing the user to an SQL injection attack. Should use some
+    /// kind of struct that provides a limited set of safe values.
     pub order_by: Option<String>,
 }
 
@@ -93,17 +97,27 @@ impl GalleryDb {
         &mut self,
         options: &MetObjectQueryOptions,
     ) -> Result<Vec<MetObjectLayoutInfo>> {
-        let mut statement = self.conn.prepare(&format!(
-            "
-            SELECT id, width, height FROM met_objects ORDER BY {}
-            ",
-            &options
+        let mut params: Vec<String> = vec![];
+        let order_by_clause = format!(
+            "ORDER BY {}",
+            options
                 .order_by
                 .as_ref()
                 .map(|value| value.as_str())
                 .unwrap_or("id")
+        );
+        let where_clause = if let Some(filter) = &options.filter {
+            params.push(format!("%{filter}%"));
+            format!("WHERE (title LIKE ?1) OR (artist LIKE ?1) OR (medium LIKE ?1)")
+        } else {
+            String::default()
+        };
+        let mut statement = self.conn.prepare(&format!(
+            "
+            SELECT id, width, height FROM met_objects {where_clause} {order_by_clause}
+            ",
         ))?;
-        let mut rows = statement.query([])?;
+        let mut rows = statement.query(rusqlite::params_from_iter(params.into_iter()))?;
         let mut result: Vec<MetObjectLayoutInfo> = Vec::new();
         while let Some(row) = rows.next()? {
             result.push(MetObjectLayoutInfo {

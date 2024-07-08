@@ -75,6 +75,10 @@ enum Commands {
         #[arg(short, long)]
         random_seed: Option<u64>,
 
+        /// Filter artwork to only those matching this value.
+        #[arg(short, long)]
+        filter: Option<String>,
+
         /// Whether to use a dense layout (stack some art vertically).
         #[arg(long = "dense", default_value_t = false)]
         use_dense_layout: bool,
@@ -108,7 +112,8 @@ fn run() -> Result<()> {
             sort,
             random_seed,
             use_dense_layout,
-        } => layout_command(db, sort, random_seed, use_dense_layout),
+            filter,
+        } => layout_command(db, sort, random_seed, use_dense_layout, filter),
         Commands::ShowLayout { gallery_id } => show_layout_command(db, gallery_id),
     }
 }
@@ -140,11 +145,13 @@ fn layout_command(
     sort: Option<Sort>,
     random_seed: Option<u64>,
     use_dense_layout: bool,
+    filter: Option<String>,
 ) -> Result<()> {
     let walls = get_walls()?;
     db.reset_layout_table()?;
 
     let mut met_objects = db.get_all_met_objects_for_layout(&MetObjectQueryOptions {
+        filter,
         order_by: match sort.unwrap_or_default() {
             Sort::Id => Some("id".to_owned()),
             Sort::AccessionYear => Some("accession_year, id".to_owned()),

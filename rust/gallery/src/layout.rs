@@ -209,5 +209,9 @@ pub fn layout<'a>(
             galleries_created += 1;
         }
     }
+    if layout_records.len() > 0 {
+        // We have to account for the very first gallery too.
+        galleries_created += 1;
+    }
     Ok((galleries_created, layout_records))
 }
