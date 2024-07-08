@@ -65,7 +65,7 @@ where
 /// I then ignored any medium that wasn't flat, two-dimensional art with a
 /// matte surface. Examples of these are stone, glass, silk, iron, ceramic,
 /// pottery, etc.
-const MEDIUM_KEYWORDS: [&str; 17] = [
+const MEDIUM_KEYWORDS: [&str; 20] = [
     "watercolor",
     "lithograph",
     "oil",
@@ -81,8 +81,11 @@ const MEDIUM_KEYWORDS: [&str; 17] = [
     "charcoal",
     "graphite",
     "woodblock",
+    "wood block",
     "etching",
     "tempera",
+    "fresco",
+    "acrylic",
 ];
 
 fn try_into_public_domain_2d_met_object(
