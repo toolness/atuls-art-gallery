@@ -335,10 +335,11 @@ impl GalleryClient {
     }
 
     #[func]
-    fn layout(&mut self, walls_json_path: GString, dense: bool) -> u32 {
+    fn layout(&mut self, walls_json_path: GString, filter: String, dense: bool) -> u32 {
         let walls_json_path = globalize_path(walls_json_path);
         self.send_request(RequestBody::Layout {
             walls_json_path,
+            filter: if filter.len() > 0 { Some(filter) } else { None },
             dense,
         })
     }

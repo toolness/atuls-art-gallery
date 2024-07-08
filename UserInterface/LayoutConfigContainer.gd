@@ -7,6 +7,7 @@ signal exit()
 signal new_layout_complete()
 
 @onready var dense_layout_checkbox: CheckBox = %DenseLayoutCheckBox
+@onready var filter_line_edit: LineEdit = %FilterLineEdit
 @onready var do_layout_button: Button = %DoLayoutButton
 
 # Called when the node enters the scene tree for the first time.
@@ -19,11 +20,12 @@ func _on_back_button_pressed():
 
 
 func focus():
-	dense_layout_checkbox.grab_focus()
+	filter_line_edit.grab_focus()
 
 
 func _on_do_layout_button_pressed():
 	var use_dense_layout := dense_layout_checkbox.button_pressed
+	var filter := filter_line_edit.text
 
 	# Disable this button while the layout is being generated, so the
 	# user can't click on it multiple times and cause chaos. This is also
@@ -36,6 +38,6 @@ func _on_do_layout_button_pressed():
 	# will never return.
 	get_tree().paused = false
 
-	await MetObjects.layout(use_dense_layout)
+	await MetObjects.layout(filter, use_dense_layout)
 	do_layout_button.disabled = false
 	new_layout_complete.emit()

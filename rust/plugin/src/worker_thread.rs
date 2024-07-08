@@ -8,7 +8,7 @@ use anyhow::anyhow;
 use anyhow::Result;
 use gallery::{
     gallery_cache::GalleryCache,
-    gallery_db::{GalleryDb, LayoutRecord, DEFAULT_GALLERY_DB_FILENAME},
+    gallery_db::{GalleryDb, LayoutRecord, MetObjectQueryOptions, DEFAULT_GALLERY_DB_FILENAME},
     gallery_wall::GalleryWall,
     layout::layout,
     met_api::{load_met_api_record, migrate_met_api_cache, ImageSize},
@@ -42,6 +42,7 @@ pub enum RequestBody {
     },
     Layout {
         walls_json_path: PathBuf,
+        filter: Option<String>,
         dense: bool,
     },
 }
@@ -228,11 +229,16 @@ pub fn work_thread(
                 match request.body {
                     RequestBody::Layout {
                         walls_json_path,
+                        filter,
                         dense,
                     } => {
                         let walls: Vec<GalleryWall> =
                             serde_json::from_str(&std::fs::read_to_string(walls_json_path)?)?;
-                        let met_objects = db.get_all_met_objects_for_layout(&Default::default())?;
+                        let options = MetObjectQueryOptions {
+                            filter,
+                            ..Default::default()
+                        };
+                        let met_objects = db.get_all_met_objects_for_layout(&options)?;
                         let gallery_start_id = 1;
                         let (galleries_created, layout_records) =
                             layout(dense, gallery_start_id, &walls, met_objects)?;

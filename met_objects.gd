@@ -49,9 +49,9 @@ func fetch_large_image(object_id: int) -> Image:
 	return await _fetch_image(object_id, "large")
 
 
-func layout(dense: bool) -> void:
+func layout(filter: String, dense: bool) -> void:
 	var request := EmptyRequest.new()
-	var request_id := gallery_client.layout("res://Levels/moma-gallery.walls.json", dense)
+	var request_id := gallery_client.layout("res://Levels/moma-gallery.walls.json", filter, dense)
 	if request_id == NULL_REQUEST_ID:
 		push_error("Creating new layout failed!")
 		# Oof, something went wrong.
