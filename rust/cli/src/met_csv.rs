@@ -22,6 +22,9 @@ pub struct MetObjectCsvRecord {
     #[serde(rename = "Object Date")]
     pub object_date: String,
 
+    #[serde(rename = "Culture")]
+    pub culture: String,
+
     #[serde(rename = "Title")]
     pub title: String,
 
@@ -109,6 +112,7 @@ fn try_into_public_domain_2d_met_object(
                 object_id: csv_record.object_id,
                 artist: csv_record.artist_display_name,
                 accession_year,
+                culture: csv_record.culture,
                 object_date: csv_record.object_date,
                 title: csv_record.title,
                 medium: csv_record.medium,

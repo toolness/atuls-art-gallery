@@ -129,7 +129,7 @@ fn get_walls() -> Result<Vec<GalleryWall>> {
     Ok(walls)
 }
 
-fn show_layout_command(mut db: GalleryDb, gallery_id: i64) -> Result<()> {
+fn show_layout_command(db: GalleryDb, gallery_id: i64) -> Result<()> {
     let walls = get_walls()?;
     for wall in walls {
         println!("Wall {}:", wall.name);
@@ -248,7 +248,10 @@ fn main() {
 mod tests {
     use std::{fs::File, io::BufReader, path::PathBuf};
 
-    use gallery::{gallery_cache::GalleryCache, gallery_db::LayoutRecord};
+    use gallery::{
+        gallery_cache::GalleryCache,
+        gallery_db::{LayoutRecord, MetObjectQueryOptions},
+    };
     use rusqlite::Connection;
 
     use crate::met_csv::iter_public_domain_2d_met_csv_objects;
@@ -333,5 +336,18 @@ mod tests {
         assert_eq!(record.object_id, met_object_id);
         assert_eq!(x, 4.0);
         assert_eq!(y, 9.0);
+
+        assert!(get_num_filter_results(&db, "benjamin franklin") > 0);
+        assert!(get_num_filter_results(&db, "american") > 0);
+        assert_eq!(get_num_filter_results(&db, "blarg blarg blarg"), 0);
+    }
+
+    fn get_num_filter_results(db: &GalleryDb, filter: &'static str) -> usize {
+        db.get_all_met_objects_for_layout(&MetObjectQueryOptions {
+            filter: Some(filter.into()),
+            order_by: None,
+        })
+        .unwrap()
+        .len()
     }
 }

@@ -1,7 +1,7 @@
 use anyhow::Result;
 use rusqlite::{Connection, ToSql, Transaction};
 
-pub const DEFAULT_GALLERY_DB_FILENAME: &'static str = "gallery2.sqlite";
+pub const DEFAULT_GALLERY_DB_FILENAME: &'static str = "gallery3.sqlite";
 
 #[derive(Default)]
 pub struct MetObjectQueryOptions {
@@ -94,7 +94,7 @@ impl GalleryDb {
     }
 
     pub fn get_all_met_objects_for_layout(
-        &mut self,
+        &self,
         options: &MetObjectQueryOptions,
     ) -> Result<Vec<MetObjectLayoutInfo>> {
         let mut params: Vec<Box<dyn ToSql>> = vec![];
@@ -108,7 +108,7 @@ impl GalleryDb {
         );
         let where_clause = if let Some(filter) = &options.filter {
             params.push(Box::new(format!("%{filter}%")));
-            format!("WHERE (title LIKE ?1) OR (artist LIKE ?1) OR (medium LIKE ?1)")
+            format!("WHERE (title LIKE ?1) OR (artist LIKE ?1) OR (medium LIKE ?1) OR (culture LIKE ?1)")
         } else {
             String::default()
         };
@@ -139,6 +139,7 @@ impl GalleryDb {
                 id INTEGER PRIMARY KEY,
                 title TEXT NOT NULL,
                 artist TEXT NOT NULL,
+                culture TEXT NOT NULL,
                 date TEXT NOT NULL,
                 medium TEXT NOT NULL,
                 width REAL NOT NULL,
@@ -165,7 +166,7 @@ impl GalleryDb {
         for record in records {
             tx.execute(
             "
-                INSERT INTO met_objects (id, title, date, medium, width, height, accession_year, artist) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+                INSERT INTO met_objects (id, title, date, medium, width, height, accession_year, artist, culture) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
                 ",
         (
                     &record.object_id,
@@ -176,6 +177,7 @@ impl GalleryDb {
                     &record.height,
                     &record.accession_year,
                     &record.artist,
+                    &record.culture,
                 ),
             )?;
         }
@@ -186,7 +188,7 @@ impl GalleryDb {
     }
 
     pub fn get_met_objects_for_gallery_wall<T: AsRef<str>>(
-        &mut self,
+        &self,
         gallery_id: i64,
         wall_id: T,
     ) -> Result<Vec<(PublicDomain2DMetObjectRecord, (f64, f64))>> {
@@ -204,7 +206,8 @@ impl GalleryDb {
                 mo.width,
                 mo.height,
                 mo.accession_year,
-                mo.artist
+                mo.artist,
+                mo.culture
             FROM
                 met_objects AS mo
             INNER JOIN
@@ -229,6 +232,7 @@ impl GalleryDb {
                 height: row.get(7)?,
                 accession_year: row.get(8)?,
                 artist: row.get(9)?,
+                culture: row.get(10)?,
             };
             result.push((object, location));
         }
@@ -242,6 +246,7 @@ pub struct PublicDomain2DMetObjectRecord {
     pub object_id: u64,
     pub accession_year: u16,
     pub object_date: String,
+    pub culture: String,
     pub artist: String,
     pub title: String,
     pub medium: String,
