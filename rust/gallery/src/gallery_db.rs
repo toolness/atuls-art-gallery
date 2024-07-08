@@ -1,5 +1,5 @@
 use anyhow::Result;
-use rusqlite::{Connection, Transaction};
+use rusqlite::{Connection, ToSql, Transaction};
 
 pub const DEFAULT_GALLERY_DB_FILENAME: &'static str = "gallery2.sqlite";
 
@@ -97,7 +97,7 @@ impl GalleryDb {
         &mut self,
         options: &MetObjectQueryOptions,
     ) -> Result<Vec<MetObjectLayoutInfo>> {
-        let mut params: Vec<String> = vec![];
+        let mut params: Vec<Box<dyn ToSql>> = vec![];
         let order_by_clause = format!(
             "ORDER BY {}",
             options
@@ -107,7 +107,7 @@ impl GalleryDb {
                 .unwrap_or("id")
         );
         let where_clause = if let Some(filter) = &options.filter {
-            params.push(format!("%{filter}%"));
+            params.push(Box::new(format!("%{filter}%")));
             format!("WHERE (title LIKE ?1) OR (artist LIKE ?1) OR (medium LIKE ?1)")
         } else {
             String::default()
