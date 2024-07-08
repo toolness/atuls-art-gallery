@@ -140,6 +140,15 @@ func _ready() -> void:
 
 
 func _on_new_layout_complete():
+	var players := get_players()
+	if len(players) == 1:
+		var player := players[0]
+
+		# TODO: This might not work well in multiplayer, as the server doesn't have
+		# authority on player rotation.
+		player.global_rotation = player_spawn_point.global_rotation
+
+		player.global_position = player_spawn_point.global_position
 	_respawn_galleries()
 
 
