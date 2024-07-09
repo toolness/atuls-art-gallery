@@ -41,7 +41,7 @@ pub enum RequestBody {
         size: ImageSize,
     },
     Layout {
-        walls_json_path: PathBuf,
+        walls_json: String,
         filter: Option<String>,
         dense: bool,
     },
@@ -232,12 +232,11 @@ pub fn work_thread(
                 //println!("work_thread received request: {:?}", request.body);
                 match request.body {
                     RequestBody::Layout {
-                        walls_json_path,
+                        walls_json,
                         filter,
                         dense,
                     } => {
-                        let walls: Vec<GalleryWall> =
-                            serde_json::from_str(&std::fs::read_to_string(walls_json_path)?)?;
+                        let walls: Vec<GalleryWall> = serde_json::from_str(&walls_json)?;
                         let options = MetObjectQueryOptions {
                             filter,
                             ..Default::default()

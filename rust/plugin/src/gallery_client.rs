@@ -10,7 +10,7 @@ use godot::{
     engine::{
         multiplayer_api::RpcMode,
         multiplayer_peer::{ConnectionStatus, TransferMode},
-        Image, MultiplayerPeer, OfflineMultiplayerPeer, ProjectSettings,
+        FileAccess, Image, MultiplayerPeer, OfflineMultiplayerPeer, ProjectSettings,
     },
     prelude::*,
 };
@@ -343,9 +343,9 @@ impl GalleryClient {
 
     #[func]
     fn layout(&mut self, walls_json_path: GString, filter: String, dense: bool) -> u32 {
-        let walls_json_path = globalize_path(walls_json_path);
+        let walls_json = FileAccess::get_file_as_string(walls_json_path).to_string();
         self.send_request(RequestBody::Layout {
-            walls_json_path,
+            walls_json,
             filter: to_optional_string(filter),
             dense,
         })
