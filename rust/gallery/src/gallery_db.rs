@@ -12,6 +12,29 @@ pub struct MetObjectQueryOptions {
     pub order_by: Option<String>,
 }
 
+impl MetObjectQueryOptions {
+    fn order_by_clause(&self) -> String {
+        format!(
+            "ORDER BY {}",
+            self.order_by
+                .as_ref()
+                .map(|value| value.as_str())
+                .unwrap_or("id")
+        )
+    }
+
+    fn where_clause(&self) -> (String, Vec<Box<dyn ToSql>>) {
+        let mut params: Vec<Box<dyn ToSql>> = vec![];
+        let where_clause = if let Some(filter) = &self.filter {
+            params.push(Box::new(format!("%{filter}%")));
+            format!("WHERE (title LIKE ?1) OR (artist LIKE ?1) OR (medium LIKE ?1) OR (culture LIKE ?1)")
+        } else {
+            String::default()
+        };
+        (where_clause, params)
+    }
+}
+
 pub struct GalleryDb {
     conn: Connection,
 }
@@ -97,21 +120,8 @@ impl GalleryDb {
         &self,
         options: &MetObjectQueryOptions,
     ) -> Result<Vec<MetObjectLayoutInfo>> {
-        let mut params: Vec<Box<dyn ToSql>> = vec![];
-        let order_by_clause = format!(
-            "ORDER BY {}",
-            options
-                .order_by
-                .as_ref()
-                .map(|value| value.as_str())
-                .unwrap_or("id")
-        );
-        let where_clause = if let Some(filter) = &options.filter {
-            params.push(Box::new(format!("%{filter}%")));
-            format!("WHERE (title LIKE ?1) OR (artist LIKE ?1) OR (medium LIKE ?1) OR (culture LIKE ?1)")
-        } else {
-            String::default()
-        };
+        let order_by_clause = options.order_by_clause();
+        let (where_clause, params) = options.where_clause();
         let mut statement = self.conn.prepare(&format!(
             "
             SELECT id, width, height FROM met_objects {where_clause} {order_by_clause}
