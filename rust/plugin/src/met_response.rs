@@ -2,12 +2,17 @@ use godot::{engine::Image, prelude::*};
 
 use crate::met_object::MetObject;
 
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub enum InnerMetResponse {
-    #[default]
-    None,
+    Variant(Variant),
     MetObjects(Array<Gd<MetObject>>),
     Image(Option<Gd<Image>>),
+}
+
+impl Default for InnerMetResponse {
+    fn default() -> Self {
+        InnerMetResponse::Variant(Variant::default())
+    }
 }
 
 #[derive(Debug, GodotClass)]
@@ -38,6 +43,17 @@ impl MetResponse {
             _ => {
                 godot_error!("MetResponse is not Image!");
                 None
+            }
+        }
+    }
+
+    #[func]
+    fn take_variant(&mut self) -> Variant {
+        match std::mem::take(&mut self.response) {
+            InnerMetResponse::Variant(variant) => variant,
+            _ => {
+                godot_error!("MetResponse is not Variant!");
+                Variant::nil()
             }
         }
     }

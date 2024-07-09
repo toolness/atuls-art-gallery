@@ -437,7 +437,7 @@ impl GalleryClient {
                     match response.body {
                         ResponseBody::Empty => Some(Gd::from_object(MetResponse {
                             request_id,
-                            response: InnerMetResponse::None,
+                            response: InnerMetResponse::default(),
                         })),
                         ResponseBody::MetObjectsForGalleryWall(objects) => {
                             Some(Gd::from_object(MetResponse {

@@ -170,6 +170,7 @@ func _process(_delta) -> void:
 			r.responded.emit()
 		elif request is EmptyRequest:
 			var r: EmptyRequest = request
+			assert(obj.take_variant() == null)
 			r.responded.emit()
 		else:
 			assert(false, "Unknown request type, cannot fill response")
