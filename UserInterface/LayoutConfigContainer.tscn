@@ -34,6 +34,13 @@ unique_name_in_owner = true
 layout_mode = 2
 placeholder_text = "Filter text (optional)"
 
+[node name="FilterResultsLabel" type="Label" parent="VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "23 artworks match your filter."
+horizontal_alignment = 2
+
 [node name="DenseLayoutContainer" type="HBoxContainer" parent="VBoxContainer"]
 layout_mode = 2
 
@@ -51,9 +58,9 @@ size_flags_vertical = 10
 
 [node name="DoLayoutWarning" type="RichTextLabel" parent="VBoxContainer/DoLayoutContainer"]
 layout_mode = 2
-theme_override_font_sizes/normal_font_size = 16
+theme_override_font_sizes/normal_font_size = 20
 bbcode_enabled = true
-text = "[color=#ff0000]WARNING:[/color] Creating a new gallery will destroy your current one. Any curation you've done will be lost."
+text = "[color=#ff0000]WARNING:[/color] Creating a new gallery will destroy your current one."
 fit_content = true
 
 [node name="DoLayoutButton" type="Button" parent="VBoxContainer/DoLayoutContainer"]
@@ -62,6 +69,7 @@ layout_mode = 2
 text = "Create new gallery"
 
 [node name="BackButton" type="Button" parent="VBoxContainer"]
+unique_name_in_owner = true
 layout_mode = 2
 shortcut = SubResource("Shortcut_dsp40")
 text = "BACK"
