@@ -38,6 +38,9 @@ func _on_do_layout_button_pressed():
 	# will never return.
 	get_tree().paused = false
 
+	var count := await MetObjects.count_met_objects(filter)
+	print("Creating new gallery with ", count, " objects.")
+
 	await MetObjects.layout(filter, use_dense_layout)
 	do_layout_button.disabled = false
 	new_layout_complete.emit()

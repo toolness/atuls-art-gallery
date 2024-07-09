@@ -22,6 +22,11 @@ class EmptyRequest:
 	signal responded
 
 
+class IntRequest:
+	var response: int
+	signal responded
+
+
 func _fetch_image(object_id: int, size: String) -> Image:
 	if Lobby.IS_HEADLESS:
 		return Image.create(1, 1, false, Image.FORMAT_L8)
@@ -47,6 +52,17 @@ func fetch_small_image(object_id: int) -> Image:
 
 func fetch_large_image(object_id: int) -> Image:
 	return await _fetch_image(object_id, "large")
+
+
+func count_met_objects(filter: String) -> int:
+	var request := IntRequest.new()
+	var request_id := gallery_client.count_met_objects(filter)
+	if request_id == NULL_REQUEST_ID:
+		# Oof, something went wrong.
+		return 0
+	requests[request_id] = request
+	await request.responded
+	return request.response
 
 
 func layout(filter: String, dense: bool) -> void:
@@ -171,6 +187,12 @@ func _process(_delta) -> void:
 		elif request is EmptyRequest:
 			var r: EmptyRequest = request
 			assert(obj.take_variant() == null)
+			r.responded.emit()
+		elif request is IntRequest:
+			var r: IntRequest = request
+			var result = obj.take_variant()
+			assert(result is int)
+			r.response = result
 			r.responded.emit()
 		else:
 			assert(false, "Unknown request type, cannot fill response")

@@ -335,11 +335,18 @@ impl GalleryClient {
     }
 
     #[func]
+    fn count_met_objects(&mut self, filter: String) -> u32 {
+        self.send_request(RequestBody::CountMetObjects {
+            filter: to_optional_string(filter),
+        })
+    }
+
+    #[func]
     fn layout(&mut self, walls_json_path: GString, filter: String, dense: bool) -> u32 {
         let walls_json_path = globalize_path(walls_json_path);
         self.send_request(RequestBody::Layout {
             walls_json_path,
-            filter: if filter.len() > 0 { Some(filter) } else { None },
+            filter: to_optional_string(filter),
             dense,
         })
     }
@@ -439,6 +446,10 @@ impl GalleryClient {
                             request_id,
                             response: InnerMetResponse::default(),
                         })),
+                        ResponseBody::Integer(int) => Some(Gd::from_object(MetResponse {
+                            request_id,
+                            response: InnerMetResponse::Variant(int.to_variant()),
+                        })),
                         ResponseBody::MetObjectsForGalleryWall(objects) => {
                             Some(Gd::from_object(MetResponse {
                                 request_id,
@@ -494,4 +505,12 @@ fn globalize_path(godot_url: GString) -> PathBuf {
             .globalize_path(godot_url)
             .to_string(),
     )
+}
+
+fn to_optional_string(value: String) -> Option<String> {
+    if value.len() > 0 {
+        Some(value)
+    } else {
+        None
+    }
 }

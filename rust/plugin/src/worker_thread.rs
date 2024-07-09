@@ -45,6 +45,9 @@ pub enum RequestBody {
         filter: Option<String>,
         dense: bool,
     },
+    CountMetObjects {
+        filter: Option<String>,
+    },
 }
 
 #[derive(Debug)]
@@ -59,6 +62,7 @@ pub enum ResponseBody {
     MetObjectsForGalleryWall(Vec<SimplifiedRecord>),
     Image(Option<PathBuf>),
     Empty,
+    Integer(i64),
 }
 
 pub enum MessageToWorker {
@@ -249,6 +253,14 @@ pub fn work_thread(
                             walls.len()
                         );
                         send_response(ResponseBody::Empty);
+                    }
+                    RequestBody::CountMetObjects { filter } => {
+                        let options = MetObjectQueryOptions {
+                            filter,
+                            ..Default::default()
+                        };
+                        let count = db.count_met_objects(&options)?;
+                        send_response(ResponseBody::Integer(count as i64))
                     }
                     RequestBody::MoveMetObject {
                         met_object_id,
