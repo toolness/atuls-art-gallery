@@ -343,11 +343,12 @@ mod tests {
     }
 
     fn get_num_filter_results(db: &GalleryDb, filter: &'static str) -> usize {
-        db.get_all_met_objects_for_layout(&MetObjectQueryOptions {
+        let options = MetObjectQueryOptions {
             filter: Some(filter.into()),
             order_by: None,
-        })
-        .unwrap()
-        .len()
+        };
+        let objects_len = db.get_all_met_objects_for_layout(&options).unwrap().len();
+        assert_eq!(db.count_met_objects(&options).unwrap(), objects_len);
+        objects_len
     }
 }

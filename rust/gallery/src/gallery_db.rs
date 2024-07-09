@@ -116,6 +116,20 @@ impl GalleryDb {
         Ok(())
     }
 
+    pub fn count_met_objects(&self, options: &MetObjectQueryOptions) -> Result<usize> {
+        let (where_clause, params) = options.where_clause();
+        let mut statement = self.conn.prepare(&format!(
+            "
+            SELECT COUNT(*) FROM met_objects {where_clause}
+            ",
+        ))?;
+        Ok(
+            statement.query_row(rusqlite::params_from_iter(params.into_iter()), |row| {
+                row.get(0)
+            })?,
+        )
+    }
+
     pub fn get_all_met_objects_for_layout(
         &self,
         options: &MetObjectQueryOptions,
