@@ -45,9 +45,12 @@ pub struct MetObjectCsvRecord {
 }
 
 /// All artworks by artists who died before this year should definitely be
-/// public domain (the criteria is that 70 years after their death, their
-/// work enters PD).
-const MIN_PUBLIC_DOMAIN_YEAR: u16 = 1950;
+/// public domain. Different countries seem to have different qualifications,
+/// e.g. the U.S. makes any work PD 95 years after it was created, while other
+/// countries seem to base it off the time the creator died. This year seems
+/// like a reasonably conservative date to satisfy all the different
+/// countries' requirements.
+const MIN_PUBLIC_DOMAIN_YEAR: u16 = 1928;
 
 #[derive(PartialEq)]
 enum PublicDomainStatus {
@@ -60,7 +63,7 @@ impl MetObjectCsvRecord {
     fn public_domain_status(&self) -> PublicDomainStatus {
         if self.public_domain {
             return PublicDomainStatus::Definitely;
-        } else if self.highlight && self.object_wikidata_url.len() > 0 {
+        } else if self.object_wikidata_url.len() > 0 {
             if let Some(year) = self.artist_end_date {
                 if year <= MIN_PUBLIC_DOMAIN_YEAR {
                     return PublicDomainStatus::Probably;
