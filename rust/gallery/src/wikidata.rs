@@ -1,4 +1,5 @@
 use anyhow::Result;
+use percent_encoding::{utf8_percent_encode, CONTROLS};
 use serde::Deserialize;
 
 use crate::gallery_cache::GalleryCache;
@@ -64,7 +65,10 @@ fn get_url_for_image<T: AsRef<str>>(image_filename: T) -> String {
     let md5_hash = format!("{:x}", md5::compute(spaces_replaced.as_bytes()));
     let a = md5_hash.get(0..1).unwrap();
     let ab = md5_hash.get(0..2).unwrap();
-    format!("https://upload.wikimedia.org/wikipedia/commons/{a}/{ab}/{spaces_replaced}")
+    format!(
+        "https://upload.wikimedia.org/wikipedia/commons/{a}/{ab}/{}",
+        utf8_percent_encode(&spaces_replaced, CONTROLS)
+    )
 }
 
 pub fn try_to_get_wikidata_image_url(cache: &GalleryCache, qid: u64) -> Result<Option<String>> {
@@ -113,7 +117,7 @@ mod tests {
         );
         assert_eq!(
             get_url_for_image("Juan Gris - Nature morte à la nappe à carreaux.jpg"),
-            "https://upload.wikimedia.org/wikipedia/commons/f/fa/Juan_Gris_-_Nature_morte_à_la_nappe_à_carreaux.jpg"
+            "https://upload.wikimedia.org/wikipedia/commons/f/fa/Juan_Gris_-_Nature_morte_%C3%A0_la_nappe_%C3%A0_carreaux.jpg"
         );
     }
 
