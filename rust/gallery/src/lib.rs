@@ -4,3 +4,4 @@ pub mod gallery_wall;
 pub mod layout;
 pub mod met_api;
 pub mod random;
+pub mod wikidata;
