@@ -14,7 +14,7 @@ use gallery::gallery_wall::GalleryWall;
 use gallery::layout::layout;
 use gallery::met_api::{load_met_api_record, ImageSize};
 use gallery::random::Rng;
-use met_csv::iter_public_domain_2d_met_csv_objects;
+use met_csv::{iter_public_domain_2d_met_csv_objects, PublicDomain2DMetObjectOptions};
 use rusqlite::Connection;
 
 use std::io::BufReader;
@@ -64,6 +64,11 @@ enum Commands {
         /// in your gallery.
         #[arg(long, default_value_t = false)]
         all_media: bool,
+
+        /// Log warnings about whether e.g. something that claims to not be
+        /// public domain is actually public domain.
+        #[arg(long, default_value_t = false)]
+        warnings: bool,
     },
     /// Layout gallery walls.
     Layout {
@@ -107,7 +112,8 @@ fn run() -> Result<()> {
             max,
             download,
             all_media,
-        } => csv_command(args, cache, db, max, download, all_media),
+            warnings,
+        } => csv_command(args, cache, db, max, download, all_media, warnings),
         Commands::Layout {
             sort,
             random_seed,
@@ -190,6 +196,7 @@ fn csv_command(
     max: Option<usize>,
     download: bool,
     all_media: bool,
+    warnings: bool,
 ) -> Result<()> {
     let csv_file = cache.get_cached_path("MetObjects.csv");
     let reader = BufReader::new(File::open(csv_file)?);
@@ -197,7 +204,14 @@ fn csv_command(
     db.reset_met_objects_table()?;
     let mut count: usize = 0;
     let mut records_to_commit = vec![];
-    for result in iter_public_domain_2d_met_csv_objects(rdr, all_media) {
+    for result in iter_public_domain_2d_met_csv_objects(
+        rdr,
+        PublicDomain2DMetObjectOptions {
+            all_media,
+            warnings,
+            ..Default::default()
+        },
+    ) {
         // Notice that we need to provide a type hint for automatic
         // deserialization.
         let csv_record: PublicDomain2DMetObjectRecord = result?;
@@ -270,7 +284,7 @@ mod tests {
         let reader = BufReader::new(File::open(csv_file).unwrap());
         let rdr = csv::Reader::from_reader(reader);
         let mut records = vec![];
-        for result in iter_public_domain_2d_met_csv_objects(rdr, false) {
+        for result in iter_public_domain_2d_met_csv_objects(rdr, Default::default()) {
             records.push(result.unwrap());
         }
         db.add_public_domain_2d_met_objects(&records).unwrap();
