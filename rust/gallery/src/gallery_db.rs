@@ -168,7 +168,8 @@ impl GalleryDb {
                 medium TEXT NOT NULL,
                 width REAL NOT NULL,
                 height REAL NOT NULL,
-                accession_year INTEGER NOT NULL
+                accession_year INTEGER NOT NULL,
+                wikidata_qid INTEGER
             )
             ",
             (),
@@ -189,10 +190,32 @@ impl GalleryDb {
 
         for record in records {
             tx.execute(
-            "
-                INSERT INTO met_objects (id, title, date, medium, width, height, accession_year, artist, culture) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
+                "
+                INSERT INTO met_objects (
+                    id,
+                    title,
+                    date,
+                    medium,
+                    width,
+                    height,
+                    accession_year,
+                    artist,
+                    culture,
+                    wikidata_qid
+                ) VALUES (
+                    ?1,
+                    ?2,
+                    ?3,
+                    ?4,
+                    ?5,
+                    ?6,
+                    ?7,
+                    ?8,
+                    ?9,
+                    ?10
+                )
                 ",
-        (
+                (
                     &record.object_id,
                     &record.title,
                     &record.object_date,
@@ -202,6 +225,7 @@ impl GalleryDb {
                     &record.accession_year,
                     &record.artist,
                     &record.culture,
+                    &record.object_wikidata_qid,
                 ),
             )?;
         }
@@ -231,7 +255,8 @@ impl GalleryDb {
                 mo.height,
                 mo.accession_year,
                 mo.artist,
-                mo.culture
+                mo.culture,
+                mo.wikidata_qid
             FROM
                 met_objects AS mo
             INNER JOIN
@@ -257,6 +282,7 @@ impl GalleryDb {
                 accession_year: row.get(8)?,
                 artist: row.get(9)?,
                 culture: row.get(10)?,
+                object_wikidata_qid: row.get(11)?,
             };
             result.push((object, location));
         }
@@ -276,6 +302,7 @@ pub struct PublicDomain2DMetObjectRecord {
     pub medium: String,
     pub width: f64,
     pub height: f64,
+    pub object_wikidata_qid: Option<u64>,
 }
 
 #[derive(Debug)]

@@ -1,5 +1,7 @@
 use anyhow::Result;
-use gallery::gallery_db::PublicDomain2DMetObjectRecord;
+use gallery::{
+    gallery_db::PublicDomain2DMetObjectRecord, wikidata::try_to_parse_qid_from_wikidata_url,
+};
 use regex_lite::Regex;
 use serde::{de, Deserialize};
 
@@ -173,7 +175,9 @@ fn try_into_public_domain_2d_met_object(
                         csv_record.object_wikidata_url
                     );
                 }
-                return None;
+                // Since this is *probably* public domain, we'll return it.
+                // If it's not PD, we won't be able to get its image anyways, so
+                // we might as well try to get it later.
             }
 
             return Some(PublicDomain2DMetObjectRecord {
@@ -186,6 +190,9 @@ fn try_into_public_domain_2d_met_object(
                 medium: csv_record.medium,
                 width: width / 100.0,   // Convert centimeters to meters
                 height: height / 100.0, // Convert centimeters to meters
+                object_wikidata_qid: try_to_parse_qid_from_wikidata_url(
+                    &csv_record.object_wikidata_url,
+                ),
             });
         }
     }
