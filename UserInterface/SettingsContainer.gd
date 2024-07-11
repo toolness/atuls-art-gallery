@@ -215,7 +215,7 @@ func _on_reload_button_pressed() -> void:
 
 
 # When the player node changes apply the latest gameplay settings.
-func update_player(player_in: Player) -> void:
+func update_main_player(player_in: Player) -> void:
 	_player = player_in
 	_on_fov_slider_value_changed(fov_slider.value)
 	_on_option_button_item_selected(sensitivity_dropdown.selected)

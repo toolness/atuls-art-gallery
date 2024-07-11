@@ -52,6 +52,11 @@ var paused := false:
 			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 			get_tree().paused = false
 
+var main_player: Player = null:
+	set(value):
+		main_player = value
+		settings_container.update_main_player(main_player)
+
 var potato_mode := false:
 	set(value):
 		potato_mode = value
@@ -179,19 +184,6 @@ func fade_in(tween_in: Tween):
 func fade_out(tween_in: Tween):
 	color_rect_fader.visible = true
 	tween_in.tween_property(color_rect_fader, "color:a", 1.0, 0.25).from(0.0)
-	
-# Update the reference to the player variable in the settings container.
-func update_player(player_in: Player) -> void:
-	settings_container.update_player(player_in)
-
-func get_main_player() -> Player:
-	for maybe_player in get_tree().get_nodes_in_group("Player"):
-		if maybe_player is Player:
-			var player: Player = maybe_player
-			if player.is_main_player:
-				return player
-	print("Warning: main player not found!")
-	return null
 
 # Fade the screen out, reload the level and fade back in.
 func reload_current_scene(hard_reset: bool) -> void:
@@ -200,7 +192,7 @@ func reload_current_scene(hard_reset: bool) -> void:
 		return
 	before_reload.emit(hard_reset)
 	# Store a reference to the player to pass its settings onto the next player.
-	var player = get_main_player()
+	var player := main_player
 	# Stop movement and cache settings.
 	player.set_physics_process(false)
 	var zoom = player.zoom
@@ -211,7 +203,7 @@ func reload_current_scene(hard_reset: bool) -> void:
 	# Wait at least one frame for the scene to update and ready.
 	tween.tween_interval(0.1)
 	tween.tween_callback(func(): 
-		var new_player = get_main_player()
+		var new_player := main_player
 		# Apply cached settings, but don't update position.
 		new_player.view = view
 		new_player.zoom = zoom

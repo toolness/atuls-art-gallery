@@ -108,7 +108,7 @@ func _ready() -> void:
 		if not UserInterface.DISABLE_INITIAL_MOUSE_CAPTURE:
 			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 		# Whenever the player loads in, give the autoload ui a reference to itself.
-		UserInterface.update_player(self)
+		UserInterface.main_player = self
 	else:
 		# This is extremely annoying: just spawning a new player will make their
 		# camera the current one, and I can't make it _not_ current in the scene
