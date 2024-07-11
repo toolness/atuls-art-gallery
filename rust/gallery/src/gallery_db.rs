@@ -1,7 +1,7 @@
 use anyhow::Result;
 use rusqlite::{Connection, ToSql, Transaction};
 
-pub const DEFAULT_GALLERY_DB_FILENAME: &'static str = "gallery3.sqlite";
+pub const DEFAULT_GALLERY_DB_FILENAME: &'static str = "gallery4.sqlite";
 
 #[derive(Default)]
 pub struct MetObjectQueryOptions {
