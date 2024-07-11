@@ -151,9 +151,9 @@ fn fetch_met_api_image(
     }
 }
 
-fn fetch_wikidata_image(cache: &GalleryCache, qid: u64) -> Option<PathBuf> {
+fn fetch_wikidata_image(cache: &GalleryCache, qid: u64, size: ImageSize) -> Option<PathBuf> {
     match load_wikidata_image_info(&cache, qid) {
-        Ok(Some(info)) => match info.try_to_download_image(&cache) {
+        Ok(Some(info)) => match info.try_to_download_image(&cache, size) {
             Ok(filename) => Some(cache.cache_dir().join(filename)),
             Err(err) => {
                 eprintln!("Unable to fetch wikidata image for Q{qid}: {:?}", err);
@@ -314,7 +314,7 @@ pub fn work_thread(
                         let mut image_path = fetch_met_api_image(&cache, object_id, size);
                         if image_path.is_none() {
                             if let Some(qid) = db.get_met_object_wikidata_qid(object_id)? {
-                                image_path = fetch_wikidata_image(&cache, qid)
+                                image_path = fetch_wikidata_image(&cache, qid, size)
                             }
                         }
                         send_response(ResponseBody::Image(image_path));

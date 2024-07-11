@@ -2,11 +2,13 @@ use anyhow::Result;
 use percent_encoding::{utf8_percent_encode, CONTROLS};
 use serde::Deserialize;
 
-use crate::gallery_cache::GalleryCache;
+use crate::{gallery_cache::GalleryCache, image::ImageSize};
 
 const ROOT_CACHE_SUBDIR: &'static str = "wikidata";
 
 const WIKIDATA_URL_PREFIX: &'static str = "https://www.wikidata.org/wiki/Q";
+
+const SMALL_IMAGE_WIDTH: usize = 500;
 
 pub fn try_to_parse_qid_from_wikidata_url<T: AsRef<str>>(url: T) -> Option<u64> {
     if url.as_ref().starts_with(WIKIDATA_URL_PREFIX) {
@@ -23,13 +25,20 @@ pub fn try_to_parse_qid_from_wikidata_url<T: AsRef<str>>(url: T) -> Option<u64> 
 
 pub struct WikidataImageInfo {
     qid: u64,
-    image_url: String,
+    image_filename: String,
 }
 
 impl WikidataImageInfo {
-    pub fn try_to_download_image(&self, cache: &GalleryCache) -> Result<String> {
-        let image_filename = format!("{ROOT_CACHE_SUBDIR}/Q{}.jpg", self.qid);
-        cache.cache_binary_url(&self.image_url, &image_filename)?;
+    pub fn try_to_download_image(&self, cache: &GalleryCache, size: ImageSize) -> Result<String> {
+        let image_url = get_url_for_image(&self.image_filename, size);
+        let image_filename = match size {
+            ImageSize::Small => format!(
+                "{ROOT_CACHE_SUBDIR}/Q{}-small-{SMALL_IMAGE_WIDTH}px.jpg",
+                self.qid
+            ),
+            ImageSize::Large => format!("{ROOT_CACHE_SUBDIR}/Q{}.jpg", self.qid),
+        };
+        cache.cache_binary_url(&image_url, &image_filename)?;
         Ok(image_filename)
     }
 }
@@ -72,16 +81,20 @@ struct Datavalue {
     value: String,
 }
 
-fn get_url_for_image<T: AsRef<str>>(image_filename: T) -> String {
+fn get_url_for_image<T: AsRef<str>>(image_filename: T, size: ImageSize) -> String {
     // https://stackoverflow.com/a/34402875/2422398
     let spaces_replaced = image_filename.as_ref().replace(' ', "_");
     let md5_hash = format!("{:x}", md5::compute(spaces_replaced.as_bytes()));
     let a = md5_hash.get(0..1).unwrap();
     let ab = md5_hash.get(0..2).unwrap();
-    format!(
-        "https://upload.wikimedia.org/wikipedia/commons/{a}/{ab}/{}",
-        utf8_percent_encode(&spaces_replaced, CONTROLS)
-    )
+    let encoded_filename = utf8_percent_encode(&spaces_replaced, CONTROLS);
+
+    match size {
+        ImageSize::Small => format!("https://upload.wikimedia.org/wikipedia/commons/thumb/{a}/{ab}/{encoded_filename}/{SMALL_IMAGE_WIDTH}px-{encoded_filename}"),
+        ImageSize::Large => {
+            format!("https://upload.wikimedia.org/wikipedia/commons/{a}/{ab}/{encoded_filename}")
+        }
+    }
 }
 
 pub fn load_wikidata_image_info(
@@ -98,10 +111,13 @@ pub fn load_wikidata_image_info(
         serde_json::from_str::<WbGetClaimsResponse>(&cache.load_cached_string(&filename)?);
     match response {
         Ok(response) => {
-            let Some(image_url) = response.get_p18_image().map(get_url_for_image) else {
+            let Some(image_filename) = response.get_p18_image() else {
                 return Ok(None);
             };
-            Ok(Some(WikidataImageInfo { qid, image_url }))
+            Ok(Some(WikidataImageInfo {
+                qid,
+                image_filename: image_filename.clone(),
+            }))
         }
         Err(_) => Ok(None),
     }
@@ -109,7 +125,7 @@ pub fn load_wikidata_image_info(
 
 #[cfg(test)]
 mod tests {
-    use crate::wikidata::get_url_for_image;
+    use crate::{image::ImageSize, wikidata::get_url_for_image};
 
     use super::{try_to_parse_qid_from_wikidata_url, WbGetClaimsResponse};
 
@@ -127,17 +143,33 @@ mod tests {
     }
 
     #[test]
-    fn test_get_url_for_image_works() {
+    fn test_get_url_for_image_small_works() {
         assert_eq!(
-            get_url_for_image(""),
+            get_url_for_image("", ImageSize::Small),
+            "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4//500px-"
+        );
+        assert_eq!(
+            get_url_for_image("Junior-Jaguar-Belize-Zoo.jpg", ImageSize::Small),
+            "https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/Junior-Jaguar-Belize-Zoo.jpg/500px-Junior-Jaguar-Belize-Zoo.jpg"
+        );
+        assert_eq!(
+            get_url_for_image("Juan Gris - Nature morte à la nappe à carreaux.jpg", ImageSize::Small),
+            "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Juan_Gris_-_Nature_morte_%C3%A0_la_nappe_%C3%A0_carreaux.jpg/500px-Juan_Gris_-_Nature_morte_%C3%A0_la_nappe_%C3%A0_carreaux.jpg"
+        );
+    }
+
+    #[test]
+    fn test_get_url_for_image_large_works() {
+        assert_eq!(
+            get_url_for_image("", ImageSize::Large),
             "https://upload.wikimedia.org/wikipedia/commons/d/d4/"
         );
         assert_eq!(
-            get_url_for_image("Junior-Jaguar-Belize-Zoo.jpg"),
+            get_url_for_image("Junior-Jaguar-Belize-Zoo.jpg", ImageSize::Large),
             "https://upload.wikimedia.org/wikipedia/commons/2/21/Junior-Jaguar-Belize-Zoo.jpg"
         );
         assert_eq!(
-            get_url_for_image("Juan Gris - Nature morte à la nappe à carreaux.jpg"),
+            get_url_for_image("Juan Gris - Nature morte à la nappe à carreaux.jpg", ImageSize::Large),
             "https://upload.wikimedia.org/wikipedia/commons/f/fa/Juan_Gris_-_Nature_morte_%C3%A0_la_nappe_%C3%A0_carreaux.jpg"
         );
     }
