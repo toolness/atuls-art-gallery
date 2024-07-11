@@ -5,7 +5,7 @@ use std::{
     thread::{self, JoinHandle},
 };
 
-use gallery::{gallery_db::DEFAULT_GALLERY_DB_FILENAME, met_api::ImageSize};
+use gallery::{gallery_db::DEFAULT_GALLERY_DB_FILENAME, image::ImageSize};
 use godot::{
     engine::{
         multiplayer_api::RpcMode,

@@ -1,25 +1,10 @@
-use std::{fmt::Display, fs::create_dir_all};
+use std::fs::create_dir_all;
 
-use crate::gallery_cache::GalleryCache;
+use crate::{gallery_cache::GalleryCache, image::ImageSize};
 use anyhow::{anyhow, Result};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 const ROOT_CACHE_SUBDIR: &'static str = "met-api";
-
-#[derive(Debug, Deserialize, Serialize, Copy, Clone)]
-pub enum ImageSize {
-    Small,
-    Large,
-}
-
-impl Display for ImageSize {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ImageSize::Small => write!(f, "small"),
-            ImageSize::Large => write!(f, "large"),
-        }
-    }
-}
 
 pub fn migrate_met_api_cache(cache: &GalleryCache) -> Result<()> {
     let mut created_subdir = false;

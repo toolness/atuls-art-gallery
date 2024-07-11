@@ -10,8 +10,9 @@ use gallery::{
     gallery_cache::GalleryCache,
     gallery_db::{GalleryDb, LayoutRecord, MetObjectQueryOptions, DEFAULT_GALLERY_DB_FILENAME},
     gallery_wall::GalleryWall,
+    image::ImageSize,
     layout::layout,
-    met_api::{load_met_api_record, migrate_met_api_cache, ImageSize},
+    met_api::{load_met_api_record, migrate_met_api_cache},
     wikidata::load_wikidata_image_info,
 };
 use rusqlite::Connection;

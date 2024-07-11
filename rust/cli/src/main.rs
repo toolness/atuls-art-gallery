@@ -11,8 +11,9 @@ use gallery::gallery_db::{
     GalleryDb, MetObjectQueryOptions, PublicDomain2DMetObjectRecord, DEFAULT_GALLERY_DB_FILENAME,
 };
 use gallery::gallery_wall::GalleryWall;
+use gallery::image::ImageSize;
 use gallery::layout::layout;
-use gallery::met_api::{load_met_api_record, ImageSize};
+use gallery::met_api::load_met_api_record;
 use gallery::random::Rng;
 use met_csv::{iter_public_domain_2d_met_csv_objects, PublicDomain2DMetObjectOptions};
 use rusqlite::Connection;
