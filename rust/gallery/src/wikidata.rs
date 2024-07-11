@@ -90,6 +90,7 @@ fn get_url_for_image<T: AsRef<str>>(image_filename: T, size: ImageSize) -> Strin
     let encoded_filename = utf8_percent_encode(&spaces_replaced, CONTROLS);
 
     match size {
+        // https://phabricator.wikimedia.org/T153497
         ImageSize::Small => format!("https://upload.wikimedia.org/wikipedia/commons/thumb/{a}/{ab}/{encoded_filename}/{SMALL_IMAGE_WIDTH}px-{encoded_filename}"),
         ImageSize::Large => {
             format!("https://upload.wikimedia.org/wikipedia/commons/{a}/{ab}/{encoded_filename}")
