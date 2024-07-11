@@ -12,6 +12,7 @@ use gallery::{
     gallery_wall::GalleryWall,
     layout::layout,
     met_api::{load_met_api_record, migrate_met_api_cache, ImageSize},
+    wikidata::load_wikidata_image_info,
 };
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
@@ -122,7 +123,11 @@ fn get_met_objects_for_gallery_wall(
     Ok(result)
 }
 
-fn fetch_image(cache: &GalleryCache, met_object_id: u64, size: ImageSize) -> Option<PathBuf> {
+fn fetch_met_api_image(
+    cache: &GalleryCache,
+    met_object_id: u64,
+    size: ImageSize,
+) -> Option<PathBuf> {
     match load_met_api_record(&cache, met_object_id) {
         Ok(obj_record) => match obj_record.try_to_download_image(&cache, size) {
             Ok(Some((_width, _height, image))) => Some(cache.cache_dir().join(image)),
@@ -140,6 +145,26 @@ fn fetch_image(cache: &GalleryCache, met_object_id: u64, size: ImageSize) -> Opt
                 "Unable to load Met API record for met object ID {}: {:?}",
                 met_object_id, err
             );
+            None
+        }
+    }
+}
+
+fn fetch_wikidata_image(cache: &GalleryCache, qid: u64) -> Option<PathBuf> {
+    match load_wikidata_image_info(&cache, qid) {
+        Ok(Some(info)) => match info.try_to_download_image(&cache) {
+            Ok(filename) => Some(cache.cache_dir().join(filename)),
+            Err(err) => {
+                eprintln!("Unable to fetch wikidata image for Q{qid}: {:?}", err);
+                None
+            }
+        },
+        Ok(None) => {
+            eprintln!("Wikidata has no image info for Q{qid}.");
+            None
+        }
+        Err(err) => {
+            eprintln!("Unable to fetch wikidata image info for Q{qid}: {:?}", err);
             None
         }
     }
@@ -285,7 +310,12 @@ pub fn work_thread(
                         send_response(ResponseBody::MetObjectsForGalleryWall(objects));
                     }
                     RequestBody::FetchImage { object_id, size } => {
-                        let image_path = fetch_image(&cache, object_id, size);
+                        let mut image_path = fetch_met_api_image(&cache, object_id, size);
+                        if image_path.is_none() {
+                            if let Some(qid) = db.get_met_object_wikidata_qid(object_id)? {
+                                image_path = fetch_wikidata_image(&cache, qid)
+                            }
+                        }
                         send_response(ResponseBody::Image(image_path));
                     }
                 }

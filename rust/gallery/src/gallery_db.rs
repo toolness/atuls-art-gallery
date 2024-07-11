@@ -235,6 +235,17 @@ impl GalleryDb {
         Ok(())
     }
 
+    pub fn get_met_object_wikidata_qid(&self, met_object_id: u64) -> Result<Option<u64>> {
+        let mut statement = self
+            .conn
+            .prepare_cached("SELECT wikidata_qid FROM met_objects WHERE id = ?1")?;
+        let mut rows = statement.query([met_object_id])?;
+        let Some(row) = rows.next()? else {
+            return Ok(None);
+        };
+        Ok(row.get(0)?)
+    }
+
     pub fn get_met_objects_for_gallery_wall<T: AsRef<str>>(
         &self,
         gallery_id: i64,

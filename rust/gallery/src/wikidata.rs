@@ -21,6 +21,19 @@ pub fn try_to_parse_qid_from_wikidata_url<T: AsRef<str>>(url: T) -> Option<u64> 
     }
 }
 
+pub struct WikidataImageInfo {
+    qid: u64,
+    image_url: String,
+}
+
+impl WikidataImageInfo {
+    pub fn try_to_download_image(&self, cache: &GalleryCache) -> Result<String> {
+        let image_filename = format!("{ROOT_CACHE_SUBDIR}/Q{}.jpg", self.qid);
+        cache.cache_binary_url(&self.image_url, &image_filename)?;
+        Ok(image_filename)
+    }
+}
+
 #[derive(Debug, Deserialize)]
 struct WbGetClaimsResponse {
     claims: Claims,
@@ -71,8 +84,11 @@ fn get_url_for_image<T: AsRef<str>>(image_filename: T) -> String {
     )
 }
 
-pub fn try_to_get_wikidata_image_url(cache: &GalleryCache, qid: u64) -> Result<Option<String>> {
-    let filename = format!("{ROOT_CACHE_SUBDIR}/wbgetclaims-P18-Q{qid}");
+pub fn load_wikidata_image_info(
+    cache: &GalleryCache,
+    qid: u64,
+) -> Result<Option<WikidataImageInfo>> {
+    let filename = format!("{ROOT_CACHE_SUBDIR}/wbgetclaims-P18-Q{qid}.json");
     cache.cache_json_url(
         format!("https://www.wikidata.org/w/api.php?action=wbgetclaims&property=P18&entity=Q{qid}&format=json"),
         &filename,
@@ -81,7 +97,12 @@ pub fn try_to_get_wikidata_image_url(cache: &GalleryCache, qid: u64) -> Result<O
     let response =
         serde_json::from_str::<WbGetClaimsResponse>(&cache.load_cached_string(&filename)?);
     match response {
-        Ok(record) => Ok(record.get_p18_image().map(get_url_for_image)),
+        Ok(response) => {
+            let Some(image_url) = response.get_p18_image().map(get_url_for_image) else {
+                return Ok(None);
+            };
+            Ok(Some(WikidataImageInfo { qid, image_url }))
+        }
         Err(_) => Ok(None),
     }
 }

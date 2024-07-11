@@ -50,6 +50,11 @@ enum Sort {
 enum Commands {
     /// Import MetObjects.csv into database.
     Csv {
+        /// Path to CSV
+        /// Max objects to process
+        #[arg(short, long)]
+        path: Option<PathBuf>,
+
         /// Max objects to process
         #[arg(short, long)]
         max: Option<usize>,
@@ -109,11 +114,21 @@ fn run() -> Result<()> {
     let db = GalleryDb::new(Connection::open(db_path)?);
     match args.command {
         Commands::Csv {
+            path,
             max,
             download,
             all_media,
             warnings,
-        } => csv_command(args, cache, db, max, download, all_media, warnings),
+        } => csv_command(
+            args.verbose,
+            path,
+            cache,
+            db,
+            max,
+            download,
+            all_media,
+            warnings,
+        ),
         Commands::Layout {
             sort,
             random_seed,
@@ -190,7 +205,8 @@ fn layout_command(
 }
 
 fn csv_command(
-    args: Args,
+    verbose: bool,
+    path: Option<PathBuf>,
     cache: GalleryCache,
     mut db: GalleryDb,
     max: Option<usize>,
@@ -198,7 +214,7 @@ fn csv_command(
     all_media: bool,
     warnings: bool,
 ) -> Result<()> {
-    let csv_file = cache.get_cached_path("MetObjects.csv");
+    let csv_file = path.unwrap_or(cache.get_cached_path("MetObjects.csv"));
     let reader = BufReader::new(File::open(csv_file)?);
     let rdr = csv::Reader::from_reader(reader);
     db.reset_met_objects_table()?;
@@ -216,7 +232,7 @@ fn csv_command(
         // deserialization.
         let csv_record: PublicDomain2DMetObjectRecord = result?;
         count += 1;
-        if args.verbose {
+        if verbose {
             println!(
                 "#{}: medium={} title={}",
                 csv_record.object_id, csv_record.medium, csv_record.title
@@ -228,7 +244,7 @@ fn csv_command(
         }
         records_to_commit.push(csv_record);
         if records_to_commit.len() >= TRANSACTION_BATCH_SIZE {
-            if args.verbose {
+            if verbose {
                 println!("Committing {} records.", records_to_commit.len());
             }
             db.add_public_domain_2d_met_objects(&records_to_commit)?;
@@ -242,7 +258,7 @@ fn csv_command(
         }
     }
     if records_to_commit.len() > 0 {
-        if args.verbose {
+        if verbose {
             println!("Committing {} records.", records_to_commit.len());
         }
         db.add_public_domain_2d_met_objects(&records_to_commit)?;
@@ -354,6 +370,15 @@ mod tests {
         assert!(get_num_filter_results(&db, "benjamin franklin") > 0);
         assert!(get_num_filter_results(&db, "american") > 0);
         assert_eq!(get_num_filter_results(&db, "blarg blarg blarg"), 0);
+
+        // Search for nonexistent met object
+        assert_eq!(db.get_met_object_wikidata_qid(999999).unwrap(), None);
+
+        // Search for existing met object without QID
+        assert_eq!(db.get_met_object_wikidata_qid(39).unwrap(), None);
+
+        // Search for existing met object with QID
+        assert_eq!(db.get_met_object_wikidata_qid(482).unwrap(), Some(79023693));
     }
 
     fn get_num_filter_results(db: &GalleryDb, filter: &'static str) -> usize {
