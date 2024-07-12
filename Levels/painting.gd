@@ -129,6 +129,18 @@ func _get_side_multiplier(value: float) -> float:
 	return 1.0
 
 
+func _wait_for_bounding_box_recomputes():
+	var num_frames := 1
+	if Lobby.IS_CLIENT:
+		# Absolutely no idea why this takes longer when we're connected to a server,
+		# but if we don't do this, the bounding boxes don't seem to be accurate.
+		num_frames = 5
+	for i in range(num_frames):
+		await get_tree().process_frame
+		if not is_inside_tree():
+			return
+
+
 func configure_wall_label() -> void:
 	var aabb_size := painting.get_aabb().size
 	var x := wall_label_primary.position.x
@@ -146,7 +158,7 @@ func configure_wall_label() -> void:
 	# displaying them only when we know their position.
 	wall_label_secondary.visible = false
 	wall_label_tertiary.visible = false
-	await get_tree().process_frame
+	await _wait_for_bounding_box_recomputes()
 	if not is_inside_tree():
 		return
 
@@ -158,7 +170,7 @@ func configure_wall_label() -> void:
 	wall_label_secondary.text = _default_str(title, "Untitled") + date_suffix
 	wall_label_secondary.visible = true
 
-	await get_tree().process_frame
+	await _wait_for_bounding_box_recomputes()
 	if not is_inside_tree():
 		return
 	wall_label_tertiary.position.x = left_edge
