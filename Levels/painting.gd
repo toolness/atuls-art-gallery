@@ -14,11 +14,21 @@ const WALL_LABEL_SECONDARY_TOP_PADDING = 0.005
 
 const WALL_LABEL_TERTIARY_TOP_PADDING = 0.02
 
+## The maximum distance, in meters, from the player a painting
+## must be in order to start loading its small image.
+##
+## If the player is further than this distance away, the small
+## image won't load, as it's assumed that the player can't see
+## the painting.
+const SMALL_IMAGE_DISTANCE_THRESHOLD := 30.0
+
 var painting_surface_material: StandardMaterial3D
 
 var original_albedo_color: Color
 
-var loaded_large_image := false
+var started_loading_small_image := false
+
+var started_loading_large_image := false
 
 @onready var painting: MeshInstance3D = %painting/Painting
 
@@ -58,34 +68,57 @@ func _ready():
 		painting.set_scale(inner_painting_scale)
 	else:
 		print("Warning: No inner_painting_scale available for painting!")
-	if met_object_id:
-		# TODO: Only do this when the player is near the painting.
-		var small_image := await MetObjects.fetch_small_image(met_object_id)
-		if not is_inside_tree():
-			# We despawned, exit.
-			return
-		if not small_image:
-			# Oof, fetching the image failed.
-			visible = false
-			return
-		small_image.generate_mipmaps()
-		small_image_texture = ImageTexture.create_from_image(small_image)
-		var material: StandardMaterial3D = painting.mesh.surface_get_material(PAINTING_SURFACE_IDX)
-		painting_surface_material = material.duplicate()
-		painting_surface_material.albedo_color = Color.TRANSPARENT
-		painting_surface_material.albedo_texture = small_image_texture
-
-		# It's easier to experiment with these settings via script rather than setting them in Blender
-		# and constantly re-exporting/re-importing.
-		painting_surface_material.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
-		painting_surface_material.metallic = 0.0
-		painting_surface_material.roughness = 1.0
-		if not UserInterface.potato_mode:
-			painting_surface_material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
-
-		painting.set_surface_override_material(PAINTING_SURFACE_IDX, painting_surface_material)
-	else:
+	if not met_object_id:
 		print("Warning: No met_object_id available for painting!")
+	var material: StandardMaterial3D = painting.mesh.surface_get_material(PAINTING_SURFACE_IDX)
+	painting_surface_material = material.duplicate()
+	painting_surface_material.albedo_color = Color.TRANSPARENT
+
+	# It's easier to experiment with these settings via script rather than setting them in Blender
+	# and constantly re-exporting/re-importing.
+	painting_surface_material.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
+	painting_surface_material.metallic = 0.0
+	painting_surface_material.roughness = 1.0
+	if not UserInterface.potato_mode:
+		painting_surface_material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+
+	painting.set_surface_override_material(PAINTING_SURFACE_IDX, painting_surface_material)
+
+	# Note that we don't want to see if the player is close enough to load the small
+	# image yet, because our painting may not yet have been moved to its final position
+	# when it first enters the scene tree.
+
+
+func _maybe_load_small_image():
+	if started_loading_small_image:
+		return
+	if not met_object_id:
+		return
+	var player: Player = UserInterface.main_player
+	if not player:
+		return
+	var distance_from_player := player.global_position.distance_to(global_position)
+	if distance_from_player > SMALL_IMAGE_DISTANCE_THRESHOLD:
+		return
+	# print("Loading painting with met object id ", met_object_id, " (", distance_from_player, " m from player).")
+	started_loading_small_image = true
+	var small_image := await MetObjects.fetch_small_image(met_object_id)
+	if not is_inside_tree():
+		# We despawned, exit.
+		return
+	if not small_image:
+		# Oof, fetching the image failed.
+		visible = false
+		return
+	small_image.generate_mipmaps()
+	small_image_texture = ImageTexture.create_from_image(small_image)
+	painting_surface_material.albedo_texture = small_image_texture
+
+
+func _process(_delta: float):
+	_maybe_load_small_image()
+	if started_loading_small_image:
+		set_process(false)
 
 
 func _get_side_multiplier(value: float) -> float:
@@ -198,7 +231,7 @@ func _set_large_image(large_image: Image):
 		if old_painting and old_painting.is_inside_tree():
 			print("Evicting large image for met object id ", old_painting.met_object_id, ".")
 			old_painting.painting_surface_material.albedo_texture = old_painting.small_image_texture
-			old_painting.loaded_large_image = false
+			old_painting.started_loading_large_image = false
 	paintings_with_large_images.push_back(weakref(self))
 	large_image.generate_mipmaps()
 	var large_image_texture := ImageTexture.create_from_image(large_image)
@@ -219,8 +252,8 @@ func handle_player_looking_at(camera: Camera3D):
 		# We haven't loaded a small image yet.
 		return
 
-	if loaded_large_image:
-		# We already loaded the large image, nothing to do.
+	if started_loading_large_image:
+		# We already loaded (or started loading) the large image, nothing to do.
 		return
 
 	var unproj_size := _get_approx_unprojected_rect(camera).size
@@ -228,7 +261,7 @@ func handle_player_looking_at(camera: Camera3D):
 	var area_ratio := (unproj_size.x * unproj_size.y) / (small_image_size.x * small_image_size.y)
 
 	if area_ratio > LARGE_IMAGE_AREA_RATIO_THRESHOLD:
-		loaded_large_image = true
+		started_loading_large_image = true
 		var large_image := await MetObjects.fetch_large_image(met_object_id)
 		if not is_inside_tree():
 			# We despawned, exit.
