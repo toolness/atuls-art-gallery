@@ -6,3 +6,4 @@ pub mod layout;
 pub mod met_api;
 pub mod random;
 pub mod wikidata;
+pub mod filter_parser;

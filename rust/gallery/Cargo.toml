@@ -11,3 +11,4 @@ ureq = { version = "2.9.7" }
 rusqlite = { version = "0.31.0", features = ["bundled"] }
 md5 = "0.7.0"
 percent-encoding = "2.3.1"
+nom = "7.1.3"
