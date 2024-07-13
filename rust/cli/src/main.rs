@@ -1,4 +1,5 @@
 mod met_csv;
+mod wikidata_dump;
 
 use std::fs::{self, File};
 use std::path::PathBuf;
@@ -17,6 +18,7 @@ use gallery::met_api::load_met_api_record;
 use gallery::random::Rng;
 use met_csv::{iter_public_domain_2d_met_csv_objects, PublicDomain2DMetObjectOptions};
 use rusqlite::Connection;
+use wikidata_dump::load_wikidata_dump;
 
 use std::io::BufReader;
 
@@ -100,6 +102,10 @@ enum Commands {
         #[arg()]
         gallery_id: i64,
     },
+    Wikidata {
+        #[arg()]
+        dumpfile: PathBuf,
+    },
 }
 
 fn run() -> Result<()> {
@@ -144,6 +150,7 @@ fn run() -> Result<()> {
             args.verbose,
         ),
         Commands::ShowLayout { gallery_id } => show_layout_command(db, gallery_id),
+        Commands::Wikidata { dumpfile } => load_wikidata_dump(dumpfile),
     }
 }
 
