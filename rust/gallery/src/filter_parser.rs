@@ -1,10 +1,10 @@
 use nom::{
     branch::alt,
     bytes::complete::{is_not, tag, tag_no_case, take_until},
-    character::complete::multispace1,
+    character::complete::multispace0,
     combinator::{map, opt, value},
-    multi::separated_list0,
-    sequence::{delimited, tuple},
+    multi::fold_many0,
+    sequence::{delimited, separated_pair, tuple},
     IResult,
 };
 
@@ -16,15 +16,56 @@ pub enum Filter<'a> {
     Term(&'a str),
 }
 
-#[derive(Debug, Clone, PartialEq)]
-enum FilterToken<'a> {
-    Or,
-    Term(&'a str),
-    NegatedTerm(&'a str),
+/// Parse a filter query that follows the general pattern of Google's advanced search syntax:
+///
+///   * Adjacent terms are ANDed together
+///   * Terms with an OR between them are ORed together
+///   * Terms with a `-` in front of them are negated
+///
+/// Concretely:
+///
+///   * `"boop jones"` searches for `"boop"` _and_ `"jones"`
+///   * `"boop -jones"` searches for `"boop"` and _not_ `"jones"`
+///   * `"boop or jones"` searches for `"boop"` _or_ `"jones"`
+pub fn parse_filter(input: &str) -> Option<Filter> {
+    let Some((remaining, filter)) = filter(input).ok() else {
+        return None;
+    };
+    if remaining.len() != 0 {
+        return None;
+    }
+    filter
 }
 
-fn or(input: &str) -> IResult<&str, FilterToken> {
-    nom::combinator::value(FilterToken::Or, tag_no_case("or"))(input)
+fn term(input: &str) -> IResult<&str, Filter> {
+    delimited(
+        multispace0,
+        map(
+            tuple((opt(value((), tag("-"))), alt((quoted_term, unquoted_term)))),
+            |(negated, term_str)| match negated {
+                Some(()) => Filter::Not(Filter::Term(term_str).into()),
+                None => Filter::Term(term_str),
+            },
+        ),
+        multispace0,
+    )(input)
+}
+
+fn or(input: &str) -> IResult<&str, Filter> {
+    map(separated_pair(term, tag_no_case("or"), term), |(a, b)| {
+        Filter::Or(a.into(), b.into())
+    })(input)
+}
+
+fn filter(input: &str) -> IResult<&str, Option<Filter>> {
+    fold_many0(
+        alt((or, term)),
+        || None,
+        |acc: Option<Filter>, item: Filter| match acc {
+            Some(other) => Some(Filter::And(other.into(), item.into())),
+            None => Some(item),
+        },
+    )(input)
 }
 
 fn unquoted_term(input: &str) -> IResult<&str, &str> {
@@ -35,63 +76,9 @@ fn quoted_term(input: &str) -> IResult<&str, &str> {
     delimited(tag("\""), take_until("\""), tag("\""))(input)
 }
 
-fn term(input: &str) -> IResult<&str, FilterToken> {
-    map(
-        tuple((opt(value((), tag("-"))), alt((quoted_term, unquoted_term)))),
-        |(negated, term_str)| match negated {
-            Some(()) => FilterToken::NegatedTerm(term_str),
-            None => FilterToken::Term(term_str),
-        },
-    )(input)
-}
-
-fn filter_token(input: &str) -> IResult<&str, FilterToken> {
-    alt((or, term))(input)
-}
-
-fn filter_tokens(input: &str) -> IResult<&str, Vec<FilterToken>> {
-    separated_list0(multispace1, filter_token)(input)
-}
-
-pub fn parse_filter(input: &str) -> Option<Filter> {
-    let Some((remaining, tokens)) = filter_tokens(input).ok() else {
-        return None;
-    };
-    if remaining.len() != 0 {
-        return None;
-    }
-    // It's possible that this could be implemented using a separate nom parser that operates
-    // on FilterTokens and yields Filter? Regardless, the following implementation is kind of
-    // gross and convoluted, but the syntax we're parsing is simple enough that it'll do for now.
-    let mut current: Option<Filter> = None;
-    let mut use_or = false;
-    for token in tokens {
-        let next = match token {
-            FilterToken::Or => {
-                use_or = true;
-                continue;
-            }
-            FilterToken::Term(value) => Filter::Term(value),
-            FilterToken::NegatedTerm(value) => Filter::Not(Box::new(Filter::Term(value))),
-        };
-        let next_current = match current.take() {
-            Some(current) => {
-                if use_or {
-                    Filter::Or(Box::new(current), Box::new(next))
-                } else {
-                    Filter::And(Box::new(current), Box::new(next))
-                }
-            }
-            None => next,
-        };
-        current = Some(next_current);
-    }
-    current
-}
-
 #[cfg(test)]
 mod tests {
-    use crate::filter_parser::{filter_token, filter_tokens, parse_filter, Filter, FilterToken};
+    use crate::filter_parser::{parse_filter, Filter};
 
     #[test]
     fn test_parse_filter_works() {
@@ -102,6 +89,13 @@ mod tests {
             Some(Filter::And(
                 Filter::Term("hi").into(),
                 Filter::Term("there").into(),
+            ))
+        );
+        assert_eq!(
+            parse_filter("hi     \"there bub\""),
+            Some(Filter::And(
+                Filter::Term("hi").into(),
+                Filter::Term("there bub").into(),
             ))
         );
         assert_eq!(
@@ -119,59 +113,24 @@ mod tests {
             ))
         );
         assert_eq!(
+            parse_filter("hi there OR bub"),
+            Some(Filter::And(
+                Filter::Term("hi").into(),
+                Filter::Or(Filter::Term("there").into(), Filter::Term("bub").into()).into(),
+            ))
+        );
+        assert_eq!(
             parse_filter("hi -there"),
             Some(Filter::And(
                 Filter::Term("hi").into(),
                 Filter::Not(Filter::Term("there").into()).into(),
             ))
         );
-    }
-
-    #[test]
-    fn test_filter_token_works() {
-        assert_eq!(filter_token("hi"), Ok(("", FilterToken::Term("hi"))));
         assert_eq!(
-            filter_token("hi-there"),
-            Ok(("", FilterToken::Term("hi-there")))
-        );
-        assert_eq!(
-            filter_token("hi there"),
-            Ok((" there", FilterToken::Term("hi")))
-        );
-        assert_eq!(
-            filter_token("\"hi there\""),
-            Ok(("", FilterToken::Term("hi there")))
-        );
-        assert_eq!(
-            filter_token("\"hi or - there\""),
-            Ok(("", FilterToken::Term("hi or - there")))
-        );
-        assert_eq!(
-            filter_token("-boop"),
-            Ok(("", FilterToken::NegatedTerm("boop")))
-        );
-        assert_eq!(filter_token("or"), Ok(("", FilterToken::Or)));
-    }
-
-    #[test]
-    fn test_filter_tokens_works() {
-        assert_eq!(filter_tokens("hi"), Ok(("", vec![FilterToken::Term("hi")])));
-        assert_eq!(
-            filter_tokens("hi bub"),
-            Ok(("", vec![FilterToken::Term("hi"), FilterToken::Term("bub")]))
-        );
-        assert_eq!(
-            filter_tokens("hi -bub"),
-            Ok((
-                "",
-                vec![FilterToken::Term("hi"), FilterToken::NegatedTerm("bub")]
-            ))
-        );
-        assert_eq!(
-            filter_tokens("hi \"bub sup\""),
-            Ok((
-                "",
-                vec![FilterToken::Term("hi"), FilterToken::Term("bub sup")]
+            parse_filter("hi -\"there bub\""),
+            Some(Filter::And(
+                Filter::Term("hi").into(),
+                Filter::Not(Filter::Term("there bub").into()).into(),
             ))
         );
     }
