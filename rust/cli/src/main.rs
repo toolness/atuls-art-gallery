@@ -386,9 +386,16 @@ mod tests {
         assert_eq!(x, 4.0);
         assert_eq!(y, 9.0);
 
+        // Ensure unquoted terms are ANDed together...
         assert!(get_num_filter_results(&db, "benjamin franklin") > 0);
+        assert!(get_num_filter_results(&db, "franklin benjamin") > 0);
+
+        // Ensure quoted terms are exact substring matches...
+        assert!(get_num_filter_results(&db, "\"benjamin franklin\"") > 0);
+        assert_eq!(get_num_filter_results(&db, "\"franklin benjamin\""), 0);
+
+        // Ensure we search the culture field...
         assert!(get_num_filter_results(&db, "american") > 0);
-        assert_eq!(get_num_filter_results(&db, "blarg blarg blarg"), 0);
 
         // Search for nonexistent met object
         assert_eq!(db.get_met_object_wikidata_qid(999999).unwrap(), None);
