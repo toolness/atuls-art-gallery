@@ -95,6 +95,7 @@ mod tests {
 
     #[test]
     fn test_parse_filter_works() {
+        assert_eq!(parse_filter(""), None);
         assert_eq!(parse_filter("hi"), Some(Filter::Term("hi")));
         assert_eq!(
             parse_filter("hi there"),
