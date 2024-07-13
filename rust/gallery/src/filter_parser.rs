@@ -60,6 +60,9 @@ pub fn parse_filter(input: &str) -> Option<Filter> {
     if remaining.len() != 0 {
         return None;
     }
+    // It's possible that this could be implemented using a separate nom parser that operates
+    // on FilterTokens and yields Filter? Regardless, the following implementation is kind of
+    // gross and convoluted, but the syntax we're parsing is simple enough that it'll do for now.
     let mut current: Option<Filter> = None;
     let mut use_or = false;
     for token in tokens {
