@@ -7,10 +7,10 @@ use nom::{
 };
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum FilterToken {
+pub enum FilterToken<'a> {
     Or,
     Not,
-    Term(String),
+    Term(&'a str),
 }
 
 fn or(input: &str) -> IResult<&str, FilterToken> {
@@ -26,7 +26,7 @@ fn term(input: &str) -> IResult<&str, FilterToken> {
 }
 
 fn str_to_term(value: &str) -> FilterToken {
-    FilterToken::Term(value.to_string())
+    FilterToken::Term(value)
 }
 
 fn quoted_term(input: &str) -> IResult<&str, FilterToken> {
@@ -43,11 +43,11 @@ mod tests {
 
     #[test]
     fn test_it_works() {
-        assert_eq!(filter_token("hi"), Ok(("", FilterToken::Term("hi".to_string()))));
-        assert_eq!(filter_token("hi-there"), Ok(("", FilterToken::Term("hi-there".to_string()))));
-        assert_eq!(filter_token("hi there"), Ok((" there", FilterToken::Term("hi".to_string()))));
-        assert_eq!(filter_token("\"hi there\""), Ok(("", FilterToken::Term("hi there".to_string()))));
-        assert_eq!(filter_token("\"hi or - there\""), Ok(("", FilterToken::Term("hi or - there".to_string()))));
+        assert_eq!(filter_token("hi"), Ok(("", FilterToken::Term("hi"))));
+        assert_eq!(filter_token("hi-there"), Ok(("", FilterToken::Term("hi-there"))));
+        assert_eq!(filter_token("hi there"), Ok((" there", FilterToken::Term("hi"))));
+        assert_eq!(filter_token("\"hi there\""), Ok(("", FilterToken::Term("hi there"))));
+        assert_eq!(filter_token("\"hi or - there\""), Ok(("", FilterToken::Term("hi or - there"))));
         assert_eq!(filter_token("-"), Ok(("", FilterToken::Not)));
         assert_eq!(filter_token("or"), Ok(("", FilterToken::Or)));
     }
