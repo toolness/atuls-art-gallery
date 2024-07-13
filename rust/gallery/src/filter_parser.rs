@@ -1,36 +1,42 @@
 use nom::{
-    branch::alt, bytes::complete::{is_not, tag, take_until}, character::complete::multispace1, combinator::map, multi::separated_list0, sequence::delimited, IResult
+    branch::alt, bytes::complete::{is_not, tag, take_until}, character::complete::multispace1, combinator::{map, opt, value}, multi::separated_list0, sequence::{delimited, tuple}, IResult
 };
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum FilterToken<'a> {
     Or,
-    Not,
     Term(&'a str),
+    NegatedTerm(&'a str),
 }
 
 fn or(input: &str) -> IResult<&str, FilterToken> {
     nom::combinator::value(FilterToken::Or, tag("or"))(input)
 }
 
-fn not(input: &str) -> IResult<&str, FilterToken> {
-    nom::combinator::value(FilterToken::Not, tag("-"))(input)
+fn unquoted_term(input: &str) -> IResult<&str, &str> {
+    is_not(" \t\r\n")(input)
+}
+
+fn quoted_term(input: &str) -> IResult<&str, &str> {
+    delimited(tag("\""), take_until("\""), tag("\""))(input)
 }
 
 fn term(input: &str) -> IResult<&str, FilterToken> {
-    nom::combinator::map(is_not(" \t\r\n"), str_to_term)(input)
-}
-
-fn str_to_term(value: &str) -> FilterToken {
-    FilterToken::Term(value)
-}
-
-fn quoted_term(input: &str) -> IResult<&str, FilterToken> {
-    delimited(tag("\""), map(take_until("\""), str_to_term), tag("\""))(input)
+    map(
+        tuple((
+        opt(value((), tag("-"))),
+        alt((quoted_term, unquoted_term))
+    )), |(negated, term_str)| {
+        match negated {
+            Some(()) => FilterToken::NegatedTerm(term_str),
+            None => FilterToken::Term(term_str),
+        }
+    })
+    (input)
 }
 
 pub fn filter_token(input: &str) -> IResult<&str, FilterToken> {
-    alt((or, not, quoted_term, term))(input)
+    alt((or, term))(input)
 }
 
 pub fn filter_tokens(input: &str) -> IResult<&str, Vec<FilterToken>> {
@@ -48,7 +54,7 @@ mod tests {
         assert_eq!(filter_token("hi there"), Ok((" there", FilterToken::Term("hi"))));
         assert_eq!(filter_token("\"hi there\""), Ok(("", FilterToken::Term("hi there"))));
         assert_eq!(filter_token("\"hi or - there\""), Ok(("", FilterToken::Term("hi or - there"))));
-        assert_eq!(filter_token("-"), Ok(("", FilterToken::Not)));
+        assert_eq!(filter_token("-boop"), Ok(("", FilterToken::NegatedTerm("boop"))));
         assert_eq!(filter_token("or"), Ok(("", FilterToken::Or)));
     }
 
