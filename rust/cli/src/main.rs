@@ -135,7 +135,14 @@ fn run() -> Result<()> {
             random_seed,
             use_dense_layout,
             filter,
-        } => layout_command(db, sort, random_seed, use_dense_layout, filter),
+        } => layout_command(
+            db,
+            sort,
+            random_seed,
+            use_dense_layout,
+            filter,
+            args.verbose,
+        ),
         Commands::ShowLayout { gallery_id } => show_layout_command(db, gallery_id),
     }
 }
@@ -168,11 +175,12 @@ fn layout_command(
     random_seed: Option<u64>,
     use_dense_layout: bool,
     filter: Option<String>,
+    verbose: bool,
 ) -> Result<()> {
     let walls = get_walls()?;
     db.reset_layout_table()?;
 
-    let mut met_objects = db.get_all_met_objects_for_layout(&MetObjectQueryOptions {
+    let options = MetObjectQueryOptions {
         filter,
         order_by: match sort.unwrap_or_default() {
             Sort::Id => Some("id".to_owned()),
@@ -180,7 +188,17 @@ fn layout_command(
             Sort::Random => None,
         },
         ..Default::default()
-    })?;
+    };
+
+    if verbose && options.filter.is_some() {
+        let (query, params) = options.where_clause();
+        println!("Filter SQL: {query}");
+        for (id, param) in params.iter().enumerate() {
+            println!("Param #{}: {:?}", id + 1, param)
+        }
+    }
+
+    let mut met_objects = db.get_all_met_objects_for_layout(&options)?;
     if matches!(sort, Some(Sort::Random)) {
         let mut rng = Rng::new(random_seed);
         println!("Randomizing layout using seed {}.", rng.seed);

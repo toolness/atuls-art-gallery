@@ -1,5 +1,7 @@
 use anyhow::Result;
-use rusqlite::{Connection, ToSql, Transaction};
+use rusqlite::{Connection, Transaction};
+
+use crate::filter_parser::{parse_filter, Filter};
 
 pub const DEFAULT_GALLERY_DB_FILENAME: &'static str = "gallery4.sqlite";
 
@@ -23,15 +25,47 @@ impl MetObjectQueryOptions {
         )
     }
 
-    fn where_clause(&self) -> (String, Vec<Box<dyn ToSql>>) {
-        let mut params: Vec<Box<dyn ToSql>> = vec![];
+    pub fn where_clause(&self) -> (String, Vec<String>) {
+        let mut params: Vec<String> = vec![];
         let where_clause = if let Some(filter) = &self.filter {
-            params.push(Box::new(format!("%{filter}%")));
-            format!("WHERE (title LIKE ?1) OR (artist LIKE ?1) OR (medium LIKE ?1) OR (culture LIKE ?1)")
+            if let Some(ast) = parse_filter(filter) {
+                let mut query_parts = vec![];
+                filter_to_sql(ast, &mut query_parts, &mut params);
+                let query = query_parts.join("");
+                format!("WHERE {}", query)
+            } else {
+                String::default()
+            }
         } else {
             String::default()
         };
         (where_clause, params)
+    }
+}
+
+fn filter_to_sql(filter: Filter, query_parts: &mut Vec<String>, params: &mut Vec<String>) {
+    match filter {
+        Filter::And(a, b) => {
+            filter_to_sql(*a, query_parts, params);
+            query_parts.push(" AND ".into());
+            filter_to_sql(*b, query_parts, params);
+        }
+        Filter::Or(a, b) => {
+            filter_to_sql(*a, query_parts, params);
+            query_parts.push(" OR ".into());
+            filter_to_sql(*b, query_parts, params);
+        }
+        Filter::Not(value) => {
+            query_parts.push("NOT ".into());
+            filter_to_sql(*value, query_parts, params);
+        }
+        Filter::Term(term) => {
+            params.push(format!("%{term}%"));
+            let num = params.len();
+            query_parts.push(
+                format!("((title LIKE ?{num}) OR (artist LIKE ?{num}) OR (medium LIKE ?{num}) OR (culture LIKE ?{num}))")
+            )
+        }
     }
 }
 
