@@ -30,6 +30,9 @@ pub fn load_wikidata_dump(dumpfile_path: PathBuf, seek_from: Option<u64>) -> Res
             break;
         }
         if buf[0] == b'{' && buf[buf.len() - 1] == b'}' {
+            // Unfortunately, the GZip header doesn't seem to have an 'extra' block defined on it,
+            // which means there's definitely no metadata that will tell us the size of the block
+            // beforehand. If there was, we could have done all this decompression in parallel.
             println!("Read {bytes_read} bytes of JSON at position {latest_position}.");
             let new_qids = parse_qids(&buf);
             total += new_qids;
