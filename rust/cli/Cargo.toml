@@ -17,3 +17,6 @@ gallery = { path = "../gallery" }
 rusqlite = { version = "0.31.0", features = ["bundled"] }
 nom = "7.1.3"
 flate2 = "1.0.30"
+sled = "0.34.7" 
+byteorder = "1.5.0"
+zerocopy = { version = "0.7.35", features = ["derive"] }
