@@ -45,7 +45,9 @@ pub fn load_wikidata_dump(dumpfile_path: PathBuf, seek_from: Option<u64>) -> Res
     let mut total = 0;
     loop {
         buf.clear();
+        let now = std::time::SystemTime::now();
         let bytes_read = gz.read_to_end(&mut buf)?;
+        let elapsed = now.elapsed().unwrap();
         if bytes_read == 0 {
             break;
         }
@@ -53,12 +55,18 @@ pub fn load_wikidata_dump(dumpfile_path: PathBuf, seek_from: Option<u64>) -> Res
             // Unfortunately, the GZip header doesn't seem to have an 'extra' block defined on it,
             // which means there's definitely no metadata that will tell us the size of the block
             // beforehand. If there was, we could have done all this decompression in parallel.
-            println!("Read {bytes_read} bytes of JSON at position {gzip_member_offset}.");
+            println!(
+                "Read {bytes_read} bytes of JSON at position {gzip_member_offset} in {} ms.",
+                elapsed.as_millis()
+            );
+            let now = std::time::SystemTime::now();
             let new_qids = parse_and_upsert_qids(&buf, &index_db, gzip_member_offset);
+            let elapsed = now.elapsed().unwrap();
             total += new_qids;
             println!(
-                "{:.2}% done, {new_qids} QIDs parsed from gzip member ({total} total).",
-                (gzip_member_offset as f64) / (total_len as f64) * 100.0
+                "{:.2}% done, {new_qids} QIDs parsed from gzip member ({total} total) in {} ms.",
+                (gzip_member_offset as f64) / (total_len as f64) * 100.0,
+                elapsed.as_millis()
             );
         }
         let mut underlying_reader = gz.into_inner();
