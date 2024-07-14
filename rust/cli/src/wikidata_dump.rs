@@ -15,6 +15,7 @@ fn quick_parse_item_id(input: &str) -> IResult<&str, &str> {
 pub fn load_wikidata_dump(dumpfile_path: PathBuf, seek_from: Option<u64>) -> Result<()> {
     println!("Parsing QIDs from {}...", dumpfile_path.display());
     let file = std::fs::File::open(dumpfile_path)?;
+    let total_len = file.metadata().unwrap().len();
     let mut reader = BufReader::with_capacity(BUFREADER_CAPACITY, file);
     if let Some(seek_from) = seek_from {
         reader.seek(std::io::SeekFrom::Start(seek_from))?;
@@ -36,7 +37,10 @@ pub fn load_wikidata_dump(dumpfile_path: PathBuf, seek_from: Option<u64>) -> Res
             println!("Read {bytes_read} bytes of JSON at position {latest_position}.");
             let new_qids = parse_qids(&buf);
             total += new_qids;
-            println!("{new_qids} QIDs parsed from gzip member ({total} total).");
+            println!(
+                "{:.2}% done, {new_qids} QIDs parsed from gzip member ({total} total).",
+                (latest_position as f64) / (total_len as f64) * 100.0
+            );
         }
         let mut underlying_reader = gz.into_inner();
         latest_position = underlying_reader.stream_position().unwrap();
