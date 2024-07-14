@@ -105,6 +105,9 @@ enum Commands {
     Wikidata {
         #[arg()]
         dumpfile: PathBuf,
+
+        #[arg(short, long)]
+        seek_from: Option<u64>,
     },
 }
 
@@ -150,7 +153,10 @@ fn run() -> Result<()> {
             args.verbose,
         ),
         Commands::ShowLayout { gallery_id } => show_layout_command(db, gallery_id),
-        Commands::Wikidata { dumpfile } => load_wikidata_dump(dumpfile),
+        Commands::Wikidata {
+            dumpfile,
+            seek_from,
+        } => load_wikidata_dump(dumpfile, seek_from),
     }
 }
 

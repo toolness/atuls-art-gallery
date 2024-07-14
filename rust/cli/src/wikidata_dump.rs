@@ -1,5 +1,5 @@
 use anyhow::Result;
-use bzip2::bufread::MultiBzDecoder;
+use flate2::bufread::GzDecoder;
 use nom::{bytes::complete::tag, character::complete::digit1, sequence::preceded, IResult};
 use std::{
     io::{prelude::*, BufReader},
@@ -12,19 +12,48 @@ fn quick_parse_item_id(input: &str) -> IResult<&str, &str> {
     preceded(tag(r#"{"type":"item","id":"Q"#), digit1)(input)
 }
 
-pub fn load_wikidata_dump(dumpfile_path: PathBuf) -> Result<()> {
+pub fn load_wikidata_dump(dumpfile_path: PathBuf, seek_from: Option<u64>) -> Result<()> {
+    println!("Parsing QIDs from {}...", dumpfile_path.display());
     let file = std::fs::File::open(dumpfile_path)?;
-    let reader = BufReader::with_capacity(BUFREADER_CAPACITY, file);
-    let multi_decompressor = MultiBzDecoder::new(reader);
-    let mut buf_reader = BufReader::with_capacity(BUFREADER_CAPACITY, multi_decompressor);
-
-    let mut contents = String::new();
+    let mut reader = BufReader::with_capacity(BUFREADER_CAPACITY, file);
+    if let Some(seek_from) = seek_from {
+        reader.seek(std::io::SeekFrom::Start(seek_from))?;
+    }
+    let mut gz = GzDecoder::new(reader);
+    let mut buf: Vec<u8> = vec![];
+    let mut latest_position: u64 = seek_from.unwrap_or(0);
     let mut total = 0;
     loop {
-        contents.clear();
-        let bytes_read = buf_reader.read_line(&mut contents)?;
+        buf.clear();
+        let bytes_read = gz.read_to_end(&mut buf)?;
         if bytes_read == 0 {
-            return Ok(());
+            break;
+        }
+        if buf[0] == b'{' && buf[buf.len() - 1] == b'}' {
+            println!("Read {bytes_read} bytes of JSON at position {latest_position}.");
+            let new_qids = parse_qids(&buf);
+            total += new_qids;
+            println!("{new_qids} QIDs parsed from gzip member ({total} total).");
+        }
+        let mut underlying_reader = gz.into_inner();
+        latest_position = underlying_reader.stream_position().unwrap();
+        gz = GzDecoder::new(underlying_reader);
+    }
+    println!("Done, parsed {total} QIDs.");
+    Ok(())
+}
+
+fn parse_qids(buf: &Vec<u8>) -> usize {
+    let mut buf_reader = BufReader::new(buf.as_slice());
+    let mut total = 0;
+    let mut contents = String::new();
+    loop {
+        contents.clear();
+        let bytes_read = buf_reader
+            .read_line(&mut contents)
+            .expect("error reading line from buffer");
+        if bytes_read == 0 {
+            break;
         }
         let Some((_remaining, qid)) = quick_parse_item_id(contents.as_str()).ok() else {
             continue;
@@ -34,8 +63,7 @@ pub fn load_wikidata_dump(dumpfile_path: PathBuf) -> Result<()> {
         }
         let _qid_number: u64 = qid.parse().unwrap();
         total += 1;
-        if total % 1000 == 0 {
-            println!("{total} QIDs parsed.");
-        }
     }
+
+    total
 }
