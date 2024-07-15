@@ -32,7 +32,12 @@ pub fn load_wikidata_dump(dumpfile_path: PathBuf, seek_from: Option<u64>) -> Res
     let index_path = dumpfile_path.with_extension("index");
     println!("Writing index to {}.", index_path.display());
     println!("Parsing QIDs from {}...", dumpfile_path.display());
+    let now = std::time::SystemTime::now();
     let index_db = sled::open(index_path)?;
+    println!(
+        "Opened index db in {} ms.",
+        now.elapsed().unwrap().as_millis()
+    );
     let file = std::fs::File::open(dumpfile_path)?;
     let total_len = file.metadata().unwrap().len();
     let mut reader = BufReader::with_capacity(BUFREADER_CAPACITY, file);
@@ -71,6 +76,9 @@ pub fn load_wikidata_dump(dumpfile_path: PathBuf, seek_from: Option<u64>) -> Res
         }
         let mut underlying_reader = gz.into_inner();
         gzip_member_offset = underlying_reader.stream_position().unwrap();
+        if gzip_member_offset == total_len {
+            break;
+        }
         gz = GzDecoder::new(underlying_reader);
     }
     println!("Done, parsed {total} QIDs.");
