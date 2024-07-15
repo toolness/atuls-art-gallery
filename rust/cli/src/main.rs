@@ -18,7 +18,7 @@ use gallery::met_api::load_met_api_record;
 use gallery::random::Rng;
 use met_csv::{iter_public_domain_2d_met_csv_objects, PublicDomain2DMetObjectOptions};
 use rusqlite::Connection;
-use wikidata_dump::load_wikidata_dump;
+use wikidata_dump::index_wikidata_dump;
 
 use std::io::BufReader;
 
@@ -102,7 +102,8 @@ enum Commands {
         #[arg()]
         gallery_id: i64,
     },
-    Wikidata {
+    /// Index wikidata dump file.
+    WikidataIndex {
         #[arg()]
         dumpfile: PathBuf,
 
@@ -153,10 +154,10 @@ fn run() -> Result<()> {
             args.verbose,
         ),
         Commands::ShowLayout { gallery_id } => show_layout_command(db, gallery_id),
-        Commands::Wikidata {
+        Commands::WikidataIndex {
             dumpfile,
             seek_from,
-        } => load_wikidata_dump(dumpfile, seek_from),
+        } => index_wikidata_dump(dumpfile, seek_from),
     }
 }
 

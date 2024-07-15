@@ -73,7 +73,7 @@ impl IndexFile {
     }
 }
 
-pub fn load_wikidata_dump(dumpfile_path: PathBuf, seek_from: Option<u64>) -> Result<()> {
+pub fn index_wikidata_dump(dumpfile_path: PathBuf, seek_from: Option<u64>) -> Result<()> {
     let index_path = dumpfile_path.with_extension("vecindex");
     println!("Writing index to {}.", index_path.display());
     println!("Parsing QIDs from {}...", dumpfile_path.display());
