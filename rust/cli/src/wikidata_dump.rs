@@ -19,18 +19,42 @@ fn quick_parse_item_id(input: &str) -> IResult<&str, &str> {
     preceded(tag(r#"{"type":"item","id":"Q"#), digit1)(input)
 }
 
-#[derive(FromBytes, AsBytes, Unaligned, FromZeroes, Default)]
+#[derive(FromBytes, AsBytes, Unaligned, FromZeroes, Default, Debug)]
 #[repr(C)]
 struct Value {
     gzip_member_offset: U64<LittleEndian>,
     offset_into_gzip_member: U64<LittleEndian>,
 }
 
-struct IndexFile {
+struct IndexFileReader {
+    reader: BufReader<File>,
+}
+
+impl IndexFileReader {
+    fn new(path: PathBuf) -> Result<Self> {
+        let file = File::open(path)?;
+        let reader = BufReader::new(file);
+        Ok(Self { reader })
+    }
+
+    fn read(&mut self, qid: u64) -> Result<Option<Value>> {
+        let value_size = std::mem::size_of::<Value>();
+        let file_pos = qid * value_size as u64;
+        self.reader.seek(std::io::SeekFrom::Start(file_pos))?;
+        let mut buf: Vec<u8> = vec![0; value_size];
+        let bytes_read = self.reader.read(&mut buf)?;
+        if bytes_read != value_size {
+            return Ok(None);
+        }
+        Ok(Value::read_from(&buf))
+    }
+}
+
+struct IndexFileWriter {
     writer: BufWriter<File>,
 }
 
-impl IndexFile {
+impl IndexFileWriter {
     fn new(path: PathBuf) -> Result<Self> {
         let file = OpenOptions::new().write(true).create(true).open(path)?;
         let file_size = file.metadata().unwrap().len();
@@ -73,12 +97,40 @@ impl IndexFile {
     }
 }
 
+fn index_path_for_dumpfile(dumpfile_path: &PathBuf) -> PathBuf {
+    dumpfile_path.with_extension("vecindex")
+}
+
+pub fn query_wikidata_dump(dumpfile_path: PathBuf, qid: u64) -> Result<()> {
+    let index_path = index_path_for_dumpfile(&dumpfile_path);
+    let mut index_db = IndexFileReader::new(index_path)?;
+    let Some(value) = index_db.read(qid)? else {
+        println!("Q{qid} not found.");
+        return Ok(());
+    };
+
+    // println!("Q{qid} is at {value:?}.");
+
+    let file = std::fs::File::open(dumpfile_path)?;
+    let mut reader = BufReader::with_capacity(BUFREADER_CAPACITY, file);
+    reader.seek(std::io::SeekFrom::Start(value.gzip_member_offset.get()))?;
+    let mut gz = GzDecoder::new(reader);
+    let mut buf: Vec<u8> = vec![];
+    gz.read_to_end(&mut buf)?;
+    let slice = &buf[value.offset_into_gzip_member.get() as usize..];
+    let mut reader = BufReader::new(slice);
+    let mut string = String::with_capacity(buf.len());
+    reader.read_line(&mut string)?;
+    println!("{}", string);
+    Ok(())
+}
+
 pub fn index_wikidata_dump(dumpfile_path: PathBuf, seek_from: Option<u64>) -> Result<()> {
-    let index_path = dumpfile_path.with_extension("vecindex");
+    let index_path = index_path_for_dumpfile(&dumpfile_path);
     println!("Writing index to {}.", index_path.display());
     println!("Parsing QIDs from {}...", dumpfile_path.display());
     let now = std::time::SystemTime::now();
-    let mut index_db = IndexFile::new(index_path)?;
+    let mut index_db = IndexFileWriter::new(index_path)?;
     println!(
         "Opened index db in {} ms.",
         now.elapsed().unwrap().as_millis()
@@ -132,7 +184,7 @@ pub fn index_wikidata_dump(dumpfile_path: PathBuf, seek_from: Option<u64>) -> Re
 
 fn parse_and_upsert_qids(
     buf: &Vec<u8>,
-    index_db: &mut IndexFile,
+    index_db: &mut IndexFileWriter,
     gzip_member_offset: u64,
 ) -> Result<usize> {
     let gzip_member_offset = U64::new(gzip_member_offset);
