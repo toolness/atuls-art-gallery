@@ -1,82 +1,39 @@
 use anyhow::Result;
-use byteorder::LittleEndian;
+use byteorder::{BigEndian, LittleEndian};
 use flate2::bufread::GzDecoder;
 use nom::{bytes::complete::tag, character::complete::digit1, sequence::preceded, IResult};
+use sled::Batch;
 use std::{
-    fs::{File, OpenOptions},
-    io::{prelude::*, BufReader, BufWriter},
+    io::{prelude::*, BufReader},
     path::PathBuf,
 };
 use zerocopy::{byteorder::U64, AsBytes, FromBytes, FromZeroes, Unaligned};
 
 const BUFREADER_CAPACITY: usize = 1024 * 1024 * 8;
 
-const INDEX_FILE_CAPACITY: u64 = 120_000_000;
-
 fn quick_parse_item_id(input: &str) -> IResult<&str, &str> {
     preceded(tag(r#"{"type":"item","id":"Q"#), digit1)(input)
 }
 
-#[derive(FromBytes, AsBytes, Unaligned, FromZeroes, Default)]
+#[derive(FromBytes, AsBytes, Unaligned, FromZeroes)]
+#[repr(C)]
+struct Key {
+    qid: U64<BigEndian>,
+}
+
+#[derive(FromBytes, AsBytes, Unaligned, FromZeroes)]
 #[repr(C)]
 struct Value {
     gzip_member_offset: U64<LittleEndian>,
     offset_into_gzip_member: U64<LittleEndian>,
 }
 
-struct IndexFile {
-    writer: BufWriter<File>,
-}
-
-impl IndexFile {
-    fn new(path: PathBuf) -> Result<Self> {
-        let file = OpenOptions::new().write(true).create(true).open(path)?;
-        let file_size = file.metadata().unwrap().len();
-        let default_value = Value::default();
-        let value_size = default_value.as_bytes().len() as u64;
-        let capacity_in_bytes = INDEX_FILE_CAPACITY * value_size;
-        let mut writer = BufWriter::new(file);
-        if file_size < capacity_in_bytes {
-            writer.seek(std::io::SeekFrom::End(0))?;
-            let records_to_write = INDEX_FILE_CAPACITY - (file_size / value_size);
-            println!(
-                "Expanding index file by {} records (record size is {value_size} bytes).",
-                records_to_write
-            );
-            for _ in 0..records_to_write {
-                writer.write(&default_value.as_bytes())?;
-            }
-        }
-        Ok(Self { writer })
-    }
-
-    fn flush(&mut self) -> Result<()> {
-        self.writer.flush()?;
-        Ok(())
-    }
-
-    fn write(&mut self, qid: u64, value: Value) -> Result<()> {
-        if qid > INDEX_FILE_CAPACITY {
-            println!("Warning: INDEX_FILE_CAPACITY={INDEX_FILE_CAPACITY} but qid={qid}.")
-        }
-        let bytes = value.as_bytes();
-        let curr_pos = self.writer.stream_position().unwrap();
-        let file_pos = qid * bytes.len() as u64;
-        if file_pos != curr_pos {
-            self.writer.seek(std::io::SeekFrom::Start(file_pos))?;
-            assert_eq!(self.writer.stream_position().unwrap(), file_pos);
-        }
-        self.writer.write(&bytes)?;
-        Ok(())
-    }
-}
-
 pub fn load_wikidata_dump(dumpfile_path: PathBuf, seek_from: Option<u64>) -> Result<()> {
-    let index_path = dumpfile_path.with_extension("vecindex");
+    let index_path = dumpfile_path.with_extension("index");
     println!("Writing index to {}.", index_path.display());
     println!("Parsing QIDs from {}...", dumpfile_path.display());
     let now = std::time::SystemTime::now();
-    let mut index_db = IndexFile::new(index_path)?;
+    let index_db = sled::open(index_path)?;
     println!(
         "Opened index db in {} ms.",
         now.elapsed().unwrap().as_millis()
@@ -108,7 +65,7 @@ pub fn load_wikidata_dump(dumpfile_path: PathBuf, seek_from: Option<u64>) -> Res
                 elapsed.as_millis()
             );
             let now = std::time::SystemTime::now();
-            let new_qids = parse_and_upsert_qids(&buf, &mut index_db, gzip_member_offset)?;
+            let new_qids = parse_and_upsert_qids(&buf, &index_db, gzip_member_offset);
             let elapsed = now.elapsed().unwrap();
             total += new_qids;
             println!(
@@ -128,16 +85,13 @@ pub fn load_wikidata_dump(dumpfile_path: PathBuf, seek_from: Option<u64>) -> Res
     Ok(())
 }
 
-fn parse_and_upsert_qids(
-    buf: &Vec<u8>,
-    index_db: &mut IndexFile,
-    gzip_member_offset: u64,
-) -> Result<usize> {
+fn parse_and_upsert_qids(buf: &Vec<u8>, index_db: &sled::Db, gzip_member_offset: u64) -> usize {
     let gzip_member_offset = U64::new(gzip_member_offset);
     let mut buf_reader = BufReader::new(buf.as_slice());
     let mut total = 0;
     let mut contents = String::new();
     let mut offset_into_gzip_member: u64 = 0;
+    let mut batch = Batch::default();
     loop {
         contents.clear();
         let bytes_read = buf_reader
@@ -157,9 +111,16 @@ fn parse_and_upsert_qids(
         if qid_str.len() == 0 {
             continue;
         }
-        index_db.write(qid_str.parse().unwrap(), value)?;
+        let key = Key {
+            qid: U64::new(qid_str.parse().unwrap()),
+        };
+        batch.insert(key.as_bytes(), value.as_bytes());
         total += 1;
     }
-    index_db.flush()?;
-    Ok(total)
+
+    index_db
+        .apply_batch(batch)
+        .expect("writing to index db failed");
+    index_db.flush().expect("flushing index db failed");
+    total
 }
