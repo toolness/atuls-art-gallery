@@ -120,7 +120,7 @@ enum Commands {
 
         /// CSV export from query.wikidata.org with a single 'item' column containing entity URLs.
         #[arg(long)]
-        csv: Option<String>,
+        csv: Option<PathBuf>,
     },
 }
 
