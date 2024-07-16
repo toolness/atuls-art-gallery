@@ -18,6 +18,7 @@ struct WikidataCsvRecord {
     pub qid: u64,
 }
 
+/// Parses a Q-identifier from a wikidata URL and returns it.
 fn deserialize_wikidata_entity_url<'de, D>(deserializer: D) -> Result<u64, D::Error>
 where
     D: de::Deserializer<'de>,
@@ -36,14 +37,21 @@ const BUFREADER_CAPACITY: usize = 1024 * 1024 * 8;
 /// the entire wikidata dump as of 2024-07-14.
 const INDEX_FILE_CAPACITY: u64 = 300_000_000;
 
+/// This quickly parses the item ID from a single line of a wikidata dump JSON blob,
+/// without actually parsing any JSON. As can be seen from the implementation, it's
+/// highly dependent on the specific serialization of wikidata, and will break if
+/// it so much as introduces whitespace between JSON tokens or re-orders keys.
 fn quick_parse_item_id(input: &str) -> IResult<&str, &str> {
     preceded(tag(r#"{"type":"item","id":"Q"#), digit1)(input)
 }
 
 #[derive(FromBytes, AsBytes, Unaligned, FromZeroes, Default, Debug)]
 #[repr(C)]
-struct Value {
+struct IndexValue {
+    /// Offset into the wikidata dump file of the gzip member containing a
+    /// particular entity.
     gzip_member_offset: U64<LittleEndian>,
+    /// Offset into the gzip member of the entity.
     offset_into_gzip_member: U64<LittleEndian>,
 }
 
@@ -58,8 +66,8 @@ impl IndexFileReader {
         Ok(Self { reader })
     }
 
-    fn read(&mut self, qid: u64) -> Result<Option<Value>> {
-        let value_size = std::mem::size_of::<Value>();
+    fn read(&mut self, qid: u64) -> Result<Option<IndexValue>> {
+        let value_size = std::mem::size_of::<IndexValue>();
         let file_pos = qid * value_size as u64;
         self.reader.seek(std::io::SeekFrom::Start(file_pos))?;
         let mut buf: Vec<u8> = vec![0; value_size];
@@ -67,10 +75,27 @@ impl IndexFileReader {
         if bytes_read != value_size {
             return Ok(None);
         }
-        Ok(Value::read_from(&buf))
+        Ok(IndexValue::read_from(&buf))
     }
 }
 
+/// This struct encapsulates writing an index mapping wikidata Q-identifiers
+/// to their locations in a compressed wikidata dump file.
+///
+/// It is stored as a simple vector, where the location of an index is just
+/// the nth record into the vector, and `n` is the Q-identifier of the wikidata
+/// entity.
+///
+/// This takes advantage of the fact that the wikidata Q-identifier space is
+/// nearly contiguous, relieving us of the need to build a BTree or use more
+/// sophisticated data structures.
+///
+/// Note that I originally used the `sled` crate for this, but insertion time
+/// increased significantly as the number of indexed keys expanded into the
+/// hundreds of millions. Loading the index also took several seconds. In
+/// contrast, this simpler vector-based approach has constant-time
+/// insertion and retrieval and is also smaller than the equivalent `sled`
+/// index.
 struct IndexFileWriter {
     writer: BufWriter<File>,
 }
@@ -79,7 +104,7 @@ impl IndexFileWriter {
     fn new(path: PathBuf) -> Result<Self> {
         let file = OpenOptions::new().write(true).create(true).open(path)?;
         let file_size = file.metadata().unwrap().len();
-        let default_value = Value::default();
+        let default_value = IndexValue::default();
         let value_size = default_value.as_bytes().len() as u64;
         let capacity_in_bytes = INDEX_FILE_CAPACITY * value_size;
         let mut writer = BufWriter::new(file);
@@ -102,7 +127,7 @@ impl IndexFileWriter {
         Ok(())
     }
 
-    fn write(&mut self, qid: u64, value: Value) -> Result<()> {
+    fn write(&mut self, qid: u64, value: IndexValue) -> Result<()> {
         if qid > INDEX_FILE_CAPACITY {
             println!("Warning: INDEX_FILE_CAPACITY={INDEX_FILE_CAPACITY} but qid={qid}.")
         }
@@ -273,7 +298,7 @@ fn parse_and_upsert_qids(
         if bytes_read == 0 {
             break;
         }
-        let value = Value {
+        let value = IndexValue {
             gzip_member_offset,
             offset_into_gzip_member: U64::new(offset_into_gzip_member),
         };
