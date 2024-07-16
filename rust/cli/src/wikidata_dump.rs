@@ -110,12 +110,14 @@ pub fn query_wikidata_dump(dumpfile_path: PathBuf, qids: Vec<u64>) -> Result<()>
         offset_into_gzip_member: u64,
     }
     let mut qids_by_gzip_members = HashMap::<u64, Vec<QidInfo>>::new();
+    let mut total_qids = 0;
     for qid in qids {
         let value = index_db.read(qid)?.unwrap_or_default();
         let gzip_member = value.gzip_member_offset.get();
         // Note that the very first gzip member is just an opening square bracket, i.e. no QID data,
         // so a value of 0 can _only_ mean we never populated the value when indexing.
         if gzip_member != 0 {
+            total_qids += 1;
             let entry = qids_by_gzip_members.entry(gzip_member).or_default();
             let offset_into_gzip_member = value.offset_into_gzip_member.get();
             entry.push(QidInfo {
@@ -126,6 +128,10 @@ pub fn query_wikidata_dump(dumpfile_path: PathBuf, qids: Vec<u64>) -> Result<()>
             println!("Warning: Q{qid} not found.");
         }
     }
+    println!(
+        "Reading {total_qids} QIDs across {} gzipped members.",
+        qids_by_gzip_members.len()
+    );
     let file = std::fs::File::open(dumpfile_path)?;
     let mut archive_reader = BufReader::with_capacity(BUFREADER_CAPACITY, file);
     for (gzip_member_offset, entries) in qids_by_gzip_members {
