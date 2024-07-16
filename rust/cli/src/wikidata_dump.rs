@@ -105,15 +105,23 @@ fn index_path_for_dumpfile(dumpfile_path: &PathBuf) -> PathBuf {
 pub fn query_wikidata_dump(dumpfile_path: PathBuf, qids: Vec<u64>) -> Result<()> {
     let index_path = index_path_for_dumpfile(&dumpfile_path);
     let mut index_db = IndexFileReader::new(index_path)?;
-    let mut qids_by_gzip_members = HashMap::<u64, Vec<(u64, u64)>>::new();
+    struct QidInfo {
+        qid: u64,
+        offset_into_gzip_member: u64,
+    }
+    let mut qids_by_gzip_members = HashMap::<u64, Vec<QidInfo>>::new();
     for qid in qids {
         let value = index_db.read(qid)?.unwrap_or_default();
         let gzip_member = value.gzip_member_offset.get();
-        // Note that the very first gzip member is just an opening square bracket, i.e. no content,
+        // Note that the very first gzip member is just an opening square bracket, i.e. no QID data,
         // so a value of 0 can _only_ mean we never populated the value when indexing.
         if gzip_member != 0 {
             let entry = qids_by_gzip_members.entry(gzip_member).or_default();
-            entry.push((qid, value.offset_into_gzip_member.get()));
+            let offset_into_gzip_member = value.offset_into_gzip_member.get();
+            entry.push(QidInfo {
+                qid,
+                offset_into_gzip_member,
+            });
         } else {
             println!("Warning: Q{qid} not found.");
         }
@@ -126,7 +134,11 @@ pub fn query_wikidata_dump(dumpfile_path: PathBuf, qids: Vec<u64>) -> Result<()>
         let mut gz = GzDecoder::new(archive_reader);
         let mut buf: Vec<u8> = vec![];
         gz.read_to_end(&mut buf)?;
-        for (qid, offset_into_gzip_member) in entries {
+        for QidInfo {
+            qid,
+            offset_into_gzip_member,
+        } in entries
+        {
             let slice = &buf[offset_into_gzip_member as usize..];
             let mut gzip_member_reader = BufReader::new(slice);
             let mut string = String::with_capacity(buf.len());
