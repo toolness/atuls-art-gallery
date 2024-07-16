@@ -6,21 +6,23 @@ use crate::{gallery_cache::GalleryCache, image::ImageSize};
 
 const ROOT_CACHE_SUBDIR: &'static str = "wikidata";
 
-const WIKIDATA_URL_PREFIX: &'static str = "https://www.wikidata.org/wiki/Q";
+const WIKIDATA_URL_PREFIXES: [&'static str; 2] = [
+    "https://www.wikidata.org/wiki/Q",
+    "http://www.wikidata.org/entity/Q",
+];
 
 const SMALL_IMAGE_WIDTH: usize = 500;
 
 pub fn try_to_parse_qid_from_wikidata_url<T: AsRef<str>>(url: T) -> Option<u64> {
-    if url.as_ref().starts_with(WIKIDATA_URL_PREFIX) {
-        let slice = url.as_ref().split_at(WIKIDATA_URL_PREFIX.len()).1;
-        if let Ok(qid) = slice.parse::<u64>() {
-            Some(qid)
-        } else {
-            None
+    for prefix in WIKIDATA_URL_PREFIXES {
+        if url.as_ref().starts_with(prefix) {
+            let slice = url.as_ref().split_at(prefix.len()).1;
+            if let Ok(qid) = slice.parse::<u64>() {
+                return Some(qid);
+            }
         }
-    } else {
-        None
     }
+    None
 }
 
 pub struct WikidataImageInfo {
@@ -168,6 +170,10 @@ mod tests {
             try_to_parse_qid_from_wikidata_url("https://www.wikidata.org/wiki/Q20189849"),
             Some(20189849)
         );
+        assert_eq!(
+            try_to_parse_qid_from_wikidata_url("http://www.wikidata.org/entity/Q254923"),
+            Some(254923)
+        )
     }
 
     #[test]
