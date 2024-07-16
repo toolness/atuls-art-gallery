@@ -3,6 +3,7 @@ use byteorder::LittleEndian;
 use flate2::bufread::GzDecoder;
 use nom::{bytes::complete::tag, character::complete::digit1, sequence::preceded, IResult};
 use std::{
+    collections::HashMap,
     fs::{File, OpenOptions},
     io::{prelude::*, BufReader, BufWriter},
     path::PathBuf,
@@ -101,27 +102,39 @@ fn index_path_for_dumpfile(dumpfile_path: &PathBuf) -> PathBuf {
     dumpfile_path.with_extension("vecindex")
 }
 
-pub fn query_wikidata_dump(dumpfile_path: PathBuf, qid: u64) -> Result<()> {
+pub fn query_wikidata_dump(dumpfile_path: PathBuf, qids: Vec<u64>) -> Result<()> {
     let index_path = index_path_for_dumpfile(&dumpfile_path);
     let mut index_db = IndexFileReader::new(index_path)?;
-    let Some(value) = index_db.read(qid)? else {
-        println!("Q{qid} not found.");
-        return Ok(());
-    };
-
-    // println!("Q{qid} is at {value:?}.");
-
+    let mut qids_by_gzip_members = HashMap::<u64, Vec<(u64, u64)>>::new();
+    for qid in qids {
+        let value = index_db.read(qid)?.unwrap_or_default();
+        let gzip_member = value.gzip_member_offset.get();
+        // Note that the very first gzip member is just an opening square bracket, i.e. no content,
+        // so a value of 0 can _only_ mean we never populated the value when indexing.
+        if gzip_member != 0 {
+            let entry = qids_by_gzip_members.entry(gzip_member).or_default();
+            entry.push((qid, value.offset_into_gzip_member.get()));
+        } else {
+            println!("Warning: Q{qid} not found.");
+        }
+    }
     let file = std::fs::File::open(dumpfile_path)?;
-    let mut reader = BufReader::with_capacity(BUFREADER_CAPACITY, file);
-    reader.seek(std::io::SeekFrom::Start(value.gzip_member_offset.get()))?;
-    let mut gz = GzDecoder::new(reader);
-    let mut buf: Vec<u8> = vec![];
-    gz.read_to_end(&mut buf)?;
-    let slice = &buf[value.offset_into_gzip_member.get() as usize..];
-    let mut reader = BufReader::new(slice);
-    let mut string = String::with_capacity(buf.len());
-    reader.read_line(&mut string)?;
-    println!("{}", string);
+    let mut archive_reader = BufReader::with_capacity(BUFREADER_CAPACITY, file);
+    for (gzip_member_offset, entries) in qids_by_gzip_members {
+        println!("Decompressing gzip member at offset {gzip_member_offset}.");
+        archive_reader.seek(std::io::SeekFrom::Start(gzip_member_offset))?;
+        let mut gz = GzDecoder::new(archive_reader);
+        let mut buf: Vec<u8> = vec![];
+        gz.read_to_end(&mut buf)?;
+        for (qid, offset_into_gzip_member) in entries {
+            let slice = &buf[offset_into_gzip_member as usize..];
+            let mut gzip_member_reader = BufReader::new(slice);
+            let mut string = String::with_capacity(buf.len());
+            gzip_member_reader.read_line(&mut string)?;
+            println!("Q{qid}: {:?}", &string[0..70]);
+        }
+        archive_reader = gz.into_inner();
+    }
     Ok(())
 }
 

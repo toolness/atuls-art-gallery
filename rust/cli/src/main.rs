@@ -116,7 +116,7 @@ enum Commands {
         dumpfile: PathBuf,
 
         #[arg()]
-        qid: u64,
+        qids: Vec<u64>,
     },
 }
 
@@ -166,7 +166,7 @@ fn run() -> Result<()> {
             dumpfile,
             seek_from,
         } => index_wikidata_dump(dumpfile, seek_from),
-        Commands::WikidataQuery { dumpfile, qid } => query_wikidata_dump(dumpfile, qid),
+        Commands::WikidataQuery { dumpfile, qids } => query_wikidata_dump(dumpfile, qids),
     }
 }
 
