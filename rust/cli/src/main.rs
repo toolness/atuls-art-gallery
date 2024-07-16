@@ -117,6 +117,10 @@ enum Commands {
 
         #[arg()]
         qids: Vec<u64>,
+
+        /// CSV export from query.wikidata.org with a single 'item' column containing entity URLs.
+        #[arg(long)]
+        csv: Option<String>,
     },
 }
 
@@ -166,7 +170,11 @@ fn run() -> Result<()> {
             dumpfile,
             seek_from,
         } => index_wikidata_dump(dumpfile, seek_from),
-        Commands::WikidataQuery { dumpfile, qids } => query_wikidata_dump(dumpfile, qids),
+        Commands::WikidataQuery {
+            dumpfile,
+            qids,
+            csv,
+        } => query_wikidata_dump(dumpfile, qids, csv),
     }
 }
 

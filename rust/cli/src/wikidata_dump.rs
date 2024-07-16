@@ -1,8 +1,9 @@
 use anyhow::Result;
 use byteorder::LittleEndian;
 use flate2::bufread::GzDecoder;
-use gallery::wikidata::WikidataEntity;
+use gallery::wikidata::{try_to_parse_qid_from_wikidata_url, WikidataEntity};
 use nom::{bytes::complete::tag, character::complete::digit1, sequence::preceded, IResult};
+use serde::{de, Deserialize};
 use std::{
     collections::HashMap,
     fs::{File, OpenOptions},
@@ -10,6 +11,23 @@ use std::{
     path::PathBuf,
 };
 use zerocopy::{byteorder::U64, AsBytes, FromBytes, FromZeroes, Unaligned};
+
+#[derive(Debug, Deserialize)]
+struct WikidataCsvRecord {
+    #[serde(rename = "item", deserialize_with = "deserialize_wikidata_entity_url")]
+    pub qid: u64,
+}
+
+fn deserialize_wikidata_entity_url<'de, D>(deserializer: D) -> Result<u64, D::Error>
+where
+    D: de::Deserializer<'de>,
+{
+    let s: &str = de::Deserialize::deserialize(deserializer)?;
+    match try_to_parse_qid_from_wikidata_url(s) {
+        Some(qid) => Ok(qid),
+        None => Err(de::Error::unknown_variant(s, &["Wikidata URL"])),
+    }
+}
 
 const BUFREADER_CAPACITY: usize = 1024 * 1024 * 8;
 
@@ -103,7 +121,19 @@ fn index_path_for_dumpfile(dumpfile_path: &PathBuf) -> PathBuf {
     dumpfile_path.with_extension("vecindex")
 }
 
-pub fn query_wikidata_dump(dumpfile_path: PathBuf, qids: Vec<u64>) -> Result<()> {
+pub fn query_wikidata_dump(
+    dumpfile_path: PathBuf,
+    mut qids: Vec<u64>,
+    csv: Option<String>,
+) -> Result<()> {
+    if let Some(csv) = csv {
+        let reader = BufReader::new(File::open(csv)?);
+        let rdr = csv::Reader::from_reader(reader);
+        for result in rdr.into_deserialize::<WikidataCsvRecord>() {
+            let csv_record: WikidataCsvRecord = result?;
+            qids.push(csv_record.qid);
+        }
+    }
     let index_path = index_path_for_dumpfile(&dumpfile_path);
     let mut index_db = IndexFileReader::new(index_path)?;
     struct QidInfo {
