@@ -25,6 +25,7 @@ where
     let s: &str = de::Deserialize::deserialize(deserializer)?;
     match try_to_parse_qid_from_wikidata_url(s) {
         Some(qid) => Ok(qid),
+        // TODO: `unknown_variant` is probably the wrong type of error to return.
         None => Err(de::Error::unknown_variant(s, &["Wikidata URL"])),
     }
 }
