@@ -44,13 +44,30 @@ impl WikidataImageInfo {
 }
 
 #[derive(Debug, Deserialize)]
-struct WbGetClaimsResponse {
+pub struct WikidataEntity {
+    labels: Option<LocalizedValues>,
+    descriptions: Option<LocalizedValues>,
     claims: Claims,
 }
 
-impl WbGetClaimsResponse {
-    fn get_p18_image(&self) -> Option<&String> {
-        for statement in &self.claims.p18 {
+impl WikidataEntity {
+    pub fn label(&self) -> Option<&str> {
+        self.labels
+            .as_ref()
+            .map(|label| label.english_value())
+            .flatten()
+    }
+    pub fn description(&self) -> Option<&str> {
+        self.descriptions
+            .as_ref()
+            .map(|label| label.english_value())
+            .flatten()
+    }
+    pub fn p18_image(&self) -> Option<&str> {
+        let Some(statements) = &self.claims.p18 else {
+            return None;
+        };
+        for statement in statements {
             let image_filename = &statement.mainsnak.datavalue.value;
             if image_filename.to_lowercase().ends_with(".jpg") {
                 return Some(image_filename);
@@ -61,9 +78,20 @@ impl WbGetClaimsResponse {
 }
 
 #[derive(Debug, Deserialize)]
+struct LocalizedValues {
+    en: Option<Datavalue>,
+}
+
+impl LocalizedValues {
+    fn english_value(&self) -> Option<&str> {
+        self.en.as_ref().map(|en| en.value.as_str())
+    }
+}
+
+#[derive(Debug, Deserialize)]
 struct Claims {
     #[serde(rename = "P18")]
-    p18: Vec<Statement>,
+    p18: Option<Vec<Statement>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -108,16 +136,15 @@ pub fn load_wikidata_image_info(
         &filename,
     )?;
 
-    let response =
-        serde_json::from_str::<WbGetClaimsResponse>(&cache.load_cached_string(&filename)?);
+    let response = serde_json::from_str::<WikidataEntity>(&cache.load_cached_string(&filename)?);
     match response {
         Ok(response) => {
-            let Some(image_filename) = response.get_p18_image() else {
+            let Some(image_filename) = response.p18_image() else {
                 return Ok(None);
             };
             Ok(Some(WikidataImageInfo {
                 qid,
-                image_filename: image_filename.clone(),
+                image_filename: image_filename.to_string(),
             }))
         }
         Err(_) => Ok(None),
@@ -128,7 +155,7 @@ pub fn load_wikidata_image_info(
 mod tests {
     use crate::{image::ImageSize, wikidata::get_url_for_image};
 
-    use super::{try_to_parse_qid_from_wikidata_url, WbGetClaimsResponse};
+    use super::{try_to_parse_qid_from_wikidata_url, WikidataEntity};
 
     #[test]
     fn test_try_to_parse_qid_from_wikidata_url_works() {
@@ -178,10 +205,10 @@ mod tests {
     #[test]
     fn test_get_p18_image_works() {
         let response_json = r#"{"claims":{"P18":[{"mainsnak":{"snaktype":"value","property":"P18","hash":"9c96969b48408f6aa6d208542c338cadeff2dff9","datavalue":{"value":"Juan Gris - Nature morte \u00e0 la nappe \u00e0 carreaux.jpg","type":"string"},"datatype":"commonsMedia"},"type":"statement","id":"Q20189849$5E016A60-DF33-4157-A6F0-6E1E65411428","rank":"normal"}]}}"#;
-        let response: WbGetClaimsResponse = serde_json::from_str(&response_json).unwrap();
+        let response: WikidataEntity = serde_json::from_str(&response_json).unwrap();
         assert_eq!(
-            response.get_p18_image(),
-            Some(&"Juan Gris - Nature morte à la nappe à carreaux.jpg".to_owned())
+            response.p18_image(),
+            Some("Juan Gris - Nature morte à la nappe à carreaux.jpg")
         );
     }
 }

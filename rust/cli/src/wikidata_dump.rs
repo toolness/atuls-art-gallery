@@ -1,6 +1,7 @@
 use anyhow::Result;
 use byteorder::LittleEndian;
 use flate2::bufread::GzDecoder;
+use gallery::wikidata::WikidataEntity;
 use nom::{bytes::complete::tag, character::complete::digit1, sequence::preceded, IResult};
 use std::{
     collections::HashMap,
@@ -147,9 +148,19 @@ pub fn query_wikidata_dump(dumpfile_path: PathBuf, qids: Vec<u64>) -> Result<()>
         {
             let slice = &buf[offset_into_gzip_member as usize..];
             let mut gzip_member_reader = BufReader::new(slice);
-            let mut string = String::with_capacity(buf.len());
+            let mut string = String::new();
             gzip_member_reader.read_line(&mut string)?;
-            println!("Q{qid}: {:?}", &string[0..70]);
+            let entity: WikidataEntity = serde_json::from_str(&string[0..string.len() - 2])?;
+            println!(
+                "Q{qid}: {} - {} ({})",
+                entity.label().unwrap_or_default(),
+                entity.description().unwrap_or_default(),
+                if entity.p18_image().is_some() {
+                    "has image"
+                } else {
+                    "no image"
+                }
+            );
         }
         archive_reader = gz.into_inner();
     }
