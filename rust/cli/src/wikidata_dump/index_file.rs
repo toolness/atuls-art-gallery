@@ -1,6 +1,7 @@
 use anyhow::Result;
 use byteorder::LittleEndian;
 use std::{
+    collections::HashMap,
     fs::{File, OpenOptions},
     io::{prelude::*, BufReader, BufWriter},
     path::PathBuf,
@@ -43,6 +44,49 @@ impl IndexFileReader {
         }
         Ok(IndexValue::read_from(&buf))
     }
+}
+
+pub struct QidIndexFileMapping {
+    /// Mapping from gzip members, identified by their byte offset, to details about the location of individual
+    /// entities within each gzip member. This makes it easy for us to decompress each gzip member only once
+    /// to retrieve all the data we need from it.
+    pub qids_by_gzip_members: HashMap<u64, Vec<QidGzipMemberInfo>>,
+    pub total_qids: usize,
+}
+
+pub struct QidGzipMemberInfo {
+    pub qid: u64,
+    pub offset_into_gzip_member: u64,
+}
+
+pub fn get_qid_index_file_mapping(
+    reader: &mut IndexFileReader,
+    qids: Vec<u64>,
+) -> Result<QidIndexFileMapping> {
+    let mut qids_by_gzip_members = HashMap::<u64, Vec<QidGzipMemberInfo>>::new();
+    let mut total_qids = 0;
+    for qid in qids {
+        let value = reader.read(qid)?.unwrap_or_default();
+        let gzip_member = value.gzip_member_offset.get();
+        // Note that the very first gzip member is just an opening square bracket, i.e. no QID data,
+        // so a value of 0 can _only_ mean we never populated the value when indexing.
+        if gzip_member != 0 {
+            total_qids += 1;
+            let entry = qids_by_gzip_members.entry(gzip_member).or_default();
+            let offset_into_gzip_member = value.offset_into_gzip_member.get();
+            entry.push(QidGzipMemberInfo {
+                qid,
+                offset_into_gzip_member,
+            });
+        } else {
+            println!("Warning: Q{qid} not found.");
+        }
+    }
+
+    Ok(QidIndexFileMapping {
+        qids_by_gzip_members,
+        total_qids,
+    })
 }
 
 /// This struct encapsulates writing an index mapping wikidata Q-identifiers

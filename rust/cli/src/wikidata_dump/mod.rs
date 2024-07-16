@@ -1,11 +1,13 @@
 use anyhow::Result;
 use flate2::bufread::GzDecoder;
 use gallery::wikidata::WikidataEntity;
-use index_file::{index_path_for_dumpfile, IndexFileReader, IndexFileWriter, IndexValue};
+use index_file::{
+    get_qid_index_file_mapping, index_path_for_dumpfile, IndexFileReader, IndexFileWriter,
+    IndexValue, QidGzipMemberInfo,
+};
 use nom::{bytes::complete::tag, character::complete::digit1, sequence::preceded, IResult};
 use sparql_csv_export::parse_sparql_csv_export;
 use std::{
-    collections::HashMap,
     io::{prelude::*, BufReader},
     path::PathBuf,
 };
@@ -34,42 +36,21 @@ pub fn query_wikidata_dump(
     }
     let index_path = index_path_for_dumpfile(&dumpfile_path);
     let mut index_db = IndexFileReader::new(index_path)?;
-    struct QidInfo {
-        qid: u64,
-        offset_into_gzip_member: u64,
-    }
-    let mut qids_by_gzip_members = HashMap::<u64, Vec<QidInfo>>::new();
-    let mut total_qids = 0;
-    for qid in qids {
-        let value = index_db.read(qid)?.unwrap_or_default();
-        let gzip_member = value.gzip_member_offset.get();
-        // Note that the very first gzip member is just an opening square bracket, i.e. no QID data,
-        // so a value of 0 can _only_ mean we never populated the value when indexing.
-        if gzip_member != 0 {
-            total_qids += 1;
-            let entry = qids_by_gzip_members.entry(gzip_member).or_default();
-            let offset_into_gzip_member = value.offset_into_gzip_member.get();
-            entry.push(QidInfo {
-                qid,
-                offset_into_gzip_member,
-            });
-        } else {
-            println!("Warning: Q{qid} not found.");
-        }
-    }
+    let qid_index_file_mapping = get_qid_index_file_mapping(&mut index_db, qids)?;
     println!(
-        "Reading {total_qids} QIDs across {} gzipped members.",
-        qids_by_gzip_members.len()
+        "Reading {} QIDs across {} gzipped members.",
+        qid_index_file_mapping.total_qids,
+        qid_index_file_mapping.qids_by_gzip_members.len()
     );
     let file = std::fs::File::open(dumpfile_path)?;
     let mut archive_reader = BufReader::with_capacity(BUFREADER_CAPACITY, file);
-    for (gzip_member_offset, entries) in qids_by_gzip_members {
+    for (gzip_member_offset, entries) in qid_index_file_mapping.qids_by_gzip_members {
         println!("Decompressing gzip member at offset {gzip_member_offset}.");
         archive_reader.seek(std::io::SeekFrom::Start(gzip_member_offset))?;
         let mut gz = GzDecoder::new(archive_reader);
         let mut buf: Vec<u8> = vec![];
         gz.read_to_end(&mut buf)?;
-        for QidInfo {
+        for QidGzipMemberInfo {
             qid,
             offset_into_gzip_member,
         } in entries
