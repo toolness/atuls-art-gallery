@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use byteorder::LittleEndian;
 use flate2::bufread::GzDecoder;
 use nom::{bytes::complete::tag, character::complete::digit1, sequence::preceded, IResult};
@@ -193,7 +193,12 @@ fn iter_gzipped_member_serialized_qids(
             let mut gzip_member_reader = BufReader::new(slice);
             let mut string = String::new();
             gzip_member_reader.read_line(&mut string)?;
-            string.truncate(string.len() - 2);
+            if string.ends_with(",\n") {
+                string.truncate(string.len() - 2);
+            }
+            if !string.ends_with("}") {
+                return Err(anyhow!("Q{qid} does not appear to be valid JSON"));
+            }
             Ok((qid, string))
         },
     )
