@@ -76,11 +76,15 @@ pub fn query_wikidata_dump(
     if let Some(csv) = csv {
         parse_sparql_csv_export(csv, &mut qids)?;
     }
+    let total_qids = qids.len();
+    let mut count = 0;
     for result in iter_serialized_qids_using_cache(dumpfile_path, qids)? {
+        count += 1;
+        let percent_done = (count as f64) / (total_qids as f64) * 100.0;
         let (qid, qid_json) = result?;
         let entity: WikidataEntity = serde_json::from_str(&qid_json)?;
         println!(
-            "Q{qid}: {} - {} ({})",
+            "{percent_done:.1}% Q{qid}: {} - {} ({})",
             entity.label().unwrap_or_default(),
             entity.description().unwrap_or_default(),
             if entity.p18_image().is_some() {
