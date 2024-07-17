@@ -70,7 +70,10 @@ impl WikidataEntity {
             return None;
         };
         for statement in statements {
-            let image_filename = &statement.mainsnak.datavalue.value;
+            let Some(datavalue) = &statement.mainsnak.datavalue else {
+                return None;
+            };
+            let image_filename = &datavalue.value;
             if image_filename.to_lowercase().ends_with(".jpg") {
                 return Some(image_filename);
             }
@@ -103,7 +106,7 @@ struct Statement {
 
 #[derive(Debug, Deserialize)]
 struct Mainsnak {
-    datavalue: Datavalue,
+    datavalue: Option<Datavalue>,
 }
 
 #[derive(Debug, Deserialize)]
