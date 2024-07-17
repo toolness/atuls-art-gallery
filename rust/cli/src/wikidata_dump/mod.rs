@@ -45,13 +45,14 @@ fn iter_serialized_qids_using_cache(
         },
     ));
     let qid_index_file_mapping = get_qid_index_file_mapping(&mut index_db, uncached_qids)?;
-    if qid_index_file_mapping.qids() > 0 {
-        println!(
-            "Reading {} QIDs across {} gzipped members.",
-            qid_index_file_mapping.qids(),
-            qid_index_file_mapping.gzip_members()
-        );
+    if qid_index_file_mapping.qids() == 0 {
+        return Ok(Box::new(cached_iterator));
     }
+    println!(
+        "Reading {} QIDs across {} gzipped members.",
+        qid_index_file_mapping.qids(),
+        qid_index_file_mapping.gzip_members()
+    );
     let file = std::fs::File::open(dumpfile_path)?;
     let archive_reader = BufReader::with_capacity(BUFREADER_CAPACITY, file);
     let uncached_iterator: Box<SerializedEntityIterator> = Box::new(
@@ -94,5 +95,6 @@ pub fn query_wikidata_dump(
             }
         );
     }
+    println!("Done.");
     Ok(())
 }
