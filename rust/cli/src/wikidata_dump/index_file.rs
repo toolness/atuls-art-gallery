@@ -50,6 +50,8 @@ impl IndexFileReader {
     }
 }
 
+/// This encapsulates how the index file maps entity Q-identifiers to gzip members
+/// and their positions within them.
 pub struct QidIndexFileMapping {
     /// Mapping from gzip members, identified by their byte offset, to details about the location of individual
     /// entities within each gzip member. This makes it easy for us to decompress each gzip member only once
@@ -73,6 +75,10 @@ struct QidGzipMemberInfo {
     offset_into_gzip_member: u64,
 }
 
+/// Given a list of entity Q-identifiers, returns metadata about their locations within
+/// the dumpfile by looking up the QIDs in the index.
+///
+/// QIDs not present in the index will not be included in the metadata.
 pub fn get_qid_index_file_mapping(
     reader: &mut IndexFileReader,
     qids: Vec<u64>,
@@ -171,6 +177,9 @@ pub fn index_path_for_dumpfile(dumpfile_path: &PathBuf) -> PathBuf {
     dumpfile_path.with_extension("vecindex")
 }
 
+/// Given a gzipped member of the dumpfile and a list of entity
+/// Q-identifiers contained within it, returns an iterator that
+/// decompresses the gzipped member and iterates over the entities.
 fn iter_gzipped_member_serialized_qids(
     buf: Vec<u8>,
     entries: Vec<QidGzipMemberInfo>,
@@ -208,6 +217,9 @@ fn iter_gzipped_members_with_qids(
     )
 }
 
+/// Given a dumpfile and metadata about the locations of entities within it,
+/// returns an iterator that yields the entity Q-identifiers along with their
+/// JSON-serialized values.
 pub fn iter_serialized_qids(
     archive_reader: BufReader<File>,
     qid_index_file_mapping: QidIndexFileMapping,
@@ -225,6 +237,8 @@ pub fn iter_serialized_qids(
         .flat_map(iter_gzipped_member_serialized_qids_or_propagate_error)
 }
 
+/// Given a dumpfile, creates an index that maps entity Q-identifiers to
+/// their locations in the dumpfile.
 pub fn index_wikidata_dump(dumpfile_path: PathBuf, seek_from: Option<u64>) -> Result<()> {
     let index_path = index_path_for_dumpfile(&dumpfile_path);
     println!("Writing index to {}.", index_path.display());
