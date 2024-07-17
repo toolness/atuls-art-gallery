@@ -95,6 +95,6 @@ pub fn query_wikidata_dump(
             }
         );
     }
-    println!("Done.");
+    println!("Done processing {count} entities.");
     Ok(())
 }
