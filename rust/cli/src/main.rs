@@ -174,7 +174,7 @@ fn run() -> Result<()> {
             dumpfile,
             qids,
             csv,
-        } => query_wikidata_dump(dumpfile, qids, csv),
+        } => query_wikidata_dump(dumpfile, qids, csv, args.verbose),
     }
 }
 

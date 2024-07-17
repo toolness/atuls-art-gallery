@@ -73,6 +73,7 @@ pub fn query_wikidata_dump(
     dumpfile_path: PathBuf,
     mut qids: Vec<u64>,
     csv: Option<PathBuf>,
+    verbose: bool,
 ) -> Result<()> {
     if let Some(csv) = csv {
         parse_sparql_csv_export(csv, &mut qids)?;
@@ -84,16 +85,20 @@ pub fn query_wikidata_dump(
         let percent_done = (count as f64) / (total_qids as f64) * 100.0;
         let (qid, qid_json) = result?;
         let entity: WikidataEntity = serde_json::from_str(&qid_json)?;
-        println!(
-            "{percent_done:.1}% Q{qid}: {} - {} ({})",
-            entity.label().unwrap_or_default(),
-            entity.description().unwrap_or_default(),
-            if entity.p18_image().is_some() {
-                "has image"
-            } else {
-                "no image"
-            }
-        );
+        if verbose {
+            println!(
+                "{percent_done:.1}% Q{qid}: {} - {} ({})",
+                entity.label().unwrap_or_default(),
+                entity.description().unwrap_or_default(),
+                if entity.p18_image().is_some() {
+                    "has image"
+                } else {
+                    "no image"
+                }
+            );
+        } else if count % 1000 == 0 {
+            println!("{percent_done:.1}% complete ({count} entities processed).");
+        }
     }
     println!("Done processing {count} entities.");
     Ok(())
