@@ -1,5 +1,6 @@
 use anyhow::Result;
 use byteorder::LittleEndian;
+use flate2::bufread::GzDecoder;
 use std::{
     collections::HashMap,
     fs::{File, OpenOptions},
@@ -50,13 +51,23 @@ pub struct QidIndexFileMapping {
     /// Mapping from gzip members, identified by their byte offset, to details about the location of individual
     /// entities within each gzip member. This makes it easy for us to decompress each gzip member only once
     /// to retrieve all the data we need from it.
-    pub qids_by_gzip_members: HashMap<u64, Vec<QidGzipMemberInfo>>,
-    pub total_qids: usize,
+    qids_by_gzip_members: HashMap<u64, Vec<QidGzipMemberInfo>>,
+    total_qids: usize,
 }
 
-pub struct QidGzipMemberInfo {
-    pub qid: u64,
-    pub offset_into_gzip_member: u64,
+impl QidIndexFileMapping {
+    pub fn qids(&self) -> usize {
+        self.total_qids
+    }
+
+    pub fn gzip_members(&self) -> usize {
+        self.qids_by_gzip_members.len()
+    }
+}
+
+struct QidGzipMemberInfo {
+    qid: u64,
+    offset_into_gzip_member: u64,
 }
 
 pub fn get_qid_index_file_mapping(
@@ -155,4 +166,58 @@ impl IndexFileWriter {
 
 pub fn index_path_for_dumpfile(dumpfile_path: &PathBuf) -> PathBuf {
     dumpfile_path.with_extension("vecindex")
+}
+
+fn iter_gzipped_member_serialized_qids(
+    buf: Vec<u8>,
+    entries: Vec<QidGzipMemberInfo>,
+) -> impl Iterator<Item = Result<(u64, String)>> {
+    entries.into_iter().map(
+        move |QidGzipMemberInfo {
+                  qid,
+                  offset_into_gzip_member,
+              }| {
+            let slice = &buf[offset_into_gzip_member as usize..];
+            let mut gzip_member_reader = BufReader::new(slice);
+            let mut string = String::new();
+            gzip_member_reader.read_line(&mut string)?;
+            string.truncate(string.len() - 2);
+            Ok((qid, string))
+        },
+    )
+}
+
+fn iter_gzipped_members_with_qids(
+    archive_reader: BufReader<File>,
+    qid_index_file_mapping: QidIndexFileMapping,
+) -> impl Iterator<Item = Result<(Vec<u8>, Vec<QidGzipMemberInfo>)>> {
+    let mut wrapped_archive_reader = Some(archive_reader);
+    qid_index_file_mapping.qids_by_gzip_members.into_iter().map(
+        move |(gzip_member_offset, entries)| {
+            let mut archive_reader = wrapped_archive_reader.take().unwrap();
+            archive_reader.seek(std::io::SeekFrom::Start(gzip_member_offset))?;
+            let mut gz = GzDecoder::new(archive_reader);
+            let mut buf: Vec<u8> = vec![];
+            gz.read_to_end(&mut buf)?;
+            wrapped_archive_reader = Some(gz.into_inner());
+            Ok((buf, entries))
+        },
+    )
+}
+
+pub fn iter_serialized_qids(
+    archive_reader: BufReader<File>,
+    qid_index_file_mapping: QidIndexFileMapping,
+) -> impl Iterator<Item = Result<(u64, String)>> {
+    fn iter_gzipped_member_serialized_qids_or_propagate_error(
+        thing: Result<(Vec<u8>, Vec<QidGzipMemberInfo>)>,
+    ) -> Box<dyn Iterator<Item = Result<(u64, String)>>> {
+        match thing {
+            Ok((buf, entries)) => Box::new(iter_gzipped_member_serialized_qids(buf, entries)),
+            Err(err) => Box::new(std::iter::once(Err(err))),
+        }
+    }
+
+    iter_gzipped_members_with_qids(archive_reader, qid_index_file_mapping)
+        .flat_map(iter_gzipped_member_serialized_qids_or_propagate_error)
 }
