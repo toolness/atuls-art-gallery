@@ -22,8 +22,10 @@ pub fn query_wikidata_dump(
         parse_sparql_csv_export(csv, &mut qids)?;
     }
     let index_path = index_path_for_dumpfile(&dumpfile_path);
+    let sledcache_path = dumpfile_path.with_extension("sledcache");
     let mut index_db = IndexFileReader::new(index_path)?;
     let qid_index_file_mapping = get_qid_index_file_mapping(&mut index_db, qids)?;
+    let sledcache = sled::open(sledcache_path)?;
     println!(
         "Reading {} QIDs across {} gzipped members.",
         qid_index_file_mapping.qids(),
@@ -33,6 +35,7 @@ pub fn query_wikidata_dump(
     let archive_reader = BufReader::with_capacity(BUFREADER_CAPACITY, file);
     for result in iter_serialized_qids(archive_reader, qid_index_file_mapping) {
         let (qid, qid_json) = result?;
+        sledcache.insert(qid.to_be_bytes(), qid_json.as_bytes())?;
         let entity: WikidataEntity = serde_json::from_str(&qid_json)?;
         println!(
             "Q{qid}: {} - {} ({})",
