@@ -3,11 +3,12 @@ use flate2::bufread::GzDecoder;
 use gallery::wikidata::WikidataEntity;
 use index_file::{
     get_qid_index_file_mapping, index_path_for_dumpfile, IndexFileReader, IndexFileWriter,
-    IndexValue, QidGzipMemberInfo,
+    IndexValue, QidGzipMemberInfo, QidIndexFileMapping,
 };
 use nom::{bytes::complete::tag, character::complete::digit1, sequence::preceded, IResult};
 use sparql_csv_export::parse_sparql_csv_export;
 use std::{
+    fs::File,
     io::{prelude::*, BufReader},
     path::PathBuf,
 };
@@ -26,7 +27,7 @@ fn quick_parse_item_id(input: &str) -> IResult<&str, &str> {
     preceded(tag(r#"{"type":"item","id":"Q"#), digit1)(input)
 }
 
-fn iter_serialized_qids(
+fn iter_gzipped_member_serialized_qids(
     buf: Vec<u8>,
     entries: Vec<QidGzipMemberInfo>,
 ) -> impl Iterator<Item = Result<(u64, String)>> {
@@ -43,6 +44,41 @@ fn iter_serialized_qids(
             Ok((qid, string))
         },
     )
+}
+
+fn iter_gzipped_members_with_qids(
+    archive_reader: BufReader<File>,
+    qid_index_file_mapping: QidIndexFileMapping,
+) -> impl Iterator<Item = Result<(Vec<u8>, Vec<QidGzipMemberInfo>)>> {
+    let mut wrapped_archive_reader = Some(archive_reader);
+    qid_index_file_mapping.qids_by_gzip_members.into_iter().map(
+        move |(gzip_member_offset, entries)| {
+            let mut archive_reader = wrapped_archive_reader.take().unwrap();
+            archive_reader.seek(std::io::SeekFrom::Start(gzip_member_offset))?;
+            let mut gz = GzDecoder::new(archive_reader);
+            let mut buf: Vec<u8> = vec![];
+            gz.read_to_end(&mut buf)?;
+            wrapped_archive_reader = Some(gz.into_inner());
+            Ok((buf, entries))
+        },
+    )
+}
+
+fn iter_serialized_qids(
+    archive_reader: BufReader<File>,
+    qid_index_file_mapping: QidIndexFileMapping,
+) -> impl Iterator<Item = Result<(u64, String)>> {
+    fn iter_gzipped_member_serialized_qids_or_propagate_error(
+        thing: Result<(Vec<u8>, Vec<QidGzipMemberInfo>)>,
+    ) -> Box<dyn Iterator<Item = Result<(u64, String)>>> {
+        match thing {
+            Ok((buf, entries)) => Box::new(iter_gzipped_member_serialized_qids(buf, entries)),
+            Err(err) => Box::new(std::iter::once(Err(err))),
+        }
+    }
+
+    iter_gzipped_members_with_qids(archive_reader, qid_index_file_mapping)
+        .flat_map(iter_gzipped_member_serialized_qids_or_propagate_error)
 }
 
 pub fn query_wikidata_dump(
@@ -62,28 +98,20 @@ pub fn query_wikidata_dump(
         qid_index_file_mapping.qids_by_gzip_members.len()
     );
     let file = std::fs::File::open(dumpfile_path)?;
-    let mut archive_reader = BufReader::with_capacity(BUFREADER_CAPACITY, file);
-    for (gzip_member_offset, entries) in qid_index_file_mapping.qids_by_gzip_members {
-        println!("Decompressing gzip member at offset {gzip_member_offset}.");
-        archive_reader.seek(std::io::SeekFrom::Start(gzip_member_offset))?;
-        let mut gz = GzDecoder::new(archive_reader);
-        let mut buf: Vec<u8> = vec![];
-        gz.read_to_end(&mut buf)?;
-        for item in iter_serialized_qids(buf, entries) {
-            let (qid, qid_json) = item?;
-            let entity: WikidataEntity = serde_json::from_str(&qid_json)?;
-            println!(
-                "Q{qid}: {} - {} ({})",
-                entity.label().unwrap_or_default(),
-                entity.description().unwrap_or_default(),
-                if entity.p18_image().is_some() {
-                    "has image"
-                } else {
-                    "no image"
-                }
-            );
-        }
-        archive_reader = gz.into_inner();
+    let archive_reader = BufReader::with_capacity(BUFREADER_CAPACITY, file);
+    for result in iter_serialized_qids(archive_reader, qid_index_file_mapping) {
+        let (qid, qid_json) = result?;
+        let entity: WikidataEntity = serde_json::from_str(&qid_json)?;
+        println!(
+            "Q{qid}: {} - {} ({})",
+            entity.label().unwrap_or_default(),
+            entity.description().unwrap_or_default(),
+            if entity.p18_image().is_some() {
+                "has image"
+            } else {
+                "no image"
+            }
+        );
     }
     Ok(())
 }
