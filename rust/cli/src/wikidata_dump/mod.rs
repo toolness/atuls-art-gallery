@@ -26,6 +26,25 @@ fn quick_parse_item_id(input: &str) -> IResult<&str, &str> {
     preceded(tag(r#"{"type":"item","id":"Q"#), digit1)(input)
 }
 
+fn iter_serialized_qids(
+    buf: Vec<u8>,
+    entries: Vec<QidGzipMemberInfo>,
+) -> impl Iterator<Item = Result<(u64, String)>> {
+    entries.into_iter().map(
+        move |QidGzipMemberInfo {
+                  qid,
+                  offset_into_gzip_member,
+              }| {
+            let slice = &buf[offset_into_gzip_member as usize..];
+            let mut gzip_member_reader = BufReader::new(slice);
+            let mut string = String::new();
+            gzip_member_reader.read_line(&mut string)?;
+            string.truncate(string.len() - 2);
+            Ok((qid, string))
+        },
+    )
+}
+
 pub fn query_wikidata_dump(
     dumpfile_path: PathBuf,
     mut qids: Vec<u64>,
@@ -50,16 +69,9 @@ pub fn query_wikidata_dump(
         let mut gz = GzDecoder::new(archive_reader);
         let mut buf: Vec<u8> = vec![];
         gz.read_to_end(&mut buf)?;
-        for QidGzipMemberInfo {
-            qid,
-            offset_into_gzip_member,
-        } in entries
-        {
-            let slice = &buf[offset_into_gzip_member as usize..];
-            let mut gzip_member_reader = BufReader::new(slice);
-            let mut string = String::new();
-            gzip_member_reader.read_line(&mut string)?;
-            let entity: WikidataEntity = serde_json::from_str(&string[0..string.len() - 2])?;
+        for item in iter_serialized_qids(buf, entries) {
+            let (qid, qid_json) = item?;
+            let entity: WikidataEntity = serde_json::from_str(&qid_json)?;
             println!(
                 "Q{qid}: {} - {} ({})",
                 entity.label().unwrap_or_default(),
