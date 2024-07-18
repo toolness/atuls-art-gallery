@@ -178,10 +178,10 @@ pub fn index_path_for_dumpfile(dumpfile_path: &PathBuf) -> PathBuf {
     dumpfile_path.with_extension("vecindex")
 }
 
-/// Given a gzipped member of the dumpfile and a list of entity
+/// Given a decompressed gzipped member of the dumpfile and a list of entity
 /// Q-identifiers contained within it, returns an iterator that
-/// decompresses the gzipped member and iterates over the entities.
-fn iter_gzipped_member_serialized_qids(
+/// iterates over the entities.
+fn iter_decompressed_gzipped_member_serialized_qids(
     buf: Vec<u8>,
     entries: Vec<QidGzipMemberInfo>,
 ) -> impl Iterator<Item = Result<(u64, String)>> {
@@ -191,9 +191,9 @@ fn iter_gzipped_member_serialized_qids(
                   offset_into_gzip_member,
               }| {
             let slice = &buf[offset_into_gzip_member as usize..];
-            let mut gzip_member_reader = BufReader::new(slice);
+            let mut decompressed_gzip_member_reader = BufReader::new(slice);
             let mut string = String::new();
-            gzip_member_reader.read_line(&mut string)?;
+            decompressed_gzip_member_reader.read_line(&mut string)?;
             if string.ends_with(",\n") {
                 string.truncate(string.len() - 2);
             }
@@ -205,20 +205,23 @@ fn iter_gzipped_member_serialized_qids(
     )
 }
 
+/// Yields an iterator that visits each gzip member specified by the given
+/// index file mapping, decompresses it, and yields the decompressed member
+/// and a list of all the QIDs that need to be retrieved from it.
 fn iter_gzipped_members_with_qids(
-    archive_reader: BufReader<File>,
+    dumpfile_reader: BufReader<File>,
     qid_index_file_mapping: QidIndexFileMapping,
 ) -> impl Iterator<Item = Result<(Vec<u8>, Vec<QidGzipMemberInfo>)>> {
-    let mut wrapped_archive_reader = Some(archive_reader);
+    let mut wrapped_dumpfile_reader = Some(dumpfile_reader);
     qid_index_file_mapping.qids_by_gzip_members.into_iter().map(
         move |(gzip_member_offset, entries)| {
-            let mut archive_reader = wrapped_archive_reader.take().unwrap();
-            archive_reader.seek(std::io::SeekFrom::Start(gzip_member_offset))?;
-            let mut gz = GzDecoder::new(archive_reader);
-            let mut buf: Vec<u8> = vec![];
-            gz.read_to_end(&mut buf)?;
-            wrapped_archive_reader = Some(gz.into_inner());
-            Ok((buf, entries))
+            let mut dumpfile_reader = wrapped_dumpfile_reader.take().unwrap();
+            dumpfile_reader.seek(std::io::SeekFrom::Start(gzip_member_offset))?;
+            let mut gz = GzDecoder::new(dumpfile_reader);
+            let mut decompressed_buf: Vec<u8> = vec![];
+            gz.read_to_end(&mut decompressed_buf)?;
+            wrapped_dumpfile_reader = Some(gz.into_inner());
+            Ok((decompressed_buf, entries))
         },
     )
 }
@@ -227,20 +230,22 @@ fn iter_gzipped_members_with_qids(
 /// returns an iterator that yields the entity Q-identifiers along with their
 /// JSON-serialized values.
 pub fn iter_serialized_qids(
-    archive_reader: BufReader<File>,
+    dumpfile_reader: BufReader<File>,
     qid_index_file_mapping: QidIndexFileMapping,
 ) -> impl Iterator<Item = Result<(u64, String)>> {
-    fn iter_gzipped_member_serialized_qids_or_propagate_error(
+    fn iter_decompressed_gzipped_member_serialized_qids_or_propagate_error(
         thing: Result<(Vec<u8>, Vec<QidGzipMemberInfo>)>,
     ) -> Box<dyn Iterator<Item = Result<(u64, String)>>> {
         match thing {
-            Ok((buf, entries)) => Box::new(iter_gzipped_member_serialized_qids(buf, entries)),
+            Ok((buf, entries)) => Box::new(iter_decompressed_gzipped_member_serialized_qids(
+                buf, entries,
+            )),
             Err(err) => Box::new(std::iter::once(Err(err))),
         }
     }
 
-    iter_gzipped_members_with_qids(archive_reader, qid_index_file_mapping)
-        .flat_map(iter_gzipped_member_serialized_qids_or_propagate_error)
+    iter_gzipped_members_with_qids(dumpfile_reader, qid_index_file_mapping)
+        .flat_map(iter_decompressed_gzipped_member_serialized_qids_or_propagate_error)
 }
 
 /// Given a dumpfile, creates an index that maps entity Q-identifiers to
