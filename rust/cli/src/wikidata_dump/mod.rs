@@ -55,6 +55,8 @@ fn iter_serialized_qids_using_cache(
         qid_index_file_mapping.qids(),
         qid_index_file_mapping.gzip_members()
     );
+    // TODO: Consider opening the dumpfile for reading in several different threads,
+    // and telling each of them to retrieve the entities from a different gzip member.
     let file = std::fs::File::open(dumpfile_path)?;
     let archive_reader = BufReader::with_capacity(BUFREADER_CAPACITY, file);
     let uncached_iterator: Box<SerializedEntityIterator> = Box::new(
