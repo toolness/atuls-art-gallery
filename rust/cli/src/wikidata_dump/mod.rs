@@ -110,7 +110,7 @@ pub fn query_wikidata_dump(
         }
         if verbose {
             println!(
-                "{percent_done:.1}% Q{qid}: {} - {} ({}, {})",
+                "{percent_done:.1}% Q{qid}: {} - {} ({}, {}, {})",
                 entity.label().unwrap_or_default(),
                 entity.description().unwrap_or_default(),
                 if has_image { "has image" } else { "no image" },
@@ -118,6 +118,11 @@ pub fn query_wikidata_dump(
                     format!("{width:.0} x {height:.0} cm")
                 } else {
                     "no dimensions".to_string()
+                },
+                if let Some(qid) = entity.creator_id() {
+                    format!("creator=Q{qid}")
+                } else {
+                    format!("no creator")
                 }
             );
         } else if count % 1000 == 0 {

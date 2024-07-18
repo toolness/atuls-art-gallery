@@ -166,6 +166,20 @@ impl WikidataEntity {
         }
         None
     }
+    pub fn creator_id(&self) -> Option<u64> {
+        let Some(statements) = &self.claims.p170 else {
+            return None;
+        };
+        for statement in statements {
+            if let Some(Datavalue::Entity {
+                value: EntityId { id },
+            }) = &statement.mainsnak.datavalue
+            {
+                return Some(*id);
+            }
+        }
+        None
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -196,6 +210,10 @@ struct Claims {
     /// P2049 - Width
     #[serde(rename = "P2049")]
     p2049: Option<Vec<Statement>>,
+
+    /// P170 - Creator
+    #[serde(rename = "P170")]
+    p170: Option<Vec<Statement>>,
 }
 
 /// https://www.wikidata.org/wiki/Q174728
@@ -243,6 +261,15 @@ enum Datavalue {
 
     #[serde(rename = "quantity")]
     Quantity { value: Quantity },
+
+    #[serde(rename = "wikibase-entityid")]
+    Entity { value: EntityId },
+}
+
+#[derive(Debug, Deserialize)]
+struct EntityId {
+    #[serde(rename = "numeric-id")]
+    id: u64,
 }
 
 #[derive(Debug, Deserialize)]
