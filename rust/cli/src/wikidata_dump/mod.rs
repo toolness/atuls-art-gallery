@@ -76,7 +76,7 @@ fn iter_serialized_qids_using_cache(
     Ok(Box::new(cached_iterator.chain(uncached_iterator)))
 }
 
-pub fn query_wikidata_dump(
+pub fn cache_wikidata_dump(
     dumpfile_path: PathBuf,
     mut qids: Vec<u64>,
     csv: Option<PathBuf>,
