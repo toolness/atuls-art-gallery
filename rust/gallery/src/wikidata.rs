@@ -13,7 +13,7 @@ const WIKIDATA_URL_PREFIXES: [&'static str; 2] = [
 
 /// We only care about the ones Godot can import right now:
 ///
-///     https://docs.godotengine.org/en/stable/tutorials/assets_pipeline/importing_images.html#supported-image-formats
+/// https://docs.godotengine.org/en/stable/tutorials/assets_pipeline/importing_images.html#supported-image-formats
 const SUPPORTED_LOWERCASE_IMAGE_FORMATS: [&'static str; 4] = [".jpg", ".jpeg", ".webp", ".png"];
 
 const SMALL_IMAGE_WIDTH: usize = 500;
@@ -135,25 +135,21 @@ impl WikidataEntity {
             .map(|label| label.english_str())
             .flatten()
     }
-    pub fn image_filename(&self) -> Option<&str> {
-        let Some(statements) = &self.claims.p18 else {
-            return None;
-        };
-        for statement in statements {
-            if let Some(Datavalue::String {
+    pub fn image_filename(&self) -> Option<&String> {
+        find_in_statements(&self.claims.p18, |datavalue| match datavalue {
+            Datavalue::String {
                 value: image_filename,
-            }) = &statement.mainsnak.datavalue
-            {
+            } => {
                 let lowercase_filename = image_filename.to_lowercase();
                 for format in SUPPORTED_LOWERCASE_IMAGE_FORMATS {
                     if lowercase_filename.ends_with(format) {
                         return Some(image_filename);
                     }
                 }
+                None
             }
-            return None;
-        }
-        None
+            _ => None,
+        })
     }
     pub fn dimensions_in_cm(&self) -> Option<(f64, f64)> {
         if let (Some(width), Some(height)) = (
@@ -167,18 +163,12 @@ impl WikidataEntity {
         None
     }
     pub fn creator_id(&self) -> Option<u64> {
-        let Some(statements) = &self.claims.p170 else {
-            return None;
-        };
-        for statement in statements {
-            if let Some(Datavalue::Entity {
+        find_in_statements_and_copy(&self.claims.p170, |datavalue| match datavalue {
+            Datavalue::Entity {
                 value: EntityId { id },
-            }) = &statement.mainsnak.datavalue
-            {
-                return Some(*id);
-            }
-        }
-        None
+            } => Some(id),
+            _ => None,
+        })
     }
 }
 
@@ -221,21 +211,46 @@ const CENTIMETRE_QID: u64 = 174728;
 
 impl Claims {
     fn get_cm_amount(statements: &Option<Vec<Statement>>) -> Option<f64> {
-        let Some(statements) = statements else {
-            return None;
-        };
-        for statement in statements {
-            if let Some(Datavalue::Quantity {
+        find_in_statements_and_copy(statements, |datavalue| {
+            if let Datavalue::Quantity {
                 value: Quantity { amount, unit },
-            }) = statement.mainsnak.datavalue
+            } = datavalue
             {
-                if unit == Some(CENTIMETRE_QID) {
+                if unit == &Some(CENTIMETRE_QID) {
                     return Some(amount);
                 }
             }
-        }
-        None
+            None
+        })
     }
+}
+
+/// Iterate through all statements calling the given callback with the statement's
+/// mainsnak datavalue. Once the callback returns a `Some()` value, return it immediately.
+fn find_in_statements<T, F>(statements: &Option<Vec<Statement>>, callback: F) -> Option<&T>
+where
+    F: Fn(&Datavalue) -> Option<&T>,
+{
+    let Some(statements) = statements else {
+        return None;
+    };
+
+    for statement in statements {
+        if let Some(datavalue) = &statement.mainsnak.datavalue {
+            if let Some(result) = callback(datavalue) {
+                return Some(result);
+            }
+        }
+    }
+    None
+}
+
+fn find_in_statements_and_copy<T, F>(statements: &Option<Vec<Statement>>, callback: F) -> Option<T>
+where
+    T: Copy,
+    F: Fn(&Datavalue) -> Option<&T>,
+{
+    find_in_statements(statements, callback).copied()
 }
 
 #[derive(Debug, Deserialize)]
@@ -383,7 +398,7 @@ mod tests {
         let response: WikidataEntity = serde_json::from_str(&response_json).unwrap();
         assert_eq!(
             response.image_filename(),
-            Some("Juan Gris - Nature morte à la nappe à carreaux.jpg")
+            Some(&"Juan Gris - Nature morte à la nappe à carreaux.jpg".to_owned())
         );
     }
 }
