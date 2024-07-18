@@ -7,8 +7,8 @@ use crate::{gallery_cache::GalleryCache, image::ImageSize};
 const ROOT_CACHE_SUBDIR: &'static str = "wikidata";
 
 const WIKIDATA_URL_PREFIXES: [&'static str; 2] = [
-    "https://www.wikidata.org/wiki/Q",
     "http://www.wikidata.org/entity/Q",
+    "https://www.wikidata.org/wiki/Q",
 ];
 
 /// We only care about the ones Godot can import right now:
