@@ -139,7 +139,8 @@ impl WikidataEntity {
                 value: image_filename,
             }) = &statement.mainsnak.datavalue
             {
-                if image_filename.to_lowercase().ends_with(".jpg") {
+                let lowercase_filename = image_filename.to_lowercase();
+                if lowercase_filename.ends_with(".jpg") || lowercase_filename.ends_with(".jpeg") {
                     return Some(image_filename);
                 }
             }
