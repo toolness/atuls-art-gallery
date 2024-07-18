@@ -84,16 +84,28 @@ pub fn query_wikidata_dump(
         count += 1;
         let percent_done = (count as f64) / (total_qids as f64) * 100.0;
         let (qid, qid_json) = result?;
-        let entity: WikidataEntity = serde_json::from_str(&qid_json)?;
+        let entity: WikidataEntity = match serde_json::from_str(&qid_json) {
+            Ok(entity) => entity,
+            Err(err) => {
+                return Err(anyhow!(
+                    "Error occurred deserializing JSON for Q{qid}: {err:?}"
+                ))
+            }
+        };
         if verbose {
             println!(
-                "{percent_done:.1}% Q{qid}: {} - {} ({})",
+                "{percent_done:.1}% Q{qid}: {} - {} ({}, {})",
                 entity.label().unwrap_or_default(),
                 entity.description().unwrap_or_default(),
                 if entity.image_filename().is_some() {
                     "has image"
                 } else {
                     "no image"
+                },
+                if let Some((width, height)) = entity.dimensions_in_cm() {
+                    format!("{width:.0} x {height:.0} cm")
+                } else {
+                    "no dimensions".to_string()
                 }
             );
         } else if count % 1000 == 0 {

@@ -1,6 +1,6 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use percent_encoding::{utf8_percent_encode, CONTROLS};
-use serde::Deserialize;
+use serde::{de, Deserialize};
 
 use crate::{gallery_cache::GalleryCache, image::ImageSize};
 
@@ -23,6 +23,71 @@ pub fn try_to_parse_qid_from_wikidata_url<T: AsRef<str>>(url: T) -> Option<u64> 
         }
     }
     None
+}
+
+/// Parses a Q-identifier from a wikidata URL and returns it.
+pub fn deserialize_wikidata_entity_url_str<'de, D>(deserializer: D) -> Result<u64, D::Error>
+where
+    D: de::Deserializer<'de>,
+{
+    let s: &str = de::Deserialize::deserialize(deserializer)?;
+    match try_to_parse_qid_from_wikidata_url(s) {
+        Some(qid) => Ok(qid),
+        None => Err(de::Error::custom(anyhow!(
+            "Unable to parse {s:?} as wikidata URL"
+        ))),
+    }
+}
+
+/// Parses a Q-identifier from a wikidata URL and returns it.
+///
+/// This version deserializes the intermediate value to an owned String instead of a
+/// borrowed &str because parsing JSON apparently yields owned Strings instead of
+/// borrowed ones and Serde is confusing the hell out of me and the only way around
+/// it seems to be to make two separate functions that do the same thing but with
+/// different types of strings.
+fn deserialize_wikidata_entity_url_string<'de, D>(deserializer: D) -> Result<u64, D::Error>
+where
+    D: de::Deserializer<'de>,
+{
+    let s: String = de::Deserialize::deserialize(deserializer)?;
+    match try_to_parse_qid_from_wikidata_url(&s) {
+        Some(qid) => Ok(qid),
+        None => Err(de::Error::custom(anyhow!(
+            "Unable to parse {s:?} as wikidata URL"
+        ))),
+    }
+}
+
+/// Sometimes wikidata entities are malformed, e.g. the width of
+/// https://www.wikidata.org/wiki/Q2395137, so we just return None
+/// instead of erroring.
+fn deserialize_wikidata_entity_url_string_forgiving<'de, D>(
+    deserializer: D,
+) -> Result<Option<u64>, D::Error>
+where
+    D: de::Deserializer<'de>,
+{
+    match deserialize_wikidata_entity_url_string(deserializer) {
+        Ok(value) => Ok(Some(value)),
+        Err(_) => Ok(None),
+    }
+}
+
+/// Wikipedia serializes its floats with a leading plus sign, e.g. "+32.4", so
+/// we have to specially parse it.
+fn deserialize_amount_with_plus_sign<'de, D>(deserializer: D) -> Result<f64, D::Error>
+where
+    D: de::Deserializer<'de>,
+{
+    let s: String = de::Deserialize::deserialize(deserializer)?;
+    let to_parse = if s.starts_with("+") { &s[1..] } else { &s };
+    match to_parse.parse::<f64>() {
+        Ok(value) => Ok(value),
+        Err(err) => Err(de::Error::custom(anyhow!(
+            "Unable to parse {s:?} as float with possible leading plus sign: {err:?}"
+        ))),
+    }
 }
 
 pub struct WikidataImageInfo {
@@ -82,9 +147,16 @@ impl WikidataEntity {
         }
         None
     }
-    pub fn dimensions(&self) -> Option<(f64, f64)> {
-        unimplemented!()
-        //if let (Some(width), Some(height)) = (self.claims.p2048.map(|claim|
+    pub fn dimensions_in_cm(&self) -> Option<(f64, f64)> {
+        if let (Some(width), Some(height)) = (
+            Claims::get_cm_amount(&self.claims.p2049),
+            Claims::get_cm_amount(&self.claims.p2048),
+        ) {
+            if width > 0.0 && height > 0.0 {
+                return Some((width, height));
+            }
+        }
+        None
     }
 }
 
@@ -118,6 +190,28 @@ struct Claims {
     p2049: Option<Vec<Statement>>,
 }
 
+/// https://www.wikidata.org/wiki/Q174728
+const CENTIMETRE_QID: u64 = 174728;
+
+impl Claims {
+    fn get_cm_amount(statements: &Option<Vec<Statement>>) -> Option<f64> {
+        let Some(statements) = statements else {
+            return None;
+        };
+        for statement in statements {
+            if let Some(Datavalue::Quantity {
+                value: Quantity { amount, unit },
+            }) = statement.mainsnak.datavalue
+            {
+                if unit == Some(CENTIMETRE_QID) {
+                    return Some(amount);
+                }
+            }
+        }
+        None
+    }
+}
+
 #[derive(Debug, Deserialize)]
 struct Statement {
     mainsnak: Mainsnak,
@@ -145,10 +239,10 @@ enum Datavalue {
 
 #[derive(Debug, Deserialize)]
 struct Quantity {
-    // TODO: Custom parse as f64, accounting for leading "+"
-    amount: String,
-    // TODO: Custom parse u64, ensure it's Q174728 (centimetre)
-    unit: String,
+    #[serde(deserialize_with = "deserialize_amount_with_plus_sign")]
+    amount: f64,
+    #[serde(deserialize_with = "deserialize_wikidata_entity_url_string_forgiving")]
+    unit: Option<u64>,
 }
 
 fn get_url_for_image<T: AsRef<str>>(image_filename: T, size: ImageSize) -> String {
