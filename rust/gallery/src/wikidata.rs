@@ -136,7 +136,7 @@ impl WikidataEntity {
             .flatten()
     }
     pub fn image_filename(&self) -> Option<&String> {
-        find_in_statements(&self.claims.p18, |datavalue| match datavalue {
+        self.claims.p18.find(|datavalue| match datavalue {
             Datavalue::String {
                 value: image_filename,
             } => {
@@ -153,8 +153,8 @@ impl WikidataEntity {
     }
     pub fn dimensions_in_cm(&self) -> Option<(f64, f64)> {
         if let (Some(width), Some(height)) = (
-            Claims::get_cm_amount(&self.claims.p2049),
-            Claims::get_cm_amount(&self.claims.p2048),
+            self.claims.p2049.find_cm_amount(),
+            self.claims.p2048.find_cm_amount(),
         ) {
             if width > 0.0 && height > 0.0 {
                 return Some((width, height));
@@ -163,7 +163,7 @@ impl WikidataEntity {
         None
     }
     pub fn creator_id(&self) -> Option<u64> {
-        find_in_statements_and_copy(&self.claims.p170, |datavalue| match datavalue {
+        self.claims.p170.find_and_copy(|datavalue| match datavalue {
             Datavalue::Entity {
                 value: EntityId { id },
             } => Some(id),
@@ -187,6 +187,64 @@ impl LocalizedValues {
     }
 }
 
+/// Convenience trait that makes it easier to find things in an `Option<Vec<Statement>>`.
+///
+/// I'd prefer an opaque type for this but I need it to be optional, or else serde will
+/// error when deserializing, so I'm just making it a trait and only implementing it for
+/// `Option<Vec<Statement>>`.
+trait Statements {
+    /// Iterate through all statements calling the given callback with the statement's
+    /// mainsnak datavalue. Once the callback returns a `Some()` value, return it immediately.
+    fn find<T, F>(&self, callback: F) -> Option<&T>
+    where
+        F: Fn(&Datavalue) -> Option<&T>;
+
+    fn find_and_copy<T, F>(&self, callback: F) -> Option<T>
+    where
+        T: Copy,
+        F: Fn(&Datavalue) -> Option<&T>,
+    {
+        self.find(callback).copied()
+    }
+
+    fn find_cm_amount(&self) -> Option<f64> {
+        self.find_and_copy(|datavalue| {
+            if let Datavalue::Quantity {
+                value: Quantity { amount, unit },
+            } = datavalue
+            {
+                if unit == &Some(CENTIMETRE_QID) {
+                    return Some(amount);
+                }
+            }
+            None
+        })
+    }
+}
+
+impl Statements for Option<Vec<Statement>> {
+    fn find<T, F>(&self, callback: F) -> Option<&T>
+    where
+        F: Fn(&Datavalue) -> Option<&T>,
+    {
+        let Some(statements) = self else {
+            return None;
+        };
+
+        for statement in statements {
+            if let Some(datavalue) = &statement.mainsnak.datavalue {
+                if let Some(result) = callback(datavalue) {
+                    return Some(result);
+                }
+            }
+        }
+        None
+    }
+}
+
+/// Claims. We only list the ones we care about so we don't have to worry about
+/// parsing every variation of the schema, nor do we waste the device's time in
+/// parsing things we don't need.
 #[derive(Debug, Deserialize)]
 struct Claims {
     /// P18 - Image
@@ -208,50 +266,6 @@ struct Claims {
 
 /// https://www.wikidata.org/wiki/Q174728
 const CENTIMETRE_QID: u64 = 174728;
-
-impl Claims {
-    fn get_cm_amount(statements: &Option<Vec<Statement>>) -> Option<f64> {
-        find_in_statements_and_copy(statements, |datavalue| {
-            if let Datavalue::Quantity {
-                value: Quantity { amount, unit },
-            } = datavalue
-            {
-                if unit == &Some(CENTIMETRE_QID) {
-                    return Some(amount);
-                }
-            }
-            None
-        })
-    }
-}
-
-/// Iterate through all statements calling the given callback with the statement's
-/// mainsnak datavalue. Once the callback returns a `Some()` value, return it immediately.
-fn find_in_statements<T, F>(statements: &Option<Vec<Statement>>, callback: F) -> Option<&T>
-where
-    F: Fn(&Datavalue) -> Option<&T>,
-{
-    let Some(statements) = statements else {
-        return None;
-    };
-
-    for statement in statements {
-        if let Some(datavalue) = &statement.mainsnak.datavalue {
-            if let Some(result) = callback(datavalue) {
-                return Some(result);
-            }
-        }
-    }
-    None
-}
-
-fn find_in_statements_and_copy<T, F>(statements: &Option<Vec<Statement>>, callback: F) -> Option<T>
-where
-    T: Copy,
-    F: Fn(&Datavalue) -> Option<&T>,
-{
-    find_in_statements(statements, callback).copied()
-}
 
 #[derive(Debug, Deserialize)]
 struct Statement {
