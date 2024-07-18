@@ -121,6 +121,10 @@ enum Commands {
         /// CSV export from query.wikidata.org with a single 'item' column containing entity URLs.
         #[arg(long)]
         csv: Option<PathBuf>,
+
+        /// Log warnings about whether e.g. an item doesn't have required fields, or doesn't exist.
+        #[arg(long, default_value_t = false)]
+        warnings: bool,
     },
 }
 
@@ -174,7 +178,8 @@ fn run() -> Result<()> {
             dumpfile,
             qids,
             csv,
-        } => query_wikidata_dump(dumpfile, qids, csv, args.verbose),
+            warnings,
+        } => query_wikidata_dump(dumpfile, qids, csv, args.verbose, warnings),
     }
 }
 

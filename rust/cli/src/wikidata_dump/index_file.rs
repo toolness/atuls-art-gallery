@@ -82,6 +82,7 @@ struct QidGzipMemberInfo {
 pub fn get_qid_index_file_mapping(
     reader: &mut IndexFileReader,
     qids: Vec<u64>,
+    warnings: bool,
 ) -> Result<QidIndexFileMapping> {
     let mut qids_by_gzip_members = HashMap::<u64, Vec<QidGzipMemberInfo>>::new();
     let mut total_qids = 0;
@@ -98,7 +99,7 @@ pub fn get_qid_index_file_mapping(
                 qid,
                 offset_into_gzip_member,
             });
-        } else {
+        } else if warnings {
             println!("Warning: Q{qid} not found.");
         }
     }

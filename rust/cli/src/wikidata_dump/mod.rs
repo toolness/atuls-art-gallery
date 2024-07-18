@@ -18,6 +18,7 @@ type SerializedEntityIterator = dyn Iterator<Item = Result<(u64, String)>>;
 fn iter_serialized_qids_using_cache(
     dumpfile_path: PathBuf,
     qids: Vec<u64>,
+    warnings: bool,
 ) -> Result<Box<SerializedEntityIterator>> {
     let index_path = index_path_for_dumpfile(&dumpfile_path);
     let mut index_db = IndexFileReader::new(index_path)?;
@@ -44,7 +45,8 @@ fn iter_serialized_qids_using_cache(
             Err(err) => Err(err.into()),
         },
     ));
-    let qid_index_file_mapping = get_qid_index_file_mapping(&mut index_db, uncached_qids)?;
+    let qid_index_file_mapping =
+        get_qid_index_file_mapping(&mut index_db, uncached_qids, warnings)?;
     if qid_index_file_mapping.qids() == 0 {
         return Ok(Box::new(cached_iterator));
     }
@@ -74,13 +76,15 @@ pub fn query_wikidata_dump(
     mut qids: Vec<u64>,
     csv: Option<PathBuf>,
     verbose: bool,
+    warnings: bool,
 ) -> Result<()> {
     if let Some(csv) = csv {
         parse_sparql_csv_export(csv, &mut qids)?;
     }
     let total_qids = qids.len();
     let mut count = 0;
-    for result in iter_serialized_qids_using_cache(dumpfile_path, qids)? {
+    let mut count_with_required_fields = 0;
+    for result in iter_serialized_qids_using_cache(dumpfile_path, qids, warnings)? {
         count += 1;
         let percent_done = (count as f64) / (total_qids as f64) * 100.0;
         let (qid, qid_json) = result?;
@@ -92,17 +96,25 @@ pub fn query_wikidata_dump(
                 ))
             }
         };
+        let has_image = entity.image_filename().is_some();
+        let dimensions = entity.dimensions_in_cm();
+        if has_image && dimensions.is_some() {
+            count_with_required_fields += 1;
+        } else if warnings {
+            println!(
+                "Warning: Q{qid} ({:?}) is missing required fields, image={:?}, dimensions={:?}",
+                entity.label().unwrap_or_default(),
+                entity.image_filename(),
+                dimensions
+            );
+        }
         if verbose {
             println!(
                 "{percent_done:.1}% Q{qid}: {} - {} ({}, {})",
                 entity.label().unwrap_or_default(),
                 entity.description().unwrap_or_default(),
-                if entity.image_filename().is_some() {
-                    "has image"
-                } else {
-                    "no image"
-                },
-                if let Some((width, height)) = entity.dimensions_in_cm() {
+                if has_image { "has image" } else { "no image" },
+                if let Some((width, height)) = dimensions {
                     format!("{width:.0} x {height:.0} cm")
                 } else {
                     "no dimensions".to_string()
@@ -112,6 +124,8 @@ pub fn query_wikidata_dump(
             println!("{percent_done:.1}% complete ({count} entities processed).");
         }
     }
-    println!("Done processing {count} entities.");
+    println!(
+        "Done processing {count} entities, {count_with_required_fields} have all required fields."
+    );
     Ok(())
 }

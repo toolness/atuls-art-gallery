@@ -11,6 +11,11 @@ const WIKIDATA_URL_PREFIXES: [&'static str; 2] = [
     "http://www.wikidata.org/entity/Q",
 ];
 
+/// We only care about the ones Godot can import right now:
+///
+///     https://docs.godotengine.org/en/stable/tutorials/assets_pipeline/importing_images.html#supported-image-formats
+const SUPPORTED_LOWERCASE_IMAGE_FORMATS: [&'static str; 4] = [".jpg", ".jpeg", ".webp", ".png"];
+
 const SMALL_IMAGE_WIDTH: usize = 500;
 
 pub fn try_to_parse_qid_from_wikidata_url<T: AsRef<str>>(url: T) -> Option<u64> {
@@ -140,8 +145,10 @@ impl WikidataEntity {
             }) = &statement.mainsnak.datavalue
             {
                 let lowercase_filename = image_filename.to_lowercase();
-                if lowercase_filename.ends_with(".jpg") || lowercase_filename.ends_with(".jpeg") {
-                    return Some(image_filename);
+                for format in SUPPORTED_LOWERCASE_IMAGE_FORMATS {
+                    if lowercase_filename.ends_with(format) {
+                        return Some(image_filename);
+                    }
                 }
             }
             return None;
