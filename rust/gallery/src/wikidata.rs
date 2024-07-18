@@ -187,17 +187,25 @@ impl LocalizedValues {
     }
 }
 
-/// Convenience trait that makes it easier to find things in an `Option<Vec<Statement>>`.
-///
-/// I'd prefer an opaque type for this but I need it to be optional, or else serde will
-/// error when deserializing, so I'm just making it a trait and only implementing it for
-/// `Option<Vec<Statement>>`.
-trait Statements {
+#[derive(Debug, Deserialize, Default)]
+struct Statements(Vec<Statement>);
+
+impl Statements {
     /// Iterate through all statements calling the given callback with the statement's
     /// mainsnak datavalue. Once the callback returns a `Some()` value, return it immediately.
     fn find<T, F>(&self, callback: F) -> Option<&T>
     where
-        F: Fn(&Datavalue) -> Option<&T>;
+        F: Fn(&Datavalue) -> Option<&T>,
+    {
+        for statement in &self.0 {
+            if let Some(datavalue) = &statement.mainsnak.datavalue {
+                if let Some(result) = callback(datavalue) {
+                    return Some(result);
+                }
+            }
+        }
+        None
+    }
 
     fn find_and_copy<T, F>(&self, callback: F) -> Option<T>
     where
@@ -222,46 +230,26 @@ trait Statements {
     }
 }
 
-impl Statements for Option<Vec<Statement>> {
-    fn find<T, F>(&self, callback: F) -> Option<&T>
-    where
-        F: Fn(&Datavalue) -> Option<&T>,
-    {
-        let Some(statements) = self else {
-            return None;
-        };
-
-        for statement in statements {
-            if let Some(datavalue) = &statement.mainsnak.datavalue {
-                if let Some(result) = callback(datavalue) {
-                    return Some(result);
-                }
-            }
-        }
-        None
-    }
-}
-
 /// Claims. We only list the ones we care about so we don't have to worry about
 /// parsing every variation of the schema, nor do we waste the device's time in
 /// parsing things we don't need.
 #[derive(Debug, Deserialize)]
 struct Claims {
     /// P18 - Image
-    #[serde(rename = "P18")]
-    p18: Option<Vec<Statement>>,
+    #[serde(rename = "P18", default)]
+    p18: Statements,
 
     /// P2048 - Height
-    #[serde(rename = "P2048")]
-    p2048: Option<Vec<Statement>>,
+    #[serde(rename = "P2048", default)]
+    p2048: Statements,
 
     /// P2049 - Width
-    #[serde(rename = "P2049")]
-    p2049: Option<Vec<Statement>>,
+    #[serde(rename = "P2049", default)]
+    p2049: Statements,
 
     /// P170 - Creator
-    #[serde(rename = "P170")]
-    p170: Option<Vec<Statement>>,
+    #[serde(rename = "P170", default)]
+    p170: Statements,
 }
 
 /// https://www.wikidata.org/wiki/Q174728
