@@ -90,7 +90,7 @@ pub fn query_wikidata_dump(
                 "{percent_done:.1}% Q{qid}: {} - {} ({})",
                 entity.label().unwrap_or_default(),
                 entity.description().unwrap_or_default(),
-                if entity.p18_image().is_some() {
+                if entity.image_filename().is_some() {
                     "has image"
                 } else {
                     "no image"

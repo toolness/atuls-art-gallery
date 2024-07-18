@@ -56,47 +56,66 @@ impl WikidataEntity {
     pub fn label(&self) -> Option<&str> {
         self.labels
             .as_ref()
-            .map(|label| label.english_value())
+            .map(|label| label.english_str())
             .flatten()
     }
     pub fn description(&self) -> Option<&str> {
         self.descriptions
             .as_ref()
-            .map(|label| label.english_value())
+            .map(|label| label.english_str())
             .flatten()
     }
-    pub fn p18_image(&self) -> Option<&str> {
+    pub fn image_filename(&self) -> Option<&str> {
         let Some(statements) = &self.claims.p18 else {
             return None;
         };
         for statement in statements {
-            let Some(datavalue) = &statement.mainsnak.datavalue else {
-                return None;
-            };
-            let image_filename = &datavalue.value;
-            if image_filename.to_lowercase().ends_with(".jpg") {
-                return Some(image_filename);
+            if let Some(Datavalue::String {
+                value: image_filename,
+            }) = &statement.mainsnak.datavalue
+            {
+                if image_filename.to_lowercase().ends_with(".jpg") {
+                    return Some(image_filename);
+                }
             }
+            return None;
         }
         None
+    }
+    pub fn dimensions(&self) -> Option<(f64, f64)> {
+        unimplemented!()
+        //if let (Some(width), Some(height)) = (self.claims.p2048.map(|claim|
     }
 }
 
 #[derive(Debug, Deserialize)]
 struct LocalizedValues {
-    en: Option<Datavalue>,
+    en: Option<StringValue>,
 }
 
 impl LocalizedValues {
-    fn english_value(&self) -> Option<&str> {
-        self.en.as_ref().map(|en| en.value.as_str())
+    fn english_str(&self) -> Option<&str> {
+        if let Some(StringValue { value }) = &self.en {
+            Some(value.as_str())
+        } else {
+            None
+        }
     }
 }
 
 #[derive(Debug, Deserialize)]
 struct Claims {
+    /// P18 - Image
     #[serde(rename = "P18")]
     p18: Option<Vec<Statement>>,
+
+    /// P2048 - Height
+    #[serde(rename = "P2048")]
+    p2048: Option<Vec<Statement>>,
+
+    /// P2049 - Width
+    #[serde(rename = "P2049")]
+    p2049: Option<Vec<Statement>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -110,8 +129,26 @@ struct Mainsnak {
 }
 
 #[derive(Debug, Deserialize)]
-struct Datavalue {
+struct StringValue {
     value: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(tag = "type")]
+enum Datavalue {
+    #[serde(rename = "string")]
+    String { value: String },
+
+    #[serde(rename = "quantity")]
+    Quantity { value: Quantity },
+}
+
+#[derive(Debug, Deserialize)]
+struct Quantity {
+    // TODO: Custom parse as f64, accounting for leading "+"
+    amount: String,
+    // TODO: Custom parse u64, ensure it's Q174728 (centimetre)
+    unit: String,
 }
 
 fn get_url_for_image<T: AsRef<str>>(image_filename: T, size: ImageSize) -> String {
@@ -144,7 +181,7 @@ pub fn load_wikidata_image_info(
     let response = serde_json::from_str::<WikidataEntity>(&cache.load_cached_string(&filename)?);
     match response {
         Ok(response) => {
-            let Some(image_filename) = response.p18_image() else {
+            let Some(image_filename) = response.image_filename() else {
                 return Ok(None);
             };
             Ok(Some(WikidataImageInfo {
@@ -216,7 +253,7 @@ mod tests {
         let response_json = r#"{"claims":{"P18":[{"mainsnak":{"snaktype":"value","property":"P18","hash":"9c96969b48408f6aa6d208542c338cadeff2dff9","datavalue":{"value":"Juan Gris - Nature morte \u00e0 la nappe \u00e0 carreaux.jpg","type":"string"},"datatype":"commonsMedia"},"type":"statement","id":"Q20189849$5E016A60-DF33-4157-A6F0-6E1E65411428","rank":"normal"}]}}"#;
         let response: WikidataEntity = serde_json::from_str(&response_json).unwrap();
         assert_eq!(
-            response.p18_image(),
+            response.image_filename(),
             Some("Juan Gris - Nature morte à la nappe à carreaux.jpg")
         );
     }
