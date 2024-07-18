@@ -30,7 +30,7 @@ const LAYOUT_START_GALLERY_ID: i64 = 1;
 #[command(version, about, long_about = None)]
 struct Args {
     /// Verbose output
-    #[arg(short, long, default_value_t = false)]
+    #[arg(short, long, default_value_t = false, global = true)]
     verbose: bool,
 
     /// Path to database
