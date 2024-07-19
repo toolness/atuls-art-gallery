@@ -4,7 +4,7 @@ use index_file::{
     get_qid_index_file_mapping, index_path_for_dumpfile, iter_serialized_qids, IndexFileReader,
 };
 use sparql_csv_export::parse_sparql_csv_export;
-use std::{io::BufReader, path::PathBuf};
+use std::{collections::HashSet, io::BufReader, path::PathBuf};
 
 pub use index_file::index_wikidata_dump;
 
@@ -125,8 +125,9 @@ pub fn cache_wikidata_dump(
     let expected_total = qids.len();
     let mut total = 0;
     let mut total_with_required_fields = 0;
+    let mut dependency_qids: HashSet<u64> = HashSet::new();
     println!("Processing {} entities.", expected_total);
-    for result in iter_and_cache_entities(dumpfile_path, qids, warnings)? {
+    for result in iter_and_cache_entities(dumpfile_path.clone(), qids, warnings)? {
         let EntityInfo {
             entity,
             percent_done,
@@ -145,6 +146,9 @@ pub fn cache_wikidata_dump(
                 entity.image_filename(),
                 dimensions
             );
+        }
+        if let Some(qid) = entity.creator_id() {
+            dependency_qids.insert(qid);
         }
         if verbose {
             println!(
@@ -171,5 +175,34 @@ pub fn cache_wikidata_dump(
         "Done processing {total} entities, {total_with_required_fields} have all required fields, {} were not found.",
         expected_total - total
     );
+
+    let dependency_qids = dependency_qids.into_iter().collect::<Vec<_>>();
+    let expected_total = dependency_qids.len();
+    let mut total = 0;
+    if expected_total > 0 {
+        println!("Processing {} dependency entities.", expected_total);
+        for result in iter_and_cache_entities(dumpfile_path, dependency_qids, warnings)? {
+            let EntityInfo {
+                entity,
+                percent_done,
+                count,
+                qid,
+            } = result?;
+            total = count;
+            if verbose {
+                println!(
+                    "{percent_done:.1}% dependency Q{qid}: {} -{}",
+                    entity.label().unwrap_or_default(),
+                    entity.description().unwrap_or_default(),
+                );
+            } else if count % 1000 == 0 {
+                println!("{percent_done:.1}% complete ({count} dependencies processed).");
+            }
+        }
+        println!(
+            "Done processing {total} depdendencies, {} were not found.",
+            expected_total - total
+        );
+    }
     Ok(())
 }
