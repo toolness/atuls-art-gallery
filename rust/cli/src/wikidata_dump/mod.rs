@@ -6,8 +6,12 @@ use index_file::{
 };
 use indicatif::ProgressBar;
 use sparql_csv_export::parse_sparql_csv_export;
+use std::{
+    collections::HashSet,
+    io::{BufReader, BufWriter},
+    path::PathBuf,
+};
 use zerocopy::LittleEndian;
-use std::{collections::HashSet, io::{BufReader, BufWriter}, path::PathBuf};
 
 pub use index_file::index_wikidata_dump;
 
@@ -119,8 +123,8 @@ fn dependency_path_for_dumpfile(dumpfile_path: &PathBuf) -> PathBuf {
     dumpfile_path.with_extension("deps.bin")
 }
 
-fn write_dependency_qids(dependency_path: &PathBuf, qids: &Vec<u64>) -> Result<()> {
-    let file = std::fs::File::create(dependency_path)?;
+fn write_qid_vec_to_file(path: &PathBuf, qids: &Vec<u64>) -> Result<()> {
+    let file = std::fs::File::create(path)?;
     let mut writer = BufWriter::new(file);
     writer.write_u64::<LittleEndian>(qids.len() as u64)?;
     for qid in qids {
@@ -129,8 +133,8 @@ fn write_dependency_qids(dependency_path: &PathBuf, qids: &Vec<u64>) -> Result<(
     Ok(())
 }
 
-fn read_dependency_qids(dependency_path: &PathBuf) -> Result<Vec<u64>> {
-    let file = std::fs::File::open(dependency_path)?;
+fn read_qid_vec_from_file(path: &PathBuf) -> Result<Vec<u64>> {
+    let file = std::fs::File::open(path)?;
     let mut reader = BufReader::new(file);
     let count = reader.read_u64::<LittleEndian>()? as usize;
     let mut qids: Vec<u64> = Vec::with_capacity(count);
@@ -144,16 +148,16 @@ fn read_dependency_qids(dependency_path: &PathBuf) -> Result<Vec<u64>> {
 mod tests {
     use std::path::PathBuf;
 
-    use crate::wikidata_dump::read_dependency_qids;
+    use crate::wikidata_dump::read_qid_vec_from_file;
 
-    use super::write_dependency_qids;
+    use super::write_qid_vec_to_file;
 
     #[test]
-    fn test_dependency_qid_file_works() {
+    fn test_write_qid_vec_to_file_works() {
         let path = PathBuf::from("test_deps.bin");
-        let qids: Vec<u64> = vec![1,2,3,4];
-        write_dependency_qids(&path, &qids).unwrap();
-        assert_eq!(read_dependency_qids(&path).unwrap(), qids);
+        let qids: Vec<u64> = vec![1, 2, 3, 4];
+        write_qid_vec_to_file(&path, &qids).unwrap();
+        assert_eq!(read_qid_vec_from_file(&path).unwrap(), qids);
         std::fs::remove_file(path).unwrap();
     }
 }
@@ -225,7 +229,10 @@ pub fn cache_wikidata_dump(
     );
 
     let dependency_qids = dependency_qids.into_iter().collect::<Vec<_>>();
-    write_dependency_qids(&dependency_path_for_dumpfile(&dumpfile_path), &dependency_qids)?;
+    write_qid_vec_to_file(
+        &dependency_path_for_dumpfile(&dumpfile_path),
+        &dependency_qids,
+    )?;
     let expected_total = dependency_qids.len();
     let mut total = 0;
     if expected_total > 0 {
