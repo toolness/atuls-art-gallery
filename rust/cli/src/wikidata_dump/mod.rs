@@ -173,6 +173,7 @@ pub fn cache_wikidata_dump(
             bar.inc(1);
         }
     }
+    bar.finish();
     println!(
         "Done processing {total} entities, {total_with_required_fields} have all required fields, {} were not found.",
         expected_total - total
@@ -202,6 +203,7 @@ pub fn cache_wikidata_dump(
                 bar.inc(1);
             }
         }
+        bar.finish();
         println!(
             "Done processing {total} depdendencies, {} were not found.",
             expected_total - total
