@@ -3,6 +3,7 @@ use gallery::wikidata::WikidataEntity;
 use index_file::{
     get_qid_index_file_mapping, index_path_for_dumpfile, iter_serialized_qids, IndexFileReader,
 };
+use indicatif::ProgressBar;
 use sparql_csv_export::parse_sparql_csv_export;
 use std::{collections::HashSet, io::BufReader, path::PathBuf};
 
@@ -126,6 +127,7 @@ pub fn cache_wikidata_dump(
     let mut total = 0;
     let mut total_with_required_fields = 0;
     let mut dependency_qids: HashSet<u64> = HashSet::new();
+    let bar = ProgressBar::new(expected_total as u64);
     println!("Processing {} entities.", expected_total);
     for result in iter_and_cache_entities(dumpfile_path.clone(), qids, warnings)? {
         let EntityInfo {
@@ -167,8 +169,8 @@ pub fn cache_wikidata_dump(
                     format!("no creator")
                 }
             );
-        } else if count % 1000 == 0 {
-            println!("{percent_done:.1}% complete ({count} entities processed).");
+        } else {
+            bar.inc(1);
         }
     }
     println!(
@@ -180,6 +182,7 @@ pub fn cache_wikidata_dump(
     let expected_total = dependency_qids.len();
     let mut total = 0;
     if expected_total > 0 {
+        let bar = ProgressBar::new(expected_total as u64);
         println!("Processing {} dependency entities.", expected_total);
         for result in iter_and_cache_entities(dumpfile_path, dependency_qids, warnings)? {
             let EntityInfo {
@@ -195,8 +198,8 @@ pub fn cache_wikidata_dump(
                     entity.label().unwrap_or_default(),
                     entity.description().unwrap_or_default(),
                 );
-            } else if count % 1000 == 0 {
-                println!("{percent_done:.1}% complete ({count} dependencies processed).");
+            } else {
+                bar.inc(1);
             }
         }
         println!(
