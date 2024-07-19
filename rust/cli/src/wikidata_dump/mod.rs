@@ -7,7 +7,7 @@ use index_file::{
 use indicatif::ProgressBar;
 use sparql_csv_export::parse_sparql_csv_export;
 use zerocopy::LittleEndian;
-use std::{collections::HashSet, io::{BufRead, BufReader, BufWriter}, path::PathBuf};
+use std::{collections::HashSet, io::{BufReader, BufWriter}, path::PathBuf};
 
 pub use index_file::index_wikidata_dump;
 
