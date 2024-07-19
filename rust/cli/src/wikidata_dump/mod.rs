@@ -1,17 +1,16 @@
 use anyhow::{anyhow, Result};
-use byteorder::{ReadBytesExt, WriteBytesExt};
 use gallery::wikidata::WikidataEntity;
 use index_file::{
     get_qid_index_file_mapping, index_path_for_dumpfile, iter_serialized_qids, IndexFileReader,
 };
 use indicatif::ProgressBar;
+use serde::{Deserialize, Serialize};
 use sparql_csv_export::parse_sparql_csv_export;
 use std::{
     collections::HashSet,
     io::{BufReader, BufWriter},
     path::PathBuf,
 };
-use zerocopy::LittleEndian;
 
 pub use index_file::index_wikidata_dump;
 
@@ -119,50 +118,15 @@ fn iter_and_cache_entities(
     }))
 }
 
-fn dependency_path_for_dumpfile(dumpfile_path: &PathBuf) -> PathBuf {
-    dumpfile_path.with_extension("deps.bin")
+#[derive(Serialize, Deserialize)]
+struct PreparedQuery {
+    dumpfile: PathBuf,
+    qids: Vec<u64>,
+    dependency_qids: Vec<u64>,
 }
 
-fn write_qid_vec_to_file(path: &PathBuf, qids: &Vec<u64>) -> Result<()> {
-    let file = std::fs::File::create(path)?;
-    let mut writer = BufWriter::new(file);
-    writer.write_u64::<LittleEndian>(qids.len() as u64)?;
-    for qid in qids {
-        writer.write_u64::<LittleEndian>(*qid)?;
-    }
-    Ok(())
-}
-
-fn read_qid_vec_from_file(path: &PathBuf) -> Result<Vec<u64>> {
-    let file = std::fs::File::open(path)?;
-    let mut reader = BufReader::new(file);
-    let count = reader.read_u64::<LittleEndian>()? as usize;
-    let mut qids: Vec<u64> = Vec::with_capacity(count);
-    for _ in 0..count {
-        qids.push(reader.read_u64::<LittleEndian>()?);
-    }
-    Ok(qids)
-}
-
-#[cfg(test)]
-mod tests {
-    use std::path::PathBuf;
-
-    use crate::wikidata_dump::read_qid_vec_from_file;
-
-    use super::write_qid_vec_to_file;
-
-    #[test]
-    fn test_write_qid_vec_to_file_works() {
-        let path = PathBuf::from("test_deps.bin");
-        let qids: Vec<u64> = vec![1, 2, 3, 4];
-        write_qid_vec_to_file(&path, &qids).unwrap();
-        assert_eq!(read_qid_vec_from_file(&path).unwrap(), qids);
-        std::fs::remove_file(path).unwrap();
-    }
-}
-
-pub fn cache_wikidata_dump(
+pub fn prepare_wikidata_query(
+    output: PathBuf,
     dumpfile_path: PathBuf,
     mut qids: Vec<u64>,
     csv: Option<PathBuf>,
@@ -174,7 +138,7 @@ pub fn cache_wikidata_dump(
     }
     let expected_total = qids.len();
     let mut total = 0;
-    let mut total_with_required_fields = 0;
+    let mut final_qids_with_required_fields: Vec<u64> = Vec::with_capacity(expected_total);
     let mut dependency_qids: HashSet<u64> = HashSet::new();
     let bar = ProgressBar::new(expected_total as u64);
     println!("Processing {} entities.", expected_total);
@@ -189,7 +153,7 @@ pub fn cache_wikidata_dump(
         let has_image = entity.image_filename().is_some();
         let dimensions = entity.dimensions_in_cm();
         if has_image && dimensions.is_some() {
-            total_with_required_fields += 1;
+            final_qids_with_required_fields.push(qid);
         } else if warnings {
             println!(
                 "Warning: Q{qid} ({:?}) is missing required fields, image={:?}, dimensions={:?}",
@@ -224,17 +188,33 @@ pub fn cache_wikidata_dump(
     }
     bar.finish();
     println!(
-        "Done processing {total} entities, {total_with_required_fields} have all required fields, {} were not found.",
+        "Done processing {total} entities, {} have all required fields, {} were not found.",
+        final_qids_with_required_fields.len(),
         expected_total - total
     );
+    let dependency_qids =
+        cache_and_get_dependency_qids(dumpfile_path.clone(), dependency_qids, verbose, warnings)?;
+    let prepared_query = PreparedQuery {
+        dumpfile: dumpfile_path,
+        qids: final_qids_with_required_fields,
+        dependency_qids,
+    };
+    let output_file = std::fs::File::create(output.clone())?;
+    let output_writer = BufWriter::new(output_file);
+    serde_json::to_writer(output_writer, &prepared_query)?;
+    println!("Wrote {}.", output.display());
+    Ok(())
+}
 
+fn cache_and_get_dependency_qids(
+    dumpfile_path: PathBuf,
+    dependency_qids: HashSet<u64>,
+    verbose: bool,
+    warnings: bool,
+) -> Result<Vec<u64>> {
     let dependency_qids = dependency_qids.into_iter().collect::<Vec<_>>();
-    write_qid_vec_to_file(
-        &dependency_path_for_dumpfile(&dumpfile_path),
-        &dependency_qids,
-    )?;
     let expected_total = dependency_qids.len();
-    let mut total = 0;
+    let mut final_dependency_qids: Vec<u64> = Vec::with_capacity(expected_total);
     if expected_total > 0 {
         let bar = ProgressBar::new(expected_total as u64);
         println!("Processing {} dependency entities.", expected_total);
@@ -242,10 +222,10 @@ pub fn cache_wikidata_dump(
             let EntityInfo {
                 entity,
                 percent_done,
-                count,
                 qid,
+                ..
             } = result?;
-            total = count;
+            final_dependency_qids.push(qid);
             if verbose {
                 println!(
                     "{percent_done:.1}% dependency Q{qid}: {} -{}",
@@ -257,10 +237,11 @@ pub fn cache_wikidata_dump(
             }
         }
         bar.finish();
+        let total = final_dependency_qids.len();
         println!(
             "Done processing {total} depdendencies, {} were not found.",
             expected_total - total
         );
     }
-    Ok(())
+    Ok(final_dependency_qids)
 }

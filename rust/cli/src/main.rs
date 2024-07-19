@@ -18,7 +18,7 @@ use gallery::met_api::load_met_api_record;
 use gallery::random::Rng;
 use met_csv::{iter_public_domain_2d_met_csv_objects, PublicDomain2DMetObjectOptions};
 use rusqlite::Connection;
-use wikidata_dump::{cache_wikidata_dump, index_wikidata_dump};
+use wikidata_dump::{index_wikidata_dump, prepare_wikidata_query};
 
 use std::io::BufReader;
 
@@ -110,8 +110,8 @@ enum Commands {
         #[arg(short, long)]
         seek_from: Option<u64>,
     },
-    /// Cache QIDs in wikidata dump file.
-    WikidataCache {
+    /// Prepare a query for later execution.
+    WikidataPrepare {
         #[arg()]
         dumpfile: PathBuf,
 
@@ -121,6 +121,10 @@ enum Commands {
         /// CSV export from query.wikidata.org with a single 'item' column containing entity URLs.
         #[arg(long)]
         csv: Option<PathBuf>,
+
+        /// JSON filename to store the prepared query in.
+        #[arg(short, long, required = true)]
+        output: PathBuf,
 
         /// Log warnings about whether e.g. an item doesn't have required fields, or doesn't exist.
         #[arg(long, default_value_t = false)]
@@ -174,12 +178,13 @@ fn run() -> Result<()> {
             dumpfile,
             seek_from,
         } => index_wikidata_dump(dumpfile, seek_from),
-        Commands::WikidataCache {
+        Commands::WikidataPrepare {
+            output,
             dumpfile,
             qids,
             csv,
             warnings,
-        } => cache_wikidata_dump(dumpfile, qids, csv, args.verbose, warnings),
+        } => prepare_wikidata_query(output, dumpfile, qids, csv, args.verbose, warnings),
     }
 }
 
