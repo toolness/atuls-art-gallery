@@ -15,7 +15,7 @@ const BUFREADER_CAPACITY: usize = 1024 * 1024 * 8;
 
 type SerializedEntityIterator = dyn Iterator<Item = Result<(u64, String)>>;
 
-fn iter_serialized_qids_using_cache(
+fn iter_and_cache_serialized_qids(
     dumpfile_path: PathBuf,
     qids: Vec<u64>,
     warnings: bool,
@@ -76,20 +76,22 @@ fn iter_serialized_qids_using_cache(
     Ok(Box::new(cached_iterator.chain(uncached_iterator)))
 }
 
-pub fn cache_wikidata_dump(
+struct EntityInfo {
+    qid: u64,
+    entity: WikidataEntity,
+    count: usize,
+    percent_done: f64,
+}
+
+fn iter_and_cache_entities(
     dumpfile_path: PathBuf,
-    mut qids: Vec<u64>,
-    csv: Option<PathBuf>,
-    verbose: bool,
+    qids: Vec<u64>,
     warnings: bool,
-) -> Result<()> {
-    if let Some(csv) = csv {
-        parse_sparql_csv_export(csv, &mut qids)?;
-    }
+) -> Result<impl Iterator<Item = Result<EntityInfo>>> {
     let total_qids = qids.len();
     let mut count = 0;
-    let mut count_with_required_fields = 0;
-    for result in iter_serialized_qids_using_cache(dumpfile_path, qids, warnings)? {
+    let iterator = iter_and_cache_serialized_qids(dumpfile_path, qids, warnings)?;
+    Ok(iterator.map(move |result| {
         count += 1;
         let percent_done = (count as f64) / (total_qids as f64) * 100.0;
         let (qid, qid_json) = result?;
@@ -101,10 +103,41 @@ pub fn cache_wikidata_dump(
                 ))
             }
         };
+        Ok(EntityInfo {
+            qid,
+            entity,
+            count,
+            percent_done,
+        })
+    }))
+}
+
+pub fn cache_wikidata_dump(
+    dumpfile_path: PathBuf,
+    mut qids: Vec<u64>,
+    csv: Option<PathBuf>,
+    verbose: bool,
+    warnings: bool,
+) -> Result<()> {
+    if let Some(csv) = csv {
+        parse_sparql_csv_export(csv, &mut qids)?;
+    }
+    let expected_total = qids.len();
+    let mut total = 0;
+    let mut total_with_required_fields = 0;
+    println!("Processing {} entities.", expected_total);
+    for result in iter_and_cache_entities(dumpfile_path, qids, warnings)? {
+        let EntityInfo {
+            entity,
+            percent_done,
+            count,
+            qid,
+        } = result?;
+        total = count;
         let has_image = entity.image_filename().is_some();
         let dimensions = entity.dimensions_in_cm();
         if has_image && dimensions.is_some() {
-            count_with_required_fields += 1;
+            total_with_required_fields += 1;
         } else if warnings {
             println!(
                 "Warning: Q{qid} ({:?}) is missing required fields, image={:?}, dimensions={:?}",
@@ -135,7 +168,8 @@ pub fn cache_wikidata_dump(
         }
     }
     println!(
-        "Done processing {count} entities, {count_with_required_fields} have all required fields."
+        "Done processing {total} entities, {total_with_required_fields} have all required fields, {} were not found.",
+        expected_total - total
     );
     Ok(())
 }
