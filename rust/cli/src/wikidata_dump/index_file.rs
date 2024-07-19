@@ -181,6 +181,13 @@ pub fn index_path_for_dumpfile(dumpfile_path: &PathBuf) -> PathBuf {
 /// Given a decompressed gzipped member of the dumpfile and a list of entity
 /// Q-identifiers contained within it, returns an iterator that
 /// iterates over the entities.
+///
+/// TODO: This isn't ideally efficient because we're probably decompressing
+/// more than we need: for example, if the only entries we need are at the
+/// beginning 10% of the gzip member, 90% of what we've decompressed
+/// is unneeded. On the other hand, if everything we neede was in the _last_
+/// 10% of the gzipped member, then we would've had to decompress the whole
+/// thing anyways.
 fn iter_decompressed_gzipped_member_serialized_qids(
     buf: Vec<u8>,
     entries: Vec<QidGzipMemberInfo>,
