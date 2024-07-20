@@ -163,10 +163,10 @@ impl WikidataEntity {
         None
     }
     pub fn creator_id(&self) -> Option<u64> {
-        self.claims.p170.find_and_copy(|datavalue| match datavalue {
+        self.claims.p170.find(|datavalue| match datavalue {
             Datavalue::Entity {
                 value: EntityId { id },
-            } => Some(id),
+            } => Some(*id),
             _ => None,
         })
     }
@@ -201,9 +201,9 @@ struct Statements(Vec<Statement>);
 impl Statements {
     /// Iterate through all statements calling the given callback with the statement's
     /// mainsnak datavalue. Once the callback returns a `Some()` value, return it immediately.
-    fn find<T, F>(&self, callback: F) -> Option<&T>
+    fn find<'a, T, F>(&'a self, callback: F) -> Option<T>
     where
-        F: Fn(&Datavalue) -> Option<&T>,
+        F: Fn(&'a Datavalue) -> Option<T>,
     {
         for statement in &self.0 {
             if let Some(datavalue) = &statement.mainsnak.datavalue {
@@ -215,32 +215,24 @@ impl Statements {
         None
     }
 
-    fn find_and_copy<T, F>(&self, callback: F) -> Option<T>
-    where
-        T: Copy,
-        F: Fn(&Datavalue) -> Option<&T>,
-    {
-        self.find(callback).copied()
-    }
-
     fn find_cm_amount(&self) -> Option<f64> {
-        self.find_and_copy(|datavalue| {
+        self.find(|datavalue| {
             if let Datavalue::Quantity {
                 value: Quantity { amount, unit },
             } = datavalue
             {
                 if unit == &Some(CENTIMETRE_QID) {
-                    return Some(amount);
+                    return Some(*amount);
                 }
             }
             None
         })
     }
 
-    fn find_all<T, F>(&self, callback: F) -> Vec<T>
+    fn find_all<'a, T, F>(&'a self, callback: F) -> Vec<T>
     where
         T: Copy,
-        F: Fn(&Datavalue) -> Option<T>,
+        F: Fn(&'a Datavalue) -> Option<T>,
     {
         let mut results = Vec::with_capacity(self.0.len());
         for statement in &self.0 {
