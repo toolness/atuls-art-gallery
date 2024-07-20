@@ -1,6 +1,8 @@
 # Creating the Wikidata "Sum of all paintings" CSV
 
-First, download this ~139 GB file:
+This documents how to create a CSV containing the Wikidata [Sum of all paintings][] data.
+
+First, download the entire ~139 GB wikidata dumpfile:
 
 ```
 wget --continue https://dumps.wikimedia.org/wikidatawiki/entities/latest-all.json.gz
@@ -12,7 +14,8 @@ Next, you will need to index it.  This will create a file that makes it easy to 
 cargo run --release wikidata-index /path/to/latest-all.json.gz
 ```
 
-Next, you will need to run a SPARQL query that exports a CSV of Wikidata entities that you want to process.  Visit [query.wikidata.org](https://query.wikidata.org) and paste in the following:
+Next, you will need to run a SPARQL query that exports a CSV of Wikidata entities that you want to process.  Visit [query.wikidata.org][] and paste in the following:
+
 
 ```sparql
 SELECT DISTINCT ?item WHERE {
@@ -59,3 +62,6 @@ cargo run --release -- wikidata-execute sum.json sum.csv
 ```
 
 [Here's an example of what the CSV looks like.](https://docs.google.com/spreadsheets/d/1Gzu3aULsK3WlU5dWwdVrZwOCSZTLa4t8BkExHfmQOrE/edit?usp=sharing)
+
+[Sum of all paintings]: https://www.wikidata.org/wiki/Wikidata:WikiProject_sum_of_all_paintings
+[query.wikidata.org]: https://query.wikidata.org
