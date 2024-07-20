@@ -123,6 +123,7 @@ fn iter_and_cache_entities(
 
 #[derive(Serialize)]
 struct PaintingToSerialize<'a> {
+    pub qid: u64,
     pub artist: &'a str,
     pub title: &'a str,
     pub width: f64,
@@ -193,6 +194,7 @@ pub fn execute_wikidata_query(input: PathBuf, output: PathBuf, limit: Option<usi
             .unwrap_or_default();
 
         writer.serialize(PaintingToSerialize {
+            qid: *qid,
             artist,
             title,
             width,
