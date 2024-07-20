@@ -57,6 +57,9 @@ pub fn execute_wikidata_query(input: PathBuf, output: PathBuf, limit: Option<usi
     let sledcache = sled::open(&sledcache_path_for_dumpfile(&query.dumpfile))?;
     let mut dependencies: HashMap<u64, WikidataEntity> =
         HashMap::with_capacity(query.dependency_qids.len());
+
+    // TODO: If the user isn't outputting the entire result set, we might want to load dependencies
+    // lazily, as we probably won't need all of them.
     println!("Loading dependencies.");
     let bar = ProgressBar::new(query.dependency_qids.len() as u64);
     for qid in query.dependency_qids.iter() {
