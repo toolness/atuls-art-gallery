@@ -1,4 +1,5 @@
 mod met_csv;
+mod wikidata_dump;
 
 use std::fs::{self, File};
 use std::path::PathBuf;
@@ -17,6 +18,7 @@ use gallery::met_api::load_met_api_record;
 use gallery::random::Rng;
 use met_csv::{iter_public_domain_2d_met_csv_objects, PublicDomain2DMetObjectOptions};
 use rusqlite::Connection;
+use wikidata_dump::{execute_wikidata_query, index_wikidata_dump, prepare_wikidata_query};
 
 use std::io::BufReader;
 
@@ -28,7 +30,7 @@ const LAYOUT_START_GALLERY_ID: i64 = 1;
 #[command(version, about, long_about = None)]
 struct Args {
     /// Verbose output
-    #[arg(short, long, default_value_t = false)]
+    #[arg(short, long, default_value_t = false, global = true)]
     verbose: bool,
 
     /// Path to database
@@ -100,6 +102,45 @@ enum Commands {
         #[arg()]
         gallery_id: i64,
     },
+    /// Index QIDs in wikidata dump file.
+    WikidataIndex {
+        #[arg()]
+        dumpfile: PathBuf,
+
+        #[arg(short, long)]
+        seek_from: Option<u64>,
+    },
+    /// Prepare a query for later execution.
+    WikidataPrepare {
+        #[arg()]
+        dumpfile: PathBuf,
+
+        #[arg()]
+        qids: Vec<u64>,
+
+        /// CSV export from query.wikidata.org with a single 'item' column containing entity URLs.
+        #[arg(long)]
+        csv: Option<PathBuf>,
+
+        /// JSON filename to store the prepared query in.
+        #[arg(short, long, required = true)]
+        output: PathBuf,
+
+        /// Log warnings about whether e.g. an item doesn't have required fields, or doesn't exist.
+        #[arg(long, default_value_t = false)]
+        warnings: bool,
+    },
+    /// Execute a prepared wikidata query.
+    WikidataExecute {
+        #[arg()]
+        input: PathBuf,
+
+        #[arg()]
+        output: PathBuf,
+
+        #[arg(short, long)]
+        limit: Option<usize>,
+    },
 }
 
 fn run() -> Result<()> {
@@ -144,6 +185,22 @@ fn run() -> Result<()> {
             args.verbose,
         ),
         Commands::ShowLayout { gallery_id } => show_layout_command(db, gallery_id),
+        Commands::WikidataIndex {
+            dumpfile,
+            seek_from,
+        } => index_wikidata_dump(dumpfile, seek_from),
+        Commands::WikidataPrepare {
+            output,
+            dumpfile,
+            qids,
+            csv,
+            warnings,
+        } => prepare_wikidata_query(output, dumpfile, qids, csv, args.verbose, warnings),
+        Commands::WikidataExecute {
+            input,
+            output,
+            limit,
+        } => execute_wikidata_query(input, output, limit),
     }
 }
 
