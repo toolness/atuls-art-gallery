@@ -129,6 +129,7 @@ struct PaintingToSerialize<'a> {
     pub width: f64,
     pub height: f64,
     pub materials: String,
+    pub collection: &'a str,
     pub filename: &'a str,
 }
 
@@ -137,6 +138,28 @@ struct PreparedQuery {
     dumpfile: PathBuf,
     qids: Vec<u64>,
     dependency_qids: Vec<u64>,
+}
+
+fn get_dependency_label(dependencies: &HashMap<u64, WikidataEntity>, qid: Option<u64>) -> &str {
+    qid.map(|qid| {
+        dependencies
+            .get(&qid)
+            .map(|entity| entity.label())
+            .flatten()
+    })
+    .flatten()
+    .unwrap_or_default()
+}
+
+fn get_dependency_labels(dependencies: &HashMap<u64, WikidataEntity>, qids: Vec<u64>) -> Vec<&str> {
+    qids.into_iter()
+        .filter_map(|qid| {
+            dependencies
+                .get(&qid)
+                .map(|entity| entity.label())
+                .flatten()
+        })
+        .collect()
 }
 
 pub fn execute_wikidata_query(input: PathBuf, output: PathBuf, limit: Option<usize>) -> Result<()> {
@@ -183,26 +206,9 @@ pub fn execute_wikidata_query(input: PathBuf, output: PathBuf, limit: Option<usi
 
         // Get optional fields.
         let title = entity.label().unwrap_or_default();
-        let artist = entity
-            .creator_id()
-            .map(|qid| {
-                dependencies
-                    .get(&qid)
-                    .map(|entity| entity.label())
-                    .flatten()
-            })
-            .flatten()
-            .unwrap_or_default();
-        let materials = entity
-            .material_ids()
-            .into_iter()
-            .filter_map(|qid| {
-                let Some(material) = dependencies.get(&qid) else {
-                    return None;
-                };
-                material.label()
-            })
-            .collect::<Vec<_>>();
+        let artist = get_dependency_label(&dependencies, entity.creator_id());
+        let materials = get_dependency_labels(&dependencies, entity.material_ids());
+        let collection = get_dependency_label(&dependencies, entity.collection_id());
 
         writer.serialize(PaintingToSerialize {
             qid: *qid,
@@ -211,6 +217,7 @@ pub fn execute_wikidata_query(input: PathBuf, output: PathBuf, limit: Option<usi
             width,
             height,
             materials: materials.join(", "),
+            collection,
             filename,
         })?;
 
@@ -260,6 +267,9 @@ pub fn prepare_wikidata_query(
         }
         if let Some(creator_qid) = entity.creator_id() {
             dependency_qids.insert(creator_qid);
+        }
+        if let Some(collection_qid) = entity.collection_id() {
+            dependency_qids.insert(collection_qid);
         }
         for material_qid in entity.material_ids() {
             dependency_qids.insert(material_qid);
@@ -338,7 +348,7 @@ fn cache_and_get_dependency_qids(
         bar.finish();
         let total = final_dependency_qids.len();
         println!(
-            "Done processing {total} depdendencies, {} were not found.",
+            "Done processing {total} dependencies, {} were not found.",
             expected_total - total
         );
     }

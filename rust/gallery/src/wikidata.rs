@@ -163,12 +163,7 @@ impl WikidataEntity {
         None
     }
     pub fn creator_id(&self) -> Option<u64> {
-        self.claims.p170.find(|datavalue| match datavalue {
-            Datavalue::Entity {
-                value: EntityId { id },
-            } => Some(*id),
-            _ => None,
-        })
+        self.claims.p170.find(|datavalue| datavalue.entity_id())
     }
     pub fn material_ids(&self) -> Vec<u64> {
         self.claims.p186.find_all(|datavalue| match datavalue {
@@ -177,6 +172,9 @@ impl WikidataEntity {
             } => Some(*id),
             _ => None,
         })
+    }
+    pub fn collection_id(&self) -> Option<u64> {
+        self.claims.p195.find(|datavalue| datavalue.entity_id())
     }
 }
 
@@ -270,6 +268,10 @@ struct Claims {
     /// P186 - Made from material
     #[serde(rename = "P186", default)]
     p186: Statements,
+
+    /// P195 - Collection
+    #[serde(rename = "P195", default)]
+    p195: Statements,
     // TODO: Add P571 (inception), will need to parse time types: https://www.wikidata.org/wiki/Special:ListDatatypes
 }
 
@@ -302,6 +304,17 @@ enum Datavalue {
 
     #[serde(rename = "wikibase-entityid")]
     Entity { value: EntityId },
+}
+
+impl Datavalue {
+    fn entity_id(&self) -> Option<u64> {
+        match self {
+            Datavalue::Entity {
+                value: EntityId { id },
+            } => Some(*id),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]
