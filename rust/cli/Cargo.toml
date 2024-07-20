@@ -21,3 +21,4 @@ byteorder = "1.5.0"
 zerocopy = { version = "0.7.35", features = ["derive"] }
 sled = "0.34.7"
 indicatif = "0.17.8"
+rayon = "1.10.0"

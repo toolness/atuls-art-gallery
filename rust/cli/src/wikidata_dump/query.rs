@@ -128,9 +128,10 @@ pub fn prepare_wikidata_query(
     if let Some(csv) = csv {
         parse_sparql_csv_export(csv, &mut qids)?;
     }
+    let original_qids = qids.clone();
     let expected_total = qids.len();
     let mut total = 0;
-    let mut final_qids_with_required_fields: Vec<u64> = Vec::with_capacity(expected_total);
+    let mut final_qids_with_required_fields: HashSet<u64> = HashSet::with_capacity(expected_total);
     let mut dependency_qids: HashSet<u64> = HashSet::new();
     let bar = ProgressBar::new(expected_total as u64);
     println!("Processing {} entities.", expected_total);
@@ -144,7 +145,7 @@ pub fn prepare_wikidata_query(
         let has_image = entity.image_filename().is_some();
         let dimensions = entity.dimensions_in_cm();
         if has_image && dimensions.is_some() {
-            final_qids_with_required_fields.push(entity.id);
+            final_qids_with_required_fields.insert(entity.id);
         } else if warnings {
             println!(
                 "Warning: Q{} ({:?}) is missing required fields, image={:?}, dimensions={:?}",
@@ -191,11 +192,18 @@ pub fn prepare_wikidata_query(
         final_qids_with_required_fields.len(),
         expected_total - total
     );
-    let dependency_qids =
+    let mut dependency_qids =
         cache_and_get_dependency_qids(dumpfile_path.clone(), dependency_qids, verbose, warnings)?;
+
+    // The order of this doesn't really matter, but just to keep the output stable, let's sort by id.
+    dependency_qids.sort();
+
     let prepared_query = PreparedQuery {
         dumpfile: dumpfile_path,
-        qids: final_qids_with_required_fields,
+        qids: original_qids
+            .into_iter()
+            .filter(|qid| final_qids_with_required_fields.contains(qid))
+            .collect(),
         dependency_qids,
     };
     let output_file = std::fs::File::create(output.clone())?;

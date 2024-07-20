@@ -2,11 +2,13 @@ use anyhow::{anyhow, Result};
 use byteorder::LittleEndian;
 use flate2::bufread::GzDecoder;
 use nom::{bytes::complete::tag, character::complete::digit1, sequence::preceded, IResult};
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::{
     collections::HashMap,
     fs::{File, OpenOptions},
     io::{prelude::*, BufReader, BufWriter},
     path::PathBuf,
+    sync::mpsc::{self, Receiver, RecvError},
 };
 use zerocopy::{byteorder::U64, AsBytes, FromBytes, FromZeroes, Unaligned};
 
@@ -218,26 +220,63 @@ fn iter_serialized_qids_in_gzipped_member(
     iter
 }
 
+enum GzipMemberMessage {
+    SerializedQid(Result<(u64, String)>),
+    FatalError(String),
+}
+
+pub struct SerializedQidIterator {
+    rx: Receiver<GzipMemberMessage>,
+}
+
+impl Iterator for SerializedQidIterator {
+    type Item = Result<(u64, String)>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let result = self.rx.recv();
+        match result {
+            Err(RecvError) => None,
+            Ok(GzipMemberMessage::FatalError(message)) => Some(Err(anyhow!(message))),
+            Ok(GzipMemberMessage::SerializedQid(result)) => Some(result),
+        }
+    }
+}
+
 /// Given a dumpfile and metadata about the locations of entities within it,
 /// returns an iterator that yields the entity Q-identifiers along with their
 /// JSON-serialized values.
-pub fn iter_serialized_qids(
+///
+/// Note that the result of the iterator shouldn't be assumed to be in any
+/// deterministic order.
+pub fn par_iter_serialized_qids(
     dumpfile_path: PathBuf,
     qid_index_file_mapping: QidIndexFileMapping,
-) -> impl Iterator<Item = Result<(u64, String)>> {
-    let iter = qid_index_file_mapping
-        .qids_by_gzip_members
-        .into_iter()
-        .map(move |(gzip_member_offset, entries)| {
-            let (gz_dumpfile_reader, _) =
-                open_dumpfile_and_seek_from(dumpfile_path.clone(), Some(gzip_member_offset))
-                    // TODO: Avoid the expect() below. I'm being lazy right now because dealing with results in
-                    // nested iterators is extremely annoying.
-                    .expect("opening dumpfile and seeking failed");
-            iter_serialized_qids_in_gzipped_member(gz_dumpfile_reader, entries)
-        })
-        .flatten();
-    iter
+) -> SerializedQidIterator {
+    let (tx, rx) = mpsc::sync_channel::<GzipMemberMessage>(10_000);
+
+    std::thread::spawn(move || {
+        qid_index_file_mapping
+            .qids_by_gzip_members
+            .into_par_iter()
+            .for_each(|(gzip_member_offset, entries)| {
+                let Ok((gz_dumpfile_reader, _)) =
+                    open_dumpfile_and_seek_from(dumpfile_path.clone(), Some(gzip_member_offset))
+                else {
+                    let _ignore_hangup = tx.send(GzipMemberMessage::FatalError(format!(
+                        "opening dumpfile and seeking to {gzip_member_offset} failed"
+                    )));
+                    return;
+                };
+                for result in iter_serialized_qids_in_gzipped_member(gz_dumpfile_reader, entries) {
+                    if tx.send(GzipMemberMessage::SerializedQid(result)).is_err() {
+                        // The other end hung up, just exit.
+                        return;
+                    }
+                }
+            });
+    });
+
+    SerializedQidIterator { rx }
 }
 
 fn open_dumpfile_and_seek_from(

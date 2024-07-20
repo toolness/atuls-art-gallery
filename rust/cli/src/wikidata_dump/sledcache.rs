@@ -3,7 +3,7 @@ use anyhow::{anyhow, Result};
 use gallery::wikidata::WikidataEntity;
 use std::path::PathBuf;
 
-use crate::wikidata_dump::index_file::iter_serialized_qids;
+use crate::wikidata_dump::index_file::par_iter_serialized_qids;
 
 pub fn sledcache_path_for_dumpfile(dumpfile_path: &PathBuf) -> PathBuf {
     dumpfile_path.with_extension("sledcache")
@@ -54,8 +54,8 @@ fn iter_and_cache_serialized_qids_without_progress_info(
         qid_index_file_mapping.gzip_members()
     );
     let uncached_iterator: Box<EntityIterator> = Box::new(
-        iter_serialized_qids(dumpfile_path, qid_index_file_mapping).map(
-            move |result| match result {
+        par_iter_serialized_qids(dumpfile_path, qid_index_file_mapping).map(move |result| {
+            match result {
                 Ok((qid, value)) => match parse_wikidata_entity(qid, &value) {
                     Ok(entity) => {
                         // We explicitly only cache the result if it's been successfully deserialized--otherwise
@@ -67,8 +67,8 @@ fn iter_and_cache_serialized_qids_without_progress_info(
                     Err(err) => Err(err),
                 },
                 Err(err) => Err(err),
-            },
-        ),
+            }
+        }),
     );
     Ok(Box::new(cached_iterator.chain(uncached_iterator)))
 }
@@ -79,6 +79,11 @@ pub struct CachedEntityInfo {
     pub percent_done: f64,
 }
 
+/// Iterate through the given entities in the dumpfile, caching them if they are
+/// not already cached.
+///
+/// Note that for any entities that aren't already cached, the order of iteration
+/// is non-deterministic.
 pub fn iter_and_cache_entities(
     dumpfile_path: PathBuf,
     qids: Vec<u64>,
