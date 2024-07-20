@@ -121,6 +121,15 @@ fn iter_and_cache_entities(
     }))
 }
 
+#[derive(Serialize)]
+struct PaintingToSerialize<'a> {
+    pub artist: &'a str,
+    pub title: &'a str,
+    pub width: f64,
+    pub height: f64,
+    pub filename: &'a str,
+}
+
 #[derive(Serialize, Deserialize)]
 struct PreparedQuery {
     dumpfile: PathBuf,
@@ -128,7 +137,7 @@ struct PreparedQuery {
     dependency_qids: Vec<u64>,
 }
 
-pub fn execute_wikidata_query(input: PathBuf, output: PathBuf) -> Result<()> {
+pub fn execute_wikidata_query(input: PathBuf, output: PathBuf, limit: Option<usize>) -> Result<()> {
     let query: PreparedQuery =
         serde_json::from_reader(BufReader::new(std::fs::File::open(input)?))?;
     let sledcache = sled::open(&sledcache_path_for_dumpfile(&query.dumpfile))?;
@@ -147,16 +156,54 @@ pub fn execute_wikidata_query(input: PathBuf, output: PathBuf) -> Result<()> {
     bar.finish();
 
     println!("Writing {}.", output.display());
+    let mut writer = csv::Writer::from_path(output)?;
     let bar = ProgressBar::new(query.qids.len() as u64);
+    let mut count = 0;
     for qid in query.qids.iter() {
+        if let Some(limit) = limit {
+            if count == limit {
+                break;
+            }
+            count += 1;
+        }
+
         let value = sledcache
             .get(qid.to_be_bytes())?
             .expect("qid in query should exist in sledcache");
-        let _entity: WikidataEntity = serde_json::from_slice(value.as_ref())?;
-        // TODO: Write entity.
+        let entity: WikidataEntity = serde_json::from_slice(value.as_ref())?;
+
+        // Get required fields.
+        let (width, height) = entity.dimensions_in_cm().expect("dimensions should exist");
+        let filename = entity
+            .image_filename()
+            .expect("filename should exist")
+            .as_str();
+
+        // Get optional fields.
+        let title = entity.label().unwrap_or_default();
+        let artist = entity
+            .creator_id()
+            .map(|qid| {
+                dependencies
+                    .get(&qid)
+                    .map(|entity| entity.label())
+                    .flatten()
+            })
+            .flatten()
+            .unwrap_or_default();
+
+        writer.serialize(PaintingToSerialize {
+            artist,
+            title,
+            width,
+            height,
+            filename,
+        })?;
+
         bar.inc(1);
     }
     bar.finish();
+    writer.flush()?;
     Ok(())
 }
 

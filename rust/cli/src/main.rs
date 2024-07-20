@@ -137,6 +137,9 @@ enum Commands {
 
         #[arg()]
         output: PathBuf,
+
+        #[arg(short, long)]
+        limit: Option<usize>,
     },
 }
 
@@ -193,7 +196,11 @@ fn run() -> Result<()> {
             csv,
             warnings,
         } => prepare_wikidata_query(output, dumpfile, qids, csv, args.verbose, warnings),
-        Commands::WikidataExecute { input, output } => execute_wikidata_query(input, output),
+        Commands::WikidataExecute {
+            input,
+            output,
+            limit,
+        } => execute_wikidata_query(input, output, limit),
     }
 }
 
