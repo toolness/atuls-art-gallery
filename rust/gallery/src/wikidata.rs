@@ -6,9 +6,12 @@ use crate::{gallery_cache::GalleryCache, image::ImageSize};
 
 const ROOT_CACHE_SUBDIR: &'static str = "wikidata";
 
-const WIKIDATA_URL_PREFIXES: [&'static str; 2] = [
+const WIKIDATA_URL_PREFIXES: [&'static str; 3] = [
     "http://www.wikidata.org/entity/Q",
     "https://www.wikidata.org/wiki/Q",
+    // I guess this is theoretically still a URL, it's just _very_ relative. Makes it easy for
+    // us to use this function to parse raw IDs like "Q1234".
+    "Q",
 ];
 
 /// We only care about the ones Godot can import right now:
@@ -117,6 +120,8 @@ impl WikidataImageInfo {
 
 #[derive(Debug, Deserialize)]
 pub struct WikidataEntity {
+    #[serde(deserialize_with = "deserialize_wikidata_entity_url_string")]
+    pub id: u64,
     labels: Option<LocalizedValues>,
     descriptions: Option<LocalizedValues>,
     claims: Claims,
