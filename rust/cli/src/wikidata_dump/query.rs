@@ -139,16 +139,16 @@ pub fn prepare_wikidata_query(
             entity,
             percent_done,
             count,
-            qid,
         } = result?;
         total = count;
         let has_image = entity.image_filename().is_some();
         let dimensions = entity.dimensions_in_cm();
         if has_image && dimensions.is_some() {
-            final_qids_with_required_fields.push(qid);
+            final_qids_with_required_fields.push(entity.id);
         } else if warnings {
             println!(
-                "Warning: Q{qid} ({:?}) is missing required fields, image={:?}, dimensions={:?}",
+                "Warning: Q{} ({:?}) is missing required fields, image={:?}, dimensions={:?}",
+                entity.id,
                 entity.label().unwrap_or_default(),
                 entity.image_filename(),
                 dimensions
@@ -165,7 +165,8 @@ pub fn prepare_wikidata_query(
         }
         if verbose {
             println!(
-                "{percent_done:.1}% Q{qid}: {} - {} ({}, {}, {})",
+                "{percent_done:.1}% Q{}: {} - {} ({}, {}, {})",
+                entity.id,
                 entity.label().unwrap_or_default(),
                 entity.description().unwrap_or_default(),
                 if has_image { "has image" } else { "no image" },
@@ -220,13 +221,13 @@ fn cache_and_get_dependency_qids(
             let CachedEntityInfo {
                 entity,
                 percent_done,
-                qid,
                 ..
             } = result?;
-            final_dependency_qids.push(qid);
+            final_dependency_qids.push(entity.id);
             if verbose {
                 println!(
-                    "{percent_done:.1}% dependency Q{qid}: {} -{}",
+                    "{percent_done:.1}% dependency Q{}: {} -{}",
+                    entity.id,
                     entity.label().unwrap_or_default(),
                     entity.description().unwrap_or_default(),
                 );

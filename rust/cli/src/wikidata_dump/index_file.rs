@@ -178,81 +178,80 @@ pub fn index_path_for_dumpfile(dumpfile_path: &PathBuf) -> PathBuf {
     dumpfile_path.with_extension("vecindex")
 }
 
-/// Given a decompressed gzipped member of the dumpfile and a list of entity
+/// Given a gzipped member of the dumpfile and a list of entity
 /// Q-identifiers contained within it, returns an iterator that
 /// iterates over the entities.
-///
-/// TODO: This isn't ideally efficient because we're probably decompressing
-/// more than we need: for example, if the only entries we need are at the
-/// beginning 10% of the gzip member, 90% of what we've decompressed
-/// is unneeded. On the other hand, if everything we neede was in the _last_
-/// 10% of the gzipped member, then we would've had to decompress the whole
-/// thing anyways.
-fn iter_decompressed_gzipped_member_serialized_qids(
-    buf: Vec<u8>,
-    entries: Vec<QidGzipMemberInfo>,
+fn iter_serialized_qids_in_gzipped_member(
+    gz_dumpfile_reader: GzDecoder<BufReader<File>>,
+    mut entries: Vec<QidGzipMemberInfo>,
 ) -> impl Iterator<Item = Result<(u64, String)>> {
-    entries.into_iter().map(
-        move |QidGzipMemberInfo {
-                  qid,
-                  offset_into_gzip_member,
-              }| {
-            let slice = &buf[offset_into_gzip_member as usize..];
-            let mut decompressed_gzip_member_reader = BufReader::new(slice);
-            let mut string = String::new();
-            decompressed_gzip_member_reader.read_line(&mut string)?;
-            if string.ends_with(",\n") {
-                string.truncate(string.len() - 2);
-            }
-            if !string.ends_with("}") {
-                return Err(anyhow!("Q{qid} does not appear to be valid JSON"));
-            }
-            Ok((qid, string))
-        },
-    )
-}
+    entries.sort_by(|a, b| a.offset_into_gzip_member.cmp(&b.offset_into_gzip_member));
+    let mut buf_gz = BufReader::new(gz_dumpfile_reader);
+    let mut string = String::new();
+    let mut offset_into_gzip_member: u64 = 0;
 
-/// Yields an iterator that visits each gzip member specified by the given
-/// index file mapping, decompresses it, and yields the decompressed member
-/// and a list of all the QIDs that need to be retrieved from it.
-fn iter_gzipped_members_with_qids(
-    dumpfile_reader: BufReader<File>,
-    qid_index_file_mapping: QidIndexFileMapping,
-) -> impl Iterator<Item = Result<(Vec<u8>, Vec<QidGzipMemberInfo>)>> {
-    let mut wrapped_dumpfile_reader = Some(dumpfile_reader);
-    qid_index_file_mapping.qids_by_gzip_members.into_iter().map(
-        move |(gzip_member_offset, entries)| {
-            let mut dumpfile_reader = wrapped_dumpfile_reader.take().unwrap();
-            dumpfile_reader.seek(std::io::SeekFrom::Start(gzip_member_offset))?;
-            let mut gz = GzDecoder::new(dumpfile_reader);
-            let mut decompressed_buf: Vec<u8> = vec![];
-            gz.read_to_end(&mut decompressed_buf)?;
-            wrapped_dumpfile_reader = Some(gz.into_inner());
-            Ok((decompressed_buf, entries))
-        },
-    )
+    let iter = entries.into_iter().map(move |entry| {
+        assert!(
+            entry.offset_into_gzip_member >= offset_into_gzip_member,
+            "entries should be sorted by offset"
+        );
+        loop {
+            string.clear();
+            // TODO: This isn't ideal because we're parsing a bunch of utf-8 that we don't need to. It'd be faster to
+            // just skip the bytes leading up to the next entity we're looking for, since we know exactly how many
+            // there are.
+            let bytes_read = buf_gz.read_line(&mut string)?;
+            let found_qid = offset_into_gzip_member == entry.offset_into_gzip_member;
+            offset_into_gzip_member += bytes_read as u64;
+            if found_qid {
+                if string.ends_with(",\n") {
+                    string.truncate(string.len() - 2);
+                }
+                if !string.ends_with("}") {
+                    return Err(anyhow!("Q{} does not appear to be valid JSON", entry.qid));
+                }
+                return Ok((entry.qid, string.clone()));
+            }
+        }
+    });
+
+    iter
 }
 
 /// Given a dumpfile and metadata about the locations of entities within it,
 /// returns an iterator that yields the entity Q-identifiers along with their
 /// JSON-serialized values.
 pub fn iter_serialized_qids(
-    dumpfile_reader: BufReader<File>,
+    dumpfile_path: PathBuf,
     qid_index_file_mapping: QidIndexFileMapping,
 ) -> impl Iterator<Item = Result<(u64, String)>> {
-    fn iter_decompressed_gzipped_member_serialized_qids_or_propagate_error(
-        thing: Result<(Vec<u8>, Vec<QidGzipMemberInfo>)>,
-    ) -> Box<dyn Iterator<Item = Result<(u64, String)>>> {
-        match thing {
-            Ok((buf, entries)) => Box::new(iter_decompressed_gzipped_member_serialized_qids(
-                buf, entries,
-            )),
-            Err(err) => Box::new(std::iter::once(Err(err))),
-        }
-    }
+    let iter = qid_index_file_mapping
+        .qids_by_gzip_members
+        .into_iter()
+        .map(move |(gzip_member_offset, entries)| {
+            let (gz_dumpfile_reader, _) =
+                open_dumpfile_and_seek_from(dumpfile_path.clone(), Some(gzip_member_offset))
+                    // TODO: Avoid the expect() below. I'm being lazy right now because dealing with results in
+                    // nested iterators is extremely annoying.
+                    .expect("opening dumpfile and seeking failed");
+            iter_serialized_qids_in_gzipped_member(gz_dumpfile_reader, entries)
+        })
+        .flatten();
+    iter
+}
 
-    iter_gzipped_members_with_qids(dumpfile_reader, qid_index_file_mapping)
-        .flat_map(iter_decompressed_gzipped_member_serialized_qids_or_propagate_error)
+fn open_dumpfile_and_seek_from(
+    dumpfile_path: PathBuf,
+    seek_from: Option<u64>,
+) -> Result<(GzDecoder<BufReader<File>>, u64)> {
+    let file = std::fs::File::open(dumpfile_path)?;
+    let total_len = file.metadata().unwrap().len();
+    let mut reader = BufReader::with_capacity(BUFREADER_CAPACITY, file);
+    if let Some(seek_from) = seek_from {
+        reader.seek(std::io::SeekFrom::Start(seek_from))?;
+    }
+    let gz = GzDecoder::new(reader);
+    Ok((gz, total_len))
 }
 
 /// Given a dumpfile, creates an index that maps entity Q-identifiers to
@@ -267,13 +266,7 @@ pub fn index_wikidata_dump(dumpfile_path: PathBuf, seek_from: Option<u64>) -> Re
         "Opened index db in {} ms.",
         now.elapsed().unwrap().as_millis()
     );
-    let file = std::fs::File::open(dumpfile_path)?;
-    let total_len = file.metadata().unwrap().len();
-    let mut reader = BufReader::with_capacity(BUFREADER_CAPACITY, file);
-    if let Some(seek_from) = seek_from {
-        reader.seek(std::io::SeekFrom::Start(seek_from))?;
-    }
-    let mut gz = GzDecoder::new(reader);
+    let (mut gz, total_len) = open_dumpfile_and_seek_from(dumpfile_path, seek_from)?;
     let mut buf: Vec<u8> = vec![];
     let mut gzip_member_offset: u64 = seek_from.unwrap_or(0);
     let mut total = 0;
