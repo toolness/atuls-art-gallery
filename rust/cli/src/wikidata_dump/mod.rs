@@ -7,7 +7,7 @@ use indicatif::ProgressBar;
 use serde::{Deserialize, Serialize};
 use sparql_csv_export::parse_sparql_csv_export;
 use std::{
-    collections::HashSet,
+    collections::{HashMap, HashSet},
     io::{BufReader, BufWriter},
     path::PathBuf,
 };
@@ -21,6 +21,10 @@ const BUFREADER_CAPACITY: usize = 1024 * 1024 * 8;
 
 type SerializedEntityIterator = dyn Iterator<Item = Result<(u64, String)>>;
 
+fn sledcache_path_for_dumpfile(dumpfile_path: &PathBuf) -> PathBuf {
+    dumpfile_path.with_extension("sledcache")
+}
+
 fn iter_and_cache_serialized_qids(
     dumpfile_path: PathBuf,
     qids: Vec<u64>,
@@ -28,7 +32,7 @@ fn iter_and_cache_serialized_qids(
 ) -> Result<Box<SerializedEntityIterator>> {
     let index_path = index_path_for_dumpfile(&dumpfile_path);
     let mut index_db = IndexFileReader::new(index_path)?;
-    let sledcache_path = dumpfile_path.with_extension("sledcache");
+    let sledcache_path = sledcache_path_for_dumpfile(&dumpfile_path);
     let sledcache = sled::open(&sledcache_path)?;
     let read_sledcache = sledcache.clone();
     let (cached_qids, uncached_qids): (Vec<u64>, Vec<u64>) = qids.into_iter().partition(|qid| {
@@ -40,8 +44,7 @@ fn iter_and_cache_serialized_qids(
         move |qid| match read_sledcache.get(qid.to_be_bytes()) {
             Ok(value) => match value {
                 Some(value) => {
-                    let buf: &[u8] = value.as_ref();
-                    let value = String::from_utf8(buf.to_vec())?;
+                    let value = String::from_utf8(value.as_ref().to_vec())?;
                     Ok((qid, value))
                 }
                 None => Err(anyhow!(
@@ -123,6 +126,38 @@ struct PreparedQuery {
     dumpfile: PathBuf,
     qids: Vec<u64>,
     dependency_qids: Vec<u64>,
+}
+
+pub fn execute_wikidata_query(input: PathBuf, output: PathBuf) -> Result<()> {
+    let query: PreparedQuery =
+        serde_json::from_reader(BufReader::new(std::fs::File::open(input)?))?;
+    let sledcache = sled::open(&sledcache_path_for_dumpfile(&query.dumpfile))?;
+    let mut dependencies: HashMap<u64, WikidataEntity> =
+        HashMap::with_capacity(query.dependency_qids.len());
+    println!("Loading dependencies.");
+    let bar = ProgressBar::new(query.dependency_qids.len() as u64);
+    for qid in query.dependency_qids.iter() {
+        let value = sledcache
+            .get(qid.to_be_bytes())?
+            .expect("dependency qid in query should exist in sledcache");
+        let entity: WikidataEntity = serde_json::from_slice(value.as_ref())?;
+        dependencies.insert(*qid, entity);
+        bar.inc(1);
+    }
+    bar.finish();
+
+    println!("Writing {}.", output.display());
+    let bar = ProgressBar::new(query.qids.len() as u64);
+    for qid in query.qids.iter() {
+        let value = sledcache
+            .get(qid.to_be_bytes())?
+            .expect("qid in query should exist in sledcache");
+        let _entity: WikidataEntity = serde_json::from_slice(value.as_ref())?;
+        // TODO: Write entity.
+        bar.inc(1);
+    }
+    bar.finish();
+    Ok(())
 }
 
 pub fn prepare_wikidata_query(

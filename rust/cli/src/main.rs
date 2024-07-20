@@ -18,7 +18,7 @@ use gallery::met_api::load_met_api_record;
 use gallery::random::Rng;
 use met_csv::{iter_public_domain_2d_met_csv_objects, PublicDomain2DMetObjectOptions};
 use rusqlite::Connection;
-use wikidata_dump::{index_wikidata_dump, prepare_wikidata_query};
+use wikidata_dump::{execute_wikidata_query, index_wikidata_dump, prepare_wikidata_query};
 
 use std::io::BufReader;
 
@@ -130,6 +130,14 @@ enum Commands {
         #[arg(long, default_value_t = false)]
         warnings: bool,
     },
+    /// Execute a prepared wikidata query.
+    WikidataExecute {
+        #[arg()]
+        input: PathBuf,
+
+        #[arg()]
+        output: PathBuf,
+    },
 }
 
 fn run() -> Result<()> {
@@ -185,6 +193,7 @@ fn run() -> Result<()> {
             csv,
             warnings,
         } => prepare_wikidata_query(output, dumpfile, qids, csv, args.verbose, warnings),
+        Commands::WikidataExecute { input, output } => execute_wikidata_query(input, output),
     }
 }
 
