@@ -128,6 +128,7 @@ struct PaintingToSerialize<'a> {
     pub title: &'a str,
     pub width: f64,
     pub height: f64,
+    pub materials: String,
     pub filename: &'a str,
 }
 
@@ -192,6 +193,16 @@ pub fn execute_wikidata_query(input: PathBuf, output: PathBuf, limit: Option<usi
             })
             .flatten()
             .unwrap_or_default();
+        let materials = entity
+            .material_ids()
+            .into_iter()
+            .filter_map(|qid| {
+                let Some(material) = dependencies.get(&qid) else {
+                    return None;
+                };
+                material.label()
+            })
+            .collect::<Vec<_>>();
 
         writer.serialize(PaintingToSerialize {
             qid: *qid,
@@ -199,6 +210,7 @@ pub fn execute_wikidata_query(input: PathBuf, output: PathBuf, limit: Option<usi
             title,
             width,
             height,
+            materials: materials.join(", "),
             filename,
         })?;
 
@@ -246,8 +258,11 @@ pub fn prepare_wikidata_query(
                 dimensions
             );
         }
-        if let Some(qid) = entity.creator_id() {
-            dependency_qids.insert(qid);
+        if let Some(creator_qid) = entity.creator_id() {
+            dependency_qids.insert(creator_qid);
+        }
+        for material_qid in entity.material_ids() {
+            dependency_qids.insert(material_qid);
         }
         if verbose {
             println!(

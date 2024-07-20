@@ -170,6 +170,14 @@ impl WikidataEntity {
             _ => None,
         })
     }
+    pub fn material_ids(&self) -> Vec<u64> {
+        self.claims.p186.find_all(|datavalue| match datavalue {
+            Datavalue::Entity {
+                value: EntityId { id },
+            } => Some(*id),
+            _ => None,
+        })
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -228,6 +236,22 @@ impl Statements {
             None
         })
     }
+
+    fn find_all<T, F>(&self, callback: F) -> Vec<T>
+    where
+        T: Copy,
+        F: Fn(&Datavalue) -> Option<T>,
+    {
+        let mut results = Vec::with_capacity(self.0.len());
+        for statement in &self.0 {
+            if let Some(datavalue) = &statement.mainsnak.datavalue {
+                if let Some(result) = callback(datavalue) {
+                    results.push(result);
+                }
+            }
+        }
+        results
+    }
 }
 
 /// Claims. We only list the ones we care about so we don't have to worry about
@@ -250,6 +274,11 @@ struct Claims {
     /// P170 - Creator
     #[serde(rename = "P170", default)]
     p170: Statements,
+
+    /// P186 - Made from material
+    #[serde(rename = "P186", default)]
+    p186: Statements,
+    // TODO: Add P571 (inception), will need to parse time types: https://www.wikidata.org/wiki/Special:ListDatatypes
 }
 
 /// https://www.wikidata.org/wiki/Q174728
