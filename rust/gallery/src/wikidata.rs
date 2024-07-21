@@ -99,7 +99,7 @@ where
 }
 
 pub struct WikidataImageInfo {
-    qid: u64,
+    qid: i64,
     image_filename: String,
 }
 
@@ -370,7 +370,7 @@ fn parse_wikidata_claims_json(value: &str) -> Result<WikidataEntityClaimsOnly, s
 
 pub fn load_wikidata_image_info(
     cache: &GalleryCache,
-    qid: u64,
+    qid: i64,
 ) -> Result<Option<WikidataImageInfo>> {
     let filename = format!("{ROOT_CACHE_SUBDIR}/wbgetclaims-P18-Q{qid}.json");
     cache.cache_json_url(

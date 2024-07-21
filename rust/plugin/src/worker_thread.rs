@@ -156,7 +156,7 @@ fn fetch_met_api_image(
 
 fn fetch_wikidata_image_from_qid(
     cache: &GalleryCache,
-    qid: u64,
+    qid: i64,
     size: ImageSize,
 ) -> Option<PathBuf> {
     match load_wikidata_image_info(&cache, qid) {

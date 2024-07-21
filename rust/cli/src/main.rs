@@ -1,12 +1,14 @@
 mod met_csv;
 mod wikidata_dump;
 
+use std::collections::HashSet;
 use std::fs::{self, File};
 use std::path::PathBuf;
 use std::process;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
+use gallery::art_object::ArtObjectId;
 use gallery::gallery_cache::GalleryCache;
 use gallery::gallery_db::{
     GalleryDb, MetObjectQueryOptions, PublicDomain2DMetObjectRecord, DEFAULT_GALLERY_DB_FILENAME,
@@ -23,7 +25,7 @@ use wikidata_dump::{
 
 use std::io::BufReader;
 
-const TRANSACTION_BATCH_SIZE: usize = 250;
+const TRANSACTION_BATCH_SIZE: usize = 1000;
 
 const LAYOUT_START_GALLERY_ID: i64 = 1;
 
@@ -319,12 +321,27 @@ fn csv_command(
     );
     let bar = ProgressBar::new_spinner();
     bar.set_style(ProgressStyle::with_template("[{elapsed_precise}] {spinner} {msg}").unwrap());
+    let mut fallback_wikidata_qids: HashSet<i64> = HashSet::new();
+
+    // We should always put wikidata last, as we want to know what wikidata fallback QIDs
+    // from the other collections we've processed so we can skip the same ones in the
+    // wikidata to avoid duplicates.
     let combined_iterator =
         Box::new(met_objects_iterator).chain(Box::new(wikidata_objects_iterator));
+
     for result in combined_iterator {
         // Notice that we need to provide a type hint for automatic
         // deserialization.
         let csv_record: PublicDomain2DMetObjectRecord = result?;
+        if let Some(qid) = csv_record.fallback_wikidata_qid {
+            fallback_wikidata_qids.insert(qid);
+        } else if let ArtObjectId::Wikidata(qid) = csv_record.object_id {
+            if fallback_wikidata_qids.contains(&qid) {
+                // This wikidata item is already the fallback for an item from another CSV
+                // we've processed. Skip it, since we don't want duplicates.
+                continue;
+            }
+        }
         count += 1;
         if verbose {
             println!(
@@ -340,7 +357,7 @@ fn csv_command(
             db.add_public_domain_2d_met_objects(&records_to_commit)?;
             records_to_commit.clear();
             bar.tick();
-            bar.set_message(format!("Loaded {count} records."));
+            bar.set_message(format!("Processed {count} records."));
         }
         if let Some(max) = max {
             if count >= max {
@@ -355,8 +372,9 @@ fn csv_command(
         }
         db.add_public_domain_2d_met_objects(&records_to_commit)?;
     }
+    bar.set_message(format!("Processed {count} records."));
     bar.finish();
-    println!("Processed {count} records.");
+    println!("Done.");
     Ok(())
 }
 

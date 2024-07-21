@@ -275,7 +275,7 @@ impl GalleryDb {
     pub fn get_met_object_fallback_wikidata_qid(
         &self,
         object_id: ArtObjectId,
-    ) -> Result<Option<u64>> {
+    ) -> Result<Option<i64>> {
         Ok(self
             .get_met_object(object_id)?
             .map(|record| record.fallback_wikidata_qid)
@@ -387,7 +387,7 @@ pub struct PublicDomain2DMetObjectRecord {
     pub medium: String,
     pub width: f64,
     pub height: f64,
-    pub fallback_wikidata_qid: Option<u64>,
+    pub fallback_wikidata_qid: Option<i64>,
     pub filename: String,
 }
 
