@@ -6,7 +6,7 @@ use crate::{
     filter_parser::{parse_filter, Filter},
 };
 
-pub const DEFAULT_GALLERY_DB_FILENAME: &'static str = "gallery4.sqlite";
+pub const DEFAULT_GALLERY_DB_FILENAME: &'static str = "gallery5.sqlite";
 
 #[derive(Default)]
 pub struct MetObjectQueryOptions {
