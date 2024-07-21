@@ -14,7 +14,7 @@ use gallery::{
     image::ImageSize,
     layout::layout,
     met_api::{load_met_api_record, migrate_met_api_cache},
-    wikidata::load_wikidata_image_info,
+    wikidata::{load_wikidata_image_info, WikidataImageInfo},
 };
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
@@ -154,15 +154,57 @@ fn fetch_met_api_image(
     }
 }
 
-fn fetch_wikidata_image(cache: &GalleryCache, qid: u64, size: ImageSize) -> Option<PathBuf> {
+fn try_to_download_wikidata_image(
+    db: &GalleryDb,
+    cache: &GalleryCache,
+    object_id: ArtObjectId,
+    size: ImageSize,
+) -> Result<Option<PathBuf>> {
+    if let Some(record) = db.get_met_object(object_id)? {
+        if let ArtObjectId::Wikidata(qid) = object_id {
+            Ok(fetch_wikidata_image_from_qid_and_filename(
+                cache,
+                WikidataImageInfo {
+                    qid,
+                    image_filename: record.filename,
+                },
+                size,
+            ))
+        } else if let Some(qid) = record.fallback_wikidata_qid {
+            Ok(fetch_wikidata_image_from_qid_only(&cache, qid, size))
+        } else {
+            Ok(None)
+        }
+    } else {
+        println!("WARNING: Could not find {:?} in the database.", object_id);
+        Ok(None)
+    }
+}
+
+fn fetch_wikidata_image_from_qid_and_filename(
+    cache: &GalleryCache,
+    info: WikidataImageInfo,
+    size: ImageSize,
+) -> Option<PathBuf> {
+    match info.try_to_download_image(&cache, size) {
+        Ok(filename) => Some(cache.cache_dir().join(filename)),
+        Err(err) => {
+            eprintln!(
+                "Unable to fetch wikidata image for Q{}: {:?}",
+                info.qid, err
+            );
+            None
+        }
+    }
+}
+
+fn fetch_wikidata_image_from_qid_only(
+    cache: &GalleryCache,
+    qid: i64,
+    size: ImageSize,
+) -> Option<PathBuf> {
     match load_wikidata_image_info(&cache, qid) {
-        Ok(Some(info)) => match info.try_to_download_image(&cache, size) {
-            Ok(filename) => Some(cache.cache_dir().join(filename)),
-            Err(err) => {
-                eprintln!("Unable to fetch wikidata image for Q{qid}: {:?}", err);
-                None
-            }
-        },
+        Ok(Some(info)) => fetch_wikidata_image_from_qid_and_filename(cache, info, size),
         Ok(None) => {
             eprintln!("Wikidata has no image info for Q{qid}.");
             None
@@ -273,7 +315,7 @@ pub fn work_thread(
                         let met_objects = db.get_all_met_objects_for_layout(&options)?;
                         let gallery_start_id = 1;
                         let (galleries_created, layout_records) =
-                            layout(dense, gallery_start_id, &walls, met_objects)?;
+                            layout(dense, gallery_start_id, &walls, met_objects, false)?;
                         db.set_layout_records(&layout_records)?;
                         println!(
                             "Created layout across {} galleries with {} walls each, dense={dense}.",
@@ -317,12 +359,14 @@ pub fn work_thread(
                         ArtObjectId::Met(met_object_id) => {
                             let mut image_path = fetch_met_api_image(&cache, met_object_id, size);
                             if image_path.is_none() {
-                                if let Some(qid) =
-                                    db.get_met_object_fallback_wikidata_qid(object_id)?
-                                {
-                                    image_path = fetch_wikidata_image(&cache, qid, size)
-                                }
+                                image_path =
+                                    try_to_download_wikidata_image(&db, &cache, object_id, size)?;
                             }
+                            send_response(ResponseBody::Image(image_path));
+                        }
+                        ArtObjectId::Wikidata(_qid) => {
+                            let image_path =
+                                try_to_download_wikidata_image(&db, &cache, object_id, size)?;
                             send_response(ResponseBody::Image(image_path));
                         }
                     },

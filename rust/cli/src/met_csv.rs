@@ -189,7 +189,9 @@ fn try_into_public_domain_2d_met_object(
                 height: height / 100.0, // Convert centimeters to meters
                 fallback_wikidata_qid: try_to_parse_qid_from_wikidata_url(
                     &csv_record.object_wikidata_url,
-                ),
+                )
+                .map(|qid| qid as i64),
+                filename: String::default(),
             });
         }
     }

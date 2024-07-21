@@ -1,9 +1,15 @@
+use crate::met_csv::MetObjectCsvResult;
+
 use super::sledcache::{iter_and_cache_entities, sledcache_path_for_dumpfile, CachedEntityInfo};
 use super::sparql_csv_export::parse_sparql_csv_export;
 use anyhow::Result;
+use gallery::art_object::ArtObjectId;
+use gallery::gallery_db::PublicDomain2DMetObjectRecord;
 use gallery::wikidata::WikidataEntity;
 use indicatif::ProgressBar;
+use serde::ser::Error;
 use serde::{Deserialize, Serialize};
+use std::fs::File;
 use std::{
     collections::{HashMap, HashSet},
     io::{BufReader, BufWriter},
@@ -23,15 +29,16 @@ struct WikidataCsvRecordToSerialize<'a> {
     pub filename: &'a str,
 }
 
-#[derive(Serialize)]
-pub struct WikidataCsvRecord {
+#[derive(Deserialize)]
+struct WikidataCsvRecord {
     pub qid: u64,
     pub artist: String,
     pub title: String,
     pub width: f64,
     pub height: f64,
     pub materials: String,
-    pub collection: String,
+    // TODO: Actually use this.
+    // pub collection: String,
     pub filename: String,
 }
 
@@ -40,6 +47,36 @@ struct PreparedQuery {
     dumpfile: PathBuf,
     qids: Vec<u64>,
     dependency_qids: Vec<u64>,
+}
+
+pub fn iter_wikidata_objects(
+    reader: csv::Reader<BufReader<File>>,
+) -> impl Iterator<Item = MetObjectCsvResult> {
+    reader
+        .into_deserialize::<WikidataCsvRecord>()
+        .map(move |result| match result {
+            Ok(record) => {
+                if record.filename.len() == 0 {
+                    return Err(csv::Error::custom(format!(
+                        "Q{} has no filename",
+                        record.qid
+                    )));
+                }
+                Ok(PublicDomain2DMetObjectRecord {
+                    object_id: ArtObjectId::Wikidata(record.qid as i64),
+                    object_date: String::default(),
+                    culture: String::default(),
+                    artist: record.artist,
+                    title: record.title,
+                    medium: record.materials,
+                    width: record.width / 100.0, // Convert centimeters to meters
+                    height: record.height / 100.0, // Convert centimeters to meters
+                    filename: record.filename,
+                    fallback_wikidata_qid: None,
+                })
+            }
+            Err(err) => Err(err),
+        })
 }
 
 fn get_dependency_label(dependencies: &HashMap<u64, WikidataEntity>, qid: Option<u64>) -> &str {

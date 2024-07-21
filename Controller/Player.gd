@@ -103,6 +103,8 @@ func _ready() -> void:
 		is_main_player = true
 
 	if is_main_player:
+		# TODO: For some reason when we do a hard-reload with ctrl-shift-R, `UserInterface.hints` is
+		# sometimes "previously freed". Figure out why this is happening, though it's hard to reproduce.
 		UserInterface.hints.visible = true
 		camera.make_current()
 		if not UserInterface.DISABLE_INITIAL_MOUSE_CAPTURE:

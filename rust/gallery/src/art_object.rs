@@ -9,7 +9,10 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Copy, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ArtObjectId {
     Met(i64),
+    Wikidata(i64),
 }
+
+const WIKIDATA_BIT: i64 = 1 << 62;
 
 impl ArtObjectId {
     pub fn url(&self) -> String {
@@ -17,17 +20,25 @@ impl ArtObjectId {
             ArtObjectId::Met(id) => {
                 format!("https://www.metmuseum.org/art/collection/search/{}", id)
             }
+            ArtObjectId::Wikidata(qid) => {
+                format!("https://www.wikidata.org/wiki/Q{qid}")
+            }
         }
     }
 
     pub fn to_raw_i64(&self) -> i64 {
         match self {
             ArtObjectId::Met(id) => *id,
+            ArtObjectId::Wikidata(qid) => *qid | WIKIDATA_BIT,
         }
     }
 
     pub fn from_raw_i64(value: i64) -> Self {
-        ArtObjectId::Met(value)
+        if value & WIKIDATA_BIT > 0 {
+            ArtObjectId::Wikidata(value ^ WIKIDATA_BIT)
+        } else {
+            ArtObjectId::Met(value)
+        }
     }
 }
 
@@ -41,7 +52,16 @@ mod tests {
     }
 
     #[test]
-    fn test_it_converts_to_godot_ints() {
+    fn test_it_converts_to_raw_i64() {
         assert_eq!(ArtObjectId::Met(1).to_raw_i64(), 1);
+    }
+
+    #[test]
+    fn test_it_converts_round_trip() {
+        let ids = vec![ArtObjectId::Wikidata(5), ArtObjectId::Met(5)];
+        for id in ids {
+            let round_tripped = ArtObjectId::from_raw_i64(id.to_raw_i64());
+            assert_eq!(id, round_tripped);
+        }
     }
 }

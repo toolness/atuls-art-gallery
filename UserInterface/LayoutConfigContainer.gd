@@ -12,18 +12,29 @@ signal new_layout_complete()
 @onready var do_layout_button: Button = %DoLayoutButton
 @onready var back_button: Button = %BackButton
 
+const DEBOUNCE_SECS = 0.250
+
+var _latest_filter_text_version := 0
+
 # Called when the node enters the scene tree for the first time.
 func _ready():
 	filter_line_edit.text_changed.connect(_on_filter_text_changed)
 
 
 func _on_filter_text_changed(filter: String):
+	_latest_filter_text_version += 1
+	var version := _latest_filter_text_version
 	if not filter:
 		filter_results_label.text = ""
 		return
+	await get_tree().create_timer(DEBOUNCE_SECS).timeout
+	if !is_inside_tree() || version != _latest_filter_text_version:
+		# The player left the UI, or their input has changed, so don't
+		# process the filter.
+		return
 	var count := await MetObjects.count_met_objects(filter)
-	if filter_line_edit.text != filter:
-		# The player's input has changed, so our count is no
+	if !is_inside_tree() || version != _latest_filter_text_version:
+		# The player left the UI, or their input has changed, so our count is no
 		# longer accurate.
 		return
 	filter_results_label.text = str(count) + " artworks match your filter."
