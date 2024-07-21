@@ -114,26 +114,30 @@ func copy_initial_db(db_filename: String) -> void:
 		#
 		#   https://github.com/godotengine/godot/issues/74105
 		#
-		# For now, at least, the initial DB isn't so big that it
-		# will exhaust system memory, so just read the whole damn
-		# thing into memory and write it.
+		# For now we'll just copy it in chunks manually.
 		#
 		# Beyond that, I don't really understand why I can't just
 		# put this file alongside all the other files in the exported
 		# project, rather than having to stuff it in the PCK/ZIP and
 		# then extract it, but that doesn't seem to be something Godot
 		# easily supports.
-		var data := FileAccess.get_file_as_bytes(INITIAL_DB_PATH)
-		print("Read initial db (", data.size(), " bytes).")
-		if data.size() == 0:
-			crash("Could not open initial DB!")
+		var in_file := FileAccess.open(INITIAL_DB_PATH, FileAccess.READ)
+		if not in_file:
+			crash("Could not open initial DB for reading!")
 			return
 		var out_file := FileAccess.open(GALLERY_DB_PATH, FileAccess.WRITE)
 		if not out_file:
 			crash("Unable to write initial DB!")
-		out_file.store_buffer(data)
+		var total := 0
+		const CHUNK_SIZE := 1000000
+		while true:
+			var data := in_file.get_buffer(CHUNK_SIZE)
+			total += data.size()
+			if data.size() == 0:
+				break
+			out_file.store_buffer(data)
 		out_file.close()
-		print("Wrote initial DB.")
+		print("Wrote initial DB (", total, " bytes total).")
 
 
 var ROOT_DIR: String
