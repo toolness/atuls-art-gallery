@@ -10,8 +10,9 @@ use std::{
     path::PathBuf,
 };
 
+// This needs to be kept in-sync with `WikidataCsvRecord`.
 #[derive(Serialize)]
-struct PaintingToSerialize<'a> {
+struct WikidataCsvRecordToSerialize<'a> {
     pub qid: u64,
     pub artist: &'a str,
     pub title: &'a str,
@@ -20,6 +21,18 @@ struct PaintingToSerialize<'a> {
     pub materials: String,
     pub collection: &'a str,
     pub filename: &'a str,
+}
+
+#[derive(Serialize)]
+pub struct WikidataCsvRecord {
+    pub qid: u64,
+    pub artist: String,
+    pub title: String,
+    pub width: f64,
+    pub height: f64,
+    pub materials: String,
+    pub collection: String,
+    pub filename: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -102,7 +115,7 @@ pub fn execute_wikidata_query(input: PathBuf, output: PathBuf, limit: Option<usi
         let materials = get_dependency_labels(&dependencies, entity.material_ids());
         let collection = get_dependency_label(&dependencies, entity.collection_id());
 
-        writer.serialize(PaintingToSerialize {
+        writer.serialize(WikidataCsvRecordToSerialize {
             qid: *qid,
             artist,
             title,
