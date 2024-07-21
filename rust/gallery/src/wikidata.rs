@@ -106,12 +106,18 @@ pub struct WikidataImageInfo {
 impl WikidataImageInfo {
     pub fn try_to_download_image(&self, cache: &GalleryCache, size: ImageSize) -> Result<String> {
         let image_url = get_url_for_image(&self.image_filename, size);
+        let Some(ext) = get_supported_image_ext(&self.image_filename) else {
+            return Err(anyhow!(
+                "Invalid file extension for image: {}",
+                self.image_filename
+            ));
+        };
         let image_filename = match size {
             ImageSize::Small => format!(
-                "{ROOT_CACHE_SUBDIR}/Q{}-small-{SMALL_IMAGE_WIDTH}px.jpg",
+                "{ROOT_CACHE_SUBDIR}/Q{}-small-{SMALL_IMAGE_WIDTH}px{ext}",
                 self.qid
             ),
-            ImageSize::Large => format!("{ROOT_CACHE_SUBDIR}/Q{}.jpg", self.qid),
+            ImageSize::Large => format!("{ROOT_CACHE_SUBDIR}/Q{}{ext}", self.qid),
         };
         cache.cache_binary_url(&image_url, &image_filename)?;
         Ok(image_filename)
@@ -278,17 +284,28 @@ impl Claims {
             Datavalue::String {
                 value: image_filename,
             } => {
-                let lowercase_filename = image_filename.to_lowercase();
-                for format in SUPPORTED_LOWERCASE_IMAGE_FORMATS {
-                    if lowercase_filename.ends_with(format) {
-                        return Some(image_filename);
-                    }
+                if get_supported_image_ext(&image_filename).is_some() {
+                    Some(image_filename)
+                } else {
+                    None
                 }
-                None
             }
             _ => None,
         })
     }
+}
+
+/// Returns the file extension for the given image filename, if it's a supported one.
+///
+/// The extension will be lowercased, and will include the leading period.
+fn get_supported_image_ext(filename: &str) -> Option<&'static str> {
+    let lowercase_filename = filename.to_lowercase();
+    for format in SUPPORTED_LOWERCASE_IMAGE_FORMATS {
+        if lowercase_filename.ends_with(format) {
+            return Some(format);
+        }
+    }
+    None
 }
 
 /// https://www.wikidata.org/wiki/Q174728
@@ -400,7 +417,7 @@ mod tests {
         wikidata::{get_url_for_image, parse_wikidata_claims_json},
     };
 
-    use super::try_to_parse_qid_from_wikidata_url;
+    use super::{get_supported_image_ext, try_to_parse_qid_from_wikidata_url};
 
     #[test]
     fn test_try_to_parse_qid_from_wikidata_url_works() {
@@ -459,5 +476,14 @@ mod tests {
             response.claims.image_filename(),
             Some(&"Juan Gris - Nature morte à la nappe à carreaux.jpg".to_owned())
         );
+    }
+
+    #[test]
+    fn test_get_supported_image_ext_works() {
+        assert_eq!(get_supported_image_ext("boop.png"), Some(".png"));
+        assert_eq!(get_supported_image_ext("boop.jpeg"), Some(".jpeg"));
+        assert_eq!(get_supported_image_ext("boop.jpg"), Some(".jpg"));
+        assert_eq!(get_supported_image_ext("boop.webp"), Some(".webp"));
+        assert_eq!(get_supported_image_ext("boop.tiff"), None);
     }
 }
