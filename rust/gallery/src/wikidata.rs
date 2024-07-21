@@ -127,6 +127,11 @@ pub struct WikidataEntity {
     claims: Claims,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct WikidataEntityClaimsOnly {
+    claims: Claims,
+}
+
 impl WikidataEntity {
     pub fn label(&self) -> Option<&str> {
         self.labels
@@ -141,20 +146,7 @@ impl WikidataEntity {
             .flatten()
     }
     pub fn image_filename(&self) -> Option<&String> {
-        self.claims.p18.find(|datavalue| match datavalue {
-            Datavalue::String {
-                value: image_filename,
-            } => {
-                let lowercase_filename = image_filename.to_lowercase();
-                for format in SUPPORTED_LOWERCASE_IMAGE_FORMATS {
-                    if lowercase_filename.ends_with(format) {
-                        return Some(image_filename);
-                    }
-                }
-                None
-            }
-            _ => None,
-        })
+        self.claims.image_filename()
     }
     pub fn dimensions_in_cm(&self) -> Option<(f64, f64)> {
         if let (Some(width), Some(height)) = (
@@ -280,6 +272,25 @@ struct Claims {
     // TODO: Add P571 (inception), will need to parse time types: https://www.wikidata.org/wiki/Special:ListDatatypes
 }
 
+impl Claims {
+    pub fn image_filename(&self) -> Option<&String> {
+        self.p18.find(|datavalue| match datavalue {
+            Datavalue::String {
+                value: image_filename,
+            } => {
+                let lowercase_filename = image_filename.to_lowercase();
+                for format in SUPPORTED_LOWERCASE_IMAGE_FORMATS {
+                    if lowercase_filename.ends_with(format) {
+                        return Some(image_filename);
+                    }
+                }
+                None
+            }
+            _ => None,
+        })
+    }
+}
+
 /// https://www.wikidata.org/wiki/Q174728
 const CENTIMETRE_QID: u64 = 174728;
 
@@ -353,6 +364,10 @@ fn get_url_for_image<T: AsRef<str>>(image_filename: T, size: ImageSize) -> Strin
     }
 }
 
+fn parse_wikidata_claims_json(value: &str) -> Result<WikidataEntityClaimsOnly, serde_json::Error> {
+    serde_json::from_str(value)
+}
+
 pub fn load_wikidata_image_info(
     cache: &GalleryCache,
     qid: u64,
@@ -363,10 +378,10 @@ pub fn load_wikidata_image_info(
         &filename,
     )?;
 
-    let response = serde_json::from_str::<WikidataEntity>(&cache.load_cached_string(&filename)?);
+    let response = parse_wikidata_claims_json(&cache.load_cached_string(&filename)?);
     match response {
         Ok(response) => {
-            let Some(image_filename) = response.image_filename() else {
+            let Some(image_filename) = response.claims.image_filename() else {
                 return Ok(None);
             };
             Ok(Some(WikidataImageInfo {
@@ -380,9 +395,12 @@ pub fn load_wikidata_image_info(
 
 #[cfg(test)]
 mod tests {
-    use crate::{image::ImageSize, wikidata::get_url_for_image};
+    use crate::{
+        image::ImageSize,
+        wikidata::{get_url_for_image, parse_wikidata_claims_json},
+    };
 
-    use super::{try_to_parse_qid_from_wikidata_url, WikidataEntity};
+    use super::try_to_parse_qid_from_wikidata_url;
 
     #[test]
     fn test_try_to_parse_qid_from_wikidata_url_works() {
@@ -436,9 +454,9 @@ mod tests {
     #[test]
     fn test_get_p18_image_works() {
         let response_json = r#"{"claims":{"P18":[{"mainsnak":{"snaktype":"value","property":"P18","hash":"9c96969b48408f6aa6d208542c338cadeff2dff9","datavalue":{"value":"Juan Gris - Nature morte \u00e0 la nappe \u00e0 carreaux.jpg","type":"string"},"datatype":"commonsMedia"},"type":"statement","id":"Q20189849$5E016A60-DF33-4157-A6F0-6E1E65411428","rank":"normal"}]}}"#;
-        let response: WikidataEntity = serde_json::from_str(&response_json).unwrap();
+        let response = parse_wikidata_claims_json(&response_json).unwrap();
         assert_eq!(
-            response.image_filename(),
+            response.claims.image_filename(),
             Some(&"Juan Gris - Nature morte à la nappe à carreaux.jpg".to_owned())
         );
     }
