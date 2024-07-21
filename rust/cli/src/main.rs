@@ -342,6 +342,15 @@ fn csv_command(
                 continue;
             }
         }
+        if csv_record.height <= 0.0 || csv_record.width <= 0.0 {
+            if warnings {
+                println!(
+                    "Skipping {:?} due to invalid dimensions.",
+                    csv_record.object_id
+                );
+            }
+            continue;
+        }
         count += 1;
         if verbose {
             println!(

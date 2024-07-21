@@ -7,6 +7,7 @@ use gallery::art_object::ArtObjectId;
 use gallery::gallery_db::PublicDomain2DMetObjectRecord;
 use gallery::wikidata::WikidataEntity;
 use indicatif::ProgressBar;
+use serde::ser::Error;
 use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::{
@@ -53,20 +54,28 @@ pub fn iter_wikidata_objects(
 ) -> impl Iterator<Item = MetObjectCsvResult> {
     reader
         .into_deserialize::<WikidataCsvRecord>()
-        .filter_map(move |result| match result {
-            Ok(record) => Some(Ok(PublicDomain2DMetObjectRecord {
-                object_id: ArtObjectId::Wikidata(record.qid as i64),
-                object_date: String::default(),
-                culture: String::default(),
-                artist: record.artist,
-                title: record.title,
-                medium: record.materials,
-                width: record.width / 100.0, // Convert centimeters to meters
-                height: record.height / 100.0, // Convert centimeters to meters
-                filename: record.filename,
-                fallback_wikidata_qid: None,
-            })),
-            Err(err) => Some(Err(err)),
+        .map(move |result| match result {
+            Ok(record) => {
+                if record.filename.len() == 0 {
+                    return Err(csv::Error::custom(format!(
+                        "Q{} has no filename",
+                        record.qid
+                    )));
+                }
+                Ok(PublicDomain2DMetObjectRecord {
+                    object_id: ArtObjectId::Wikidata(record.qid as i64),
+                    object_date: String::default(),
+                    culture: String::default(),
+                    artist: record.artist,
+                    title: record.title,
+                    medium: record.materials,
+                    width: record.width / 100.0, // Convert centimeters to meters
+                    height: record.height / 100.0, // Convert centimeters to meters
+                    filename: record.filename,
+                    fallback_wikidata_qid: None,
+                })
+            }
+            Err(err) => Err(err),
         })
 }
 
