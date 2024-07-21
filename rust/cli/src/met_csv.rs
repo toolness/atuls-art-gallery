@@ -154,9 +154,6 @@ fn try_into_public_domain_2d_met_object(
     if public_domain_status == PublicDomainStatus::Nope {
         return None;
     }
-    let Some(accession_year) = csv_record.accession_year else {
-        return None;
-    };
     let Some((width, height)) = dimension_parser.parse_cm(&csv_record.dimensions) else {
         return None;
     };
@@ -184,14 +181,13 @@ fn try_into_public_domain_2d_met_object(
             return Some(PublicDomain2DMetObjectRecord {
                 object_id: ArtObjectId::Met(csv_record.object_id),
                 artist: csv_record.artist_display_name,
-                accession_year,
                 culture: csv_record.culture,
                 object_date: csv_record.object_date,
                 title: csv_record.title,
                 medium: csv_record.medium,
                 width: width / 100.0,   // Convert centimeters to meters
                 height: height / 100.0, // Convert centimeters to meters
-                object_wikidata_qid: try_to_parse_qid_from_wikidata_url(
+                fallback_wikidata_qid: try_to_parse_qid_from_wikidata_url(
                     &csv_record.object_wikidata_url,
                 ),
             });

@@ -43,7 +43,6 @@ struct Args {
 enum Sort {
     #[default]
     Id,
-    AccessionYear,
     Random,
 }
 
@@ -225,7 +224,6 @@ fn layout_command(
         filter,
         order_by: match sort.unwrap_or_default() {
             Sort::Id => Some("id".to_owned()),
-            Sort::AccessionYear => Some("accession_year, id".to_owned()),
             Sort::Random => None,
         },
         ..Default::default()
@@ -436,21 +434,21 @@ mod tests {
 
         // Search for nonexistent met object
         assert_eq!(
-            db.get_met_object_wikidata_qid(ArtObjectId::Met(999999))
+            db.get_met_object_fallback_wikidata_qid(ArtObjectId::Met(999999))
                 .unwrap(),
             None
         );
 
         // Search for existing met object without QID
         assert_eq!(
-            db.get_met_object_wikidata_qid(ArtObjectId::Met(39))
+            db.get_met_object_fallback_wikidata_qid(ArtObjectId::Met(39))
                 .unwrap(),
             None
         );
 
         // Search for existing met object with QID
         assert_eq!(
-            db.get_met_object_wikidata_qid(ArtObjectId::Met(482))
+            db.get_met_object_fallback_wikidata_qid(ArtObjectId::Met(482))
                 .unwrap(),
             Some(79023693)
         );

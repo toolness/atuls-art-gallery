@@ -317,7 +317,9 @@ pub fn work_thread(
                         ArtObjectId::Met(met_object_id) => {
                             let mut image_path = fetch_met_api_image(&cache, met_object_id, size);
                             if image_path.is_none() {
-                                if let Some(qid) = db.get_met_object_wikidata_qid(object_id)? {
+                                if let Some(qid) =
+                                    db.get_met_object_fallback_wikidata_qid(object_id)?
+                                {
                                     image_path = fetch_wikidata_image(&cache, qid, size)
                                 }
                             }
