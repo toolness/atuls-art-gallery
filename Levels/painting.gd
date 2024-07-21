@@ -195,7 +195,7 @@ func init_with_met_object(object: MetObject):
 
 
 func try_to_open_in_browser():
-	OS.shell_open("https://www.metmuseum.org/art/collection/search/" + str(met_object_id))
+	OS.shell_open(MetObjects.get_met_object_url(met_object_id))
 
 
 func start_interactive_placement():

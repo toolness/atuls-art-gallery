@@ -266,6 +266,11 @@ impl GalleryClient {
         }
     }
 
+    #[func]
+    fn get_met_object_url(&mut self, met_object_id: u64) -> String {
+        format!("https://www.metmuseum.org/art/collection/search/{met_object_id}")
+    }
+
     fn send_request(&mut self, body: RequestBody) -> u32 {
         let request_id = self.new_request_id();
         if body.is_proxyable_to_server() && self.is_multiplayer_client() {

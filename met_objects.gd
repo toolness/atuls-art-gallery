@@ -88,6 +88,10 @@ func get_met_objects_for_gallery_wall(gallery_id: int, wall_id: String) -> Array
 	return request.response
 
 
+func get_met_object_url(id: int) -> String:
+	return gallery_client.get_met_object_url(id)
+
+
 var fatal_error_message: String
 
 var gallery_client: GalleryClient
