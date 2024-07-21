@@ -1,3 +1,5 @@
+pub mod art_object;
+pub mod filter_parser;
 pub mod gallery_cache;
 pub mod gallery_db;
 pub mod gallery_wall;
@@ -6,4 +8,3 @@ pub mod layout;
 pub mod met_api;
 pub mod random;
 pub mod wikidata;
-pub mod filter_parser;

@@ -5,7 +5,7 @@ use std::{
     thread::{self, JoinHandle},
 };
 
-use gallery::{gallery_db::DEFAULT_GALLERY_DB_FILENAME, image::ImageSize};
+use gallery::{art_object::ArtObject, gallery_db::DEFAULT_GALLERY_DB_FILENAME, image::ImageSize};
 use godot::{
     engine::{
         multiplayer_api::RpcMode,
@@ -267,8 +267,8 @@ impl GalleryClient {
     }
 
     #[func]
-    fn get_met_object_url(&self, met_object_id: u64) -> String {
-        format!("https://www.metmuseum.org/art/collection/search/{met_object_id}")
+    fn get_met_object_url(&self, met_object_id: i64) -> String {
+        ArtObject::from_godot_int(met_object_id).url()
     }
 
     fn send_request(&mut self, body: RequestBody) -> u32 {
@@ -300,14 +300,14 @@ impl GalleryClient {
     #[func]
     fn move_met_object(
         &mut self,
-        met_object_id: u64,
+        met_object_id: i64,
         gallery_id: i64,
         wall_id: String,
         x: f64,
         y: f64,
     ) {
         self.send_request(RequestBody::MoveMetObject {
-            met_object_id,
+            met_object_id: ArtObject::from_godot_int(met_object_id).0,
             gallery_id,
             wall_id,
             x,
@@ -324,17 +324,17 @@ impl GalleryClient {
     }
 
     #[func]
-    fn fetch_small_image(&mut self, object_id: u64) -> u32 {
+    fn fetch_small_image(&mut self, object_id: i64) -> u32 {
         self.send_request(RequestBody::FetchImage {
-            object_id,
+            object_id: ArtObject::from_godot_int(object_id).0,
             size: ImageSize::Small,
         })
     }
 
     #[func]
-    fn fetch_large_image(&mut self, object_id: u64) -> u32 {
+    fn fetch_large_image(&mut self, object_id: i64) -> u32 {
         self.send_request(RequestBody::FetchImage {
-            object_id,
+            object_id: ArtObject::from_godot_int(object_id).0,
             size: ImageSize::Large,
         })
     }
@@ -461,7 +461,7 @@ impl GalleryClient {
                                 response: InnerMetResponse::MetObjects(Array::from_iter(
                                     objects.into_iter().map(|object| {
                                         Gd::from_object(MetObject {
-                                            object_id: object.object_id as i64,
+                                            object_id: ArtObject(object.object_id).to_godot_int(),
                                             title: object.title.into_godot(),
                                             date: object.date.into_godot(),
                                             width: object.width,
