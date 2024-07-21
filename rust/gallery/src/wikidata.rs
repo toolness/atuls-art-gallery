@@ -99,8 +99,8 @@ where
 }
 
 pub struct WikidataImageInfo {
-    qid: i64,
-    image_filename: String,
+    pub qid: i64,
+    pub image_filename: String,
 }
 
 impl WikidataImageInfo {
