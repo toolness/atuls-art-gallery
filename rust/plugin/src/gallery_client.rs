@@ -267,7 +267,7 @@ impl GalleryClient {
     }
 
     #[func]
-    fn get_met_object_url(&mut self, met_object_id: u64) -> String {
+    fn get_met_object_url(&self, met_object_id: u64) -> String {
         format!("https://www.metmuseum.org/art/collection/search/{met_object_id}")
     }
 
