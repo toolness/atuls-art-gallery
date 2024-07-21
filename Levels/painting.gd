@@ -14,6 +14,8 @@ const WALL_LABEL_SECONDARY_TOP_PADDING = 0.005
 
 const WALL_LABEL_TERTIARY_TOP_PADDING = 0.02
 
+const WALL_LABEL_QUATERNARY_TOP_PADDING = 0.0025
+
 ## The maximum distance, in meters, from the player a painting
 ## must be in order to start loading its small image.
 ##
@@ -39,6 +41,8 @@ var started_loading_large_image := false
 @onready var wall_label_secondary: Label3D = %wall_label_secondary
 
 @onready var wall_label_tertiary: Label3D = %wall_label_tertiary
+
+@onready var wall_label_quaternary: Label3D = %wall_label_quaternary
 
 ## The scaling applied to the actual painting canvas, set by the server in multiplayer. (We can't
 ## simply synchronize the actual scale because it's in an imported scene that our synchronizer
@@ -158,6 +162,7 @@ func configure_wall_label() -> void:
 	# displaying them only when we know their position.
 	wall_label_secondary.visible = false
 	wall_label_tertiary.visible = false
+	wall_label_quaternary.visible = false
 	await _wait_for_bounding_box_recomputes()
 	if not is_inside_tree():
 		return
@@ -177,6 +182,15 @@ func configure_wall_label() -> void:
 	wall_label_tertiary.position.y = wall_label_secondary.position.y - wall_label_secondary.get_aabb().size.y - WALL_LABEL_TERTIARY_TOP_PADDING
 	wall_label_tertiary.text = medium
 	wall_label_tertiary.visible = true
+
+	await _wait_for_bounding_box_recomputes()
+	if not is_inside_tree():
+		return
+	wall_label_quaternary.position.x = left_edge
+	wall_label_quaternary.position.y = wall_label_tertiary.position.y - wall_label_tertiary.get_aabb().size.y - WALL_LABEL_QUATERNARY_TOP_PADDING
+	# TODO: Populate this with the actual collection info.
+	wall_label_quaternary.text = "Metropolitan Museum of Art"
+	wall_label_quaternary.visible = true
 
 
 func _default_str(value: String, default: String) -> String:
