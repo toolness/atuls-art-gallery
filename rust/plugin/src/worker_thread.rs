@@ -154,7 +154,11 @@ fn fetch_met_api_image(
     }
 }
 
-fn fetch_wikidata_image(cache: &GalleryCache, qid: u64, size: ImageSize) -> Option<PathBuf> {
+fn fetch_wikidata_image_from_qid(
+    cache: &GalleryCache,
+    qid: u64,
+    size: ImageSize,
+) -> Option<PathBuf> {
     match load_wikidata_image_info(&cache, qid) {
         Ok(Some(info)) => match info.try_to_download_image(&cache, size) {
             Ok(filename) => Some(cache.cache_dir().join(filename)),
@@ -273,7 +277,7 @@ pub fn work_thread(
                         let met_objects = db.get_all_met_objects_for_layout(&options)?;
                         let gallery_start_id = 1;
                         let (galleries_created, layout_records) =
-                            layout(dense, gallery_start_id, &walls, met_objects)?;
+                            layout(dense, gallery_start_id, &walls, met_objects, false)?;
                         db.set_layout_records(&layout_records)?;
                         println!(
                             "Created layout across {} galleries with {} walls each, dense={dense}.",
@@ -320,10 +324,13 @@ pub fn work_thread(
                                 if let Some(qid) =
                                     db.get_met_object_fallback_wikidata_qid(object_id)?
                                 {
-                                    image_path = fetch_wikidata_image(&cache, qid, size)
+                                    image_path = fetch_wikidata_image_from_qid(&cache, qid, size)
                                 }
                             }
                             send_response(ResponseBody::Image(image_path));
+                        }
+                        ArtObjectId::Wikidata(qid) => {
+                            todo!("TODO FETCH WIKIDATA OBJECT IMAGE")
                         }
                     },
                 }

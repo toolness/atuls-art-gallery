@@ -205,7 +205,8 @@ impl GalleryDb {
                 medium TEXT NOT NULL,
                 width REAL NOT NULL,
                 height REAL NOT NULL,
-                fallback_wikidata_qid INTEGER
+                fallback_wikidata_qid INTEGER,
+                filename TEXT NOT NULL
             )
             ",
             (),
@@ -236,7 +237,8 @@ impl GalleryDb {
                     height,
                     artist,
                     culture,
-                    fallback_wikidata_qid
+                    fallback_wikidata_qid,
+                    filename
                 ) VALUES (
                     ?1,
                     ?2,
@@ -246,7 +248,8 @@ impl GalleryDb {
                     ?6,
                     ?7,
                     ?8,
-                    ?9
+                    ?9,
+                    ?10
                 )
                 ",
                 (
@@ -259,6 +262,7 @@ impl GalleryDb {
                     &record.artist,
                     &record.culture,
                     &record.fallback_wikidata_qid,
+                    &record.filename,
                 ),
             )?;
         }
@@ -272,14 +276,49 @@ impl GalleryDb {
         &self,
         object_id: ArtObjectId,
     ) -> Result<Option<u64>> {
-        let mut statement = self
-            .conn
-            .prepare_cached("SELECT fallback_wikidata_qid FROM met_objects WHERE id = ?1")?;
+        Ok(self
+            .get_met_object(object_id)?
+            .map(|record| record.fallback_wikidata_qid)
+            .flatten())
+    }
+
+    pub fn get_met_object(
+        &self,
+        object_id: ArtObjectId,
+    ) -> Result<Option<PublicDomain2DMetObjectRecord>> {
+        let mut statement = self.conn.prepare_cached(
+            "
+                SELECT
+                    mo.title,
+                    mo.date,
+                    mo.medium,
+                    mo.width,
+                    mo.height,
+                    mo.artist,
+                    mo.culture,
+                    mo.fallback_wikidata_qid,
+                    mo.filename
+                FROM
+                    met_objects AS mo
+                WHERE
+                    mo.id = ?1",
+        )?;
         let mut rows = statement.query([object_id.to_raw_i64()])?;
         let Some(row) = rows.next()? else {
             return Ok(None);
         };
-        Ok(row.get(0)?)
+        Ok(Some(PublicDomain2DMetObjectRecord {
+            object_id,
+            title: row.get(0)?,
+            object_date: row.get(1)?,
+            medium: row.get(2)?,
+            width: row.get(3)?,
+            height: row.get(4)?,
+            artist: row.get(5)?,
+            culture: row.get(6)?,
+            fallback_wikidata_qid: row.get(7)?,
+            filename: row.get(8)?,
+        }))
     }
 
     pub fn get_met_objects_for_gallery_wall<T: AsRef<str>>(
@@ -302,7 +341,8 @@ impl GalleryDb {
                 mo.height,
                 mo.artist,
                 mo.culture,
-                mo.fallback_wikidata_qid
+                mo.fallback_wikidata_qid,
+                mo.filename
             FROM
                 met_objects AS mo
             INNER JOIN
@@ -328,6 +368,7 @@ impl GalleryDb {
                 artist: row.get(8)?,
                 culture: row.get(9)?,
                 fallback_wikidata_qid: row.get(10)?,
+                filename: row.get(11)?,
             };
             result.push((object, location));
         }
@@ -347,6 +388,7 @@ pub struct PublicDomain2DMetObjectRecord {
     pub width: f64,
     pub height: f64,
     pub fallback_wikidata_qid: Option<u64>,
+    pub filename: String,
 }
 
 #[derive(Debug)]

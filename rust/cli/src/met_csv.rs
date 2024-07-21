@@ -190,6 +190,7 @@ fn try_into_public_domain_2d_met_object(
                 fallback_wikidata_qid: try_to_parse_qid_from_wikidata_url(
                     &csv_record.object_wikidata_url,
                 ),
+                filename: String::default(),
             });
         }
     }

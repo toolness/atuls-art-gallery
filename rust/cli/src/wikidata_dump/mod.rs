@@ -1,5 +1,5 @@
 pub use index_file::index_wikidata_dump;
-pub use query::{execute_wikidata_query, prepare_wikidata_query};
+pub use query::{execute_wikidata_query, iter_wikidata_objects, prepare_wikidata_query};
 
 mod index_file;
 mod query;

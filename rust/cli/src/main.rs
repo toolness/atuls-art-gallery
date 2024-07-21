@@ -14,9 +14,12 @@ use gallery::gallery_db::{
 use gallery::gallery_wall::GalleryWall;
 use gallery::layout::layout;
 use gallery::random::Rng;
+use indicatif::{ProgressBar, ProgressStyle};
 use met_csv::{iter_public_domain_2d_met_csv_objects, PublicDomain2DMetObjectOptions};
 use rusqlite::Connection;
-use wikidata_dump::{execute_wikidata_query, index_wikidata_dump, prepare_wikidata_query};
+use wikidata_dump::{
+    execute_wikidata_query, index_wikidata_dump, iter_wikidata_objects, prepare_wikidata_query,
+};
 
 use std::io::BufReader;
 
@@ -50,10 +53,13 @@ enum Sort {
 enum Commands {
     /// Import MetObjects.csv into database.
     Csv {
-        /// Path to CSV
-        /// Max objects to process
+        /// Path to met objects CSV
         #[arg(short, long)]
-        path: Option<PathBuf>,
+        met_objects_path: Option<PathBuf>,
+
+        /// Path to wikidata objects CSV
+        #[arg(short, long)]
+        wikidata_objects_path: Option<PathBuf>,
 
         /// Max objects to process
         #[arg(short, long)]
@@ -64,7 +70,7 @@ enum Commands {
         /// more photos of artifacts that are in the collection showing up
         /// in your gallery.
         #[arg(long, default_value_t = false)]
-        all_media: bool,
+        met_objects_all_media: bool,
 
         /// Log warnings about whether e.g. something that claims to not be
         /// public domain is actually public domain.
@@ -88,6 +94,10 @@ enum Commands {
         /// Whether to use a dense layout (stack some art vertically).
         #[arg(long = "dense", default_value_t = false)]
         use_dense_layout: bool,
+
+        /// Log warnings about whether e.g. a painting won't fit in a gallery.
+        #[arg(long, default_value_t = false)]
+        warnings: bool,
     },
     /// Show layout for the given gallery.
     ShowLayout {
@@ -149,16 +159,27 @@ fn run() -> Result<()> {
     let db = GalleryDb::new(Connection::open(db_path)?);
     match args.command {
         Commands::Csv {
-            path,
+            met_objects_path,
+            wikidata_objects_path,
             max,
-            all_media,
+            met_objects_all_media,
             warnings,
-        } => csv_command(args.verbose, path, cache, db, max, all_media, warnings),
+        } => csv_command(
+            args.verbose,
+            met_objects_path,
+            wikidata_objects_path,
+            cache,
+            db,
+            max,
+            met_objects_all_media,
+            warnings,
+        ),
         Commands::Layout {
             sort,
             random_seed,
             use_dense_layout,
             filter,
+            warnings,
         } => layout_command(
             db,
             sort,
@@ -166,6 +187,7 @@ fn run() -> Result<()> {
             use_dense_layout,
             filter,
             args.verbose,
+            warnings,
         ),
         Commands::ShowLayout { gallery_id } => show_layout_command(db, gallery_id),
         Commands::WikidataIndex {
@@ -216,6 +238,7 @@ fn layout_command(
     use_dense_layout: bool,
     filter: Option<String>,
     verbose: bool,
+    warnings: bool,
 ) -> Result<()> {
     let walls = get_walls()?;
     db.reset_layout_table()?;
@@ -254,6 +277,7 @@ fn layout_command(
         LAYOUT_START_GALLERY_ID,
         &walls,
         met_objects,
+        warnings,
     )?;
 
     db.set_layout_records(&layout_records)?;
@@ -264,27 +288,40 @@ fn layout_command(
 
 fn csv_command(
     verbose: bool,
-    path: Option<PathBuf>,
+    met_objects_path: Option<PathBuf>,
+    wikidata_objects_path: Option<PathBuf>,
     cache: GalleryCache,
     mut db: GalleryDb,
     max: Option<usize>,
-    all_media: bool,
+    met_objects_all_media: bool,
     warnings: bool,
 ) -> Result<()> {
-    let csv_file = path.unwrap_or(cache.get_cached_path("MetObjects.csv"));
-    let reader = BufReader::new(File::open(csv_file)?);
-    let rdr = csv::Reader::from_reader(reader);
+    let met_csv_file = met_objects_path.unwrap_or(cache.get_cached_path("MetObjects.csv"));
+    println!("Loading met objects from {}.", met_csv_file.display());
+    let wikidata_csv_file =
+        wikidata_objects_path.unwrap_or(cache.get_cached_path("WikidataObjects.csv"));
+    println!("Loading wikidata objects from {}.", met_csv_file.display());
+    let met_reader = BufReader::new(File::open(met_csv_file)?);
+    let met_csv_reader = csv::Reader::from_reader(met_reader);
+    let wikidata_reader = BufReader::new(File::open(wikidata_csv_file)?);
+    let wikidata_objects_iterator =
+        iter_wikidata_objects(csv::Reader::from_reader(wikidata_reader));
     db.reset_met_objects_table()?;
     let mut count: usize = 0;
     let mut records_to_commit = vec![];
-    for result in iter_public_domain_2d_met_csv_objects(
-        rdr,
+    let met_objects_iterator = iter_public_domain_2d_met_csv_objects(
+        met_csv_reader,
         PublicDomain2DMetObjectOptions {
-            all_media,
+            all_media: met_objects_all_media,
             warnings,
             ..Default::default()
         },
-    ) {
+    );
+    let bar = ProgressBar::new_spinner();
+    bar.set_style(ProgressStyle::with_template("[{elapsed_precise}] {spinner} {msg}").unwrap());
+    let combined_iterator =
+        Box::new(met_objects_iterator).chain(Box::new(wikidata_objects_iterator));
+    for result in combined_iterator {
         // Notice that we need to provide a type hint for automatic
         // deserialization.
         let csv_record: PublicDomain2DMetObjectRecord = result?;
@@ -302,6 +339,8 @@ fn csv_command(
             }
             db.add_public_domain_2d_met_objects(&records_to_commit)?;
             records_to_commit.clear();
+            bar.tick();
+            bar.set_message(format!("Loaded {count} records."));
         }
         if let Some(max) = max {
             if count >= max {
@@ -316,6 +355,7 @@ fn csv_command(
         }
         db.add_public_domain_2d_met_objects(&records_to_commit)?;
     }
+    bar.finish();
     println!("Processed {count} records.");
     Ok(())
 }

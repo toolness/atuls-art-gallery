@@ -24,13 +24,15 @@ const PAINTING_VERT_MIN_MOUNT_AREA: f64 = 0.5;
 pub struct MetObjectLayoutFitter {
     unused: Vec<MetObjectLayoutInfo>,
     remaining: Vec<MetObjectLayoutInfo>,
+    warnings: bool,
 }
 
 impl MetObjectLayoutFitter {
-    pub fn new(remaining: Vec<MetObjectLayoutInfo>) -> Self {
+    pub fn new(remaining: Vec<MetObjectLayoutInfo>, warnings: bool) -> Self {
         MetObjectLayoutFitter {
             unused: vec![],
             remaining,
+            warnings,
         }
     }
 
@@ -53,7 +55,7 @@ impl MetObjectLayoutFitter {
             }
             if can_object_fit_anywhere(&met_object, &walls) {
                 self.unused.push(met_object);
-            } else {
+            } else if self.warnings {
                 println!(
                     "Warning: object {:?} can't fit on any walls.",
                     met_object.id
@@ -67,6 +69,10 @@ impl MetObjectLayoutFitter {
     pub fn is_empty(&self) -> bool {
         self.unused.is_empty() && self.remaining.is_empty()
     }
+
+    pub fn get_remaining(&self) -> usize {
+        self.unused.len() + self.remaining.len()
+    }
 }
 
 fn can_object_fit_in(object_layout: &MetObjectLayoutInfo, max_width: f64, max_height: f64) -> bool {
@@ -75,7 +81,11 @@ fn can_object_fit_in(object_layout: &MetObjectLayoutInfo, max_width: f64, max_he
 
 fn can_object_fit_anywhere(object_layout: &MetObjectLayoutInfo, walls: &Vec<GalleryWall>) -> bool {
     for wall in walls {
-        if can_object_fit_in(object_layout, wall.width, wall.height) {
+        if can_object_fit_in(
+            object_layout,
+            wall.width - PAINTING_HORIZ_MARGIN * 2.0,
+            wall.height,
+        ) {
             return true;
         }
     }
@@ -181,11 +191,12 @@ pub fn layout<'a>(
     gallery_start_id: i64,
     walls: &'a Vec<GalleryWall>,
     mut met_objects: Vec<MetObjectLayoutInfo>,
+    warnings: bool,
 ) -> Result<(usize, Vec<LayoutRecord<&'a str>>)> {
     // Reverse the objects, since we'll be popping them off the end of the vec.
     // This isn't terribly efficient but it'll do for now.
     met_objects.reverse();
-    let mut finder = MetObjectLayoutFitter::new(met_objects);
+    let mut finder = MetObjectLayoutFitter::new(met_objects, warnings);
     let mut layout_records: Vec<LayoutRecord<&'a str>> = vec![];
     let mut wall_idx = 0;
     let mut gallery_id = gallery_start_id;
