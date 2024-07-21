@@ -12,9 +12,7 @@ use gallery::gallery_db::{
     GalleryDb, MetObjectQueryOptions, PublicDomain2DMetObjectRecord, DEFAULT_GALLERY_DB_FILENAME,
 };
 use gallery::gallery_wall::GalleryWall;
-use gallery::image::ImageSize;
 use gallery::layout::layout;
-use gallery::met_api::load_met_api_record;
 use gallery::random::Rng;
 use met_csv::{iter_public_domain_2d_met_csv_objects, PublicDomain2DMetObjectOptions};
 use rusqlite::Connection;
@@ -61,10 +59,6 @@ enum Commands {
         /// Max objects to process
         #[arg(short, long)]
         max: Option<usize>,
-
-        /// Download objects?
-        #[arg(short, long, default_value_t = false)]
-        download: bool,
 
         /// Normally we filter to ensure that only art that is flat and matte
         /// is in the gallery. This disables the filter, which will result in
@@ -158,19 +152,9 @@ fn run() -> Result<()> {
         Commands::Csv {
             path,
             max,
-            download,
             all_media,
             warnings,
-        } => csv_command(
-            args.verbose,
-            path,
-            cache,
-            db,
-            max,
-            download,
-            all_media,
-            warnings,
-        ),
+        } => csv_command(args.verbose, path, cache, db, max, all_media, warnings),
         Commands::Layout {
             sort,
             random_seed,
@@ -286,7 +270,6 @@ fn csv_command(
     cache: GalleryCache,
     mut db: GalleryDb,
     max: Option<usize>,
-    download: bool,
     all_media: bool,
     warnings: bool,
 ) -> Result<()> {
@@ -310,13 +293,9 @@ fn csv_command(
         count += 1;
         if verbose {
             println!(
-                "#{}: medium={} title={}",
+                "#{:?}: medium={} title={}",
                 csv_record.object_id, csv_record.medium, csv_record.title
             );
-        }
-        if download {
-            let obj_record = load_met_api_record(&cache, csv_record.object_id)?;
-            obj_record.try_to_download_image(&cache, ImageSize::Small)?;
         }
         records_to_commit.push(csv_record);
         if records_to_commit.len() >= TRANSACTION_BATCH_SIZE {
@@ -355,6 +334,7 @@ mod tests {
     use std::{fs::File, io::BufReader, path::PathBuf};
 
     use gallery::{
+        art_object::ArtObjectId,
         gallery_cache::GalleryCache,
         gallery_db::{LayoutRecord, MetObjectQueryOptions},
     };
@@ -455,13 +435,25 @@ mod tests {
         assert!(get_num_filter_results(&db, "american") > 0);
 
         // Search for nonexistent met object
-        assert_eq!(db.get_met_object_wikidata_qid(999999).unwrap(), None);
+        assert_eq!(
+            db.get_met_object_wikidata_qid(ArtObjectId::Met(999999))
+                .unwrap(),
+            None
+        );
 
         // Search for existing met object without QID
-        assert_eq!(db.get_met_object_wikidata_qid(39).unwrap(), None);
+        assert_eq!(
+            db.get_met_object_wikidata_qid(ArtObjectId::Met(39))
+                .unwrap(),
+            None
+        );
 
         // Search for existing met object with QID
-        assert_eq!(db.get_met_object_wikidata_qid(482).unwrap(), Some(79023693));
+        assert_eq!(
+            db.get_met_object_wikidata_qid(ArtObjectId::Met(482))
+                .unwrap(),
+            Some(79023693)
+        );
     }
 
     fn get_num_filter_results(db: &GalleryDb, filter: &'static str) -> usize {

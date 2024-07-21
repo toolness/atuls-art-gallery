@@ -7,6 +7,7 @@ use std::{
 use anyhow::anyhow;
 use anyhow::Result;
 use gallery::{
+    art_object::ArtObjectId,
     gallery_cache::GalleryCache,
     gallery_db::{GalleryDb, LayoutRecord, MetObjectQueryOptions, DEFAULT_GALLERY_DB_FILENAME},
     gallery_wall::GalleryWall,
@@ -25,10 +26,12 @@ pub struct Request {
     pub body: RequestBody,
 }
 
+// We need to support serialization here to allow other godot clients
+// to proxy requests to and from servers.
 #[derive(Debug, Deserialize, Serialize)]
 pub enum RequestBody {
     MoveMetObject {
-        met_object_id: u64,
+        met_object_id: ArtObjectId,
         gallery_id: i64,
         wall_id: String,
         x: f64,
@@ -39,7 +42,7 @@ pub enum RequestBody {
         wall_id: String,
     },
     FetchImage {
-        object_id: u64,
+        object_id: ArtObjectId,
         size: ImageSize,
     },
     Layout {
@@ -90,7 +93,7 @@ pub enum MessageFromWorker {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct SimplifiedRecord {
-    pub object_id: u64,
+    pub object_id: ArtObjectId,
     pub artist: String,
     pub medium: String,
     pub title: String,
@@ -126,7 +129,7 @@ fn get_met_objects_for_gallery_wall(
 
 fn fetch_met_api_image(
     cache: &GalleryCache,
-    met_object_id: u64,
+    met_object_id: i64,
     size: ImageSize,
 ) -> Option<PathBuf> {
     match load_met_api_record(&cache, met_object_id) {
@@ -310,15 +313,17 @@ pub fn work_thread(
                             get_met_objects_for_gallery_wall(&mut db, gallery_id, wall_id)?;
                         send_response(ResponseBody::MetObjectsForGalleryWall(objects));
                     }
-                    RequestBody::FetchImage { object_id, size } => {
-                        let mut image_path = fetch_met_api_image(&cache, object_id, size);
-                        if image_path.is_none() {
-                            if let Some(qid) = db.get_met_object_wikidata_qid(object_id)? {
-                                image_path = fetch_wikidata_image(&cache, qid, size)
+                    RequestBody::FetchImage { object_id, size } => match object_id {
+                        ArtObjectId::Met(met_object_id) => {
+                            let mut image_path = fetch_met_api_image(&cache, met_object_id, size);
+                            if image_path.is_none() {
+                                if let Some(qid) = db.get_met_object_wikidata_qid(object_id)? {
+                                    image_path = fetch_wikidata_image(&cache, qid, size)
+                                }
                             }
+                            send_response(ResponseBody::Image(image_path));
                         }
-                        send_response(ResponseBody::Image(image_path));
-                    }
+                    },
                 }
             }
             Err(RecvError) => {

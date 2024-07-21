@@ -54,7 +54,10 @@ impl MetObjectLayoutFitter {
             if can_object_fit_anywhere(&met_object, &walls) {
                 self.unused.push(met_object);
             } else {
-                println!("Warning: object {} can't fit on any walls.", met_object.id);
+                println!(
+                    "Warning: object {:?} can't fit on any walls.",
+                    met_object.id
+                );
             }
         }
 

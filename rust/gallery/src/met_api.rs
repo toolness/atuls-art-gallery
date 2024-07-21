@@ -40,7 +40,7 @@ pub fn migrate_met_api_cache(cache: &GalleryCache) -> Result<()> {
     Ok(())
 }
 
-pub fn load_met_api_record(cache: &GalleryCache, object_id: u64) -> Result<MetObjectApiRecord> {
+pub fn load_met_api_record(cache: &GalleryCache, object_id: i64) -> Result<MetObjectApiRecord> {
     let filename = format!("{ROOT_CACHE_SUBDIR}/object-{}.json", object_id);
     cache.cache_json_url(
         format!(

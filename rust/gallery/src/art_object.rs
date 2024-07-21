@@ -1,43 +1,47 @@
-/// Internally we represent art object IDs with a u64, but Godot uses i64s.
+use serde::{Deserialize, Serialize};
+
+/// Internally we represent art object IDs as an enum, but Godot and our DB
+/// use i64s. This enum includes utilities to help us translate between the two.
 ///
-/// To Godot, an art object ID is just an opaque identifier to something that
-/// only has meaning for the client, so we'll essentially just transmute between
-/// the two types.
-///
-/// This does, mean, however, that logging done from the Godot side may show
-/// different IDs than logging done from the Rust side. We should probably have
-/// Godot only log art object URLs instead of raw IDs.
-pub struct ArtObject(pub u64);
+/// This does, mean, however, that logging done from the Godot side won't be
+/// very helpful. We should probably have Godot only log art object URLs instead
+/// of raw IDs.
+#[derive(Debug, Copy, Clone, Serialize, Deserialize, PartialEq)]
+pub enum ArtObjectId {
+    Met(i64),
+}
 
-impl ArtObject {
-    pub fn from_godot_int(value: i64) -> Self {
-        Self(u64::from_le_bytes(value.to_le_bytes()))
-    }
-
-    pub fn to_godot_int(&self) -> i64 {
-        i64::from_le_bytes(self.0.to_le_bytes())
-    }
-
+impl ArtObjectId {
     pub fn url(&self) -> String {
-        format!("https://www.metmuseum.org/art/collection/search/{}", self.0)
+        match self {
+            ArtObjectId::Met(id) => {
+                format!("https://www.metmuseum.org/art/collection/search/{}", id)
+            }
+        }
+    }
+
+    pub fn to_raw_i64(&self) -> i64 {
+        match self {
+            ArtObjectId::Met(id) => *id,
+        }
+    }
+
+    pub fn from_raw_i64(value: i64) -> Self {
+        ArtObjectId::Met(value)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::art_object::ArtObject;
-
-    const NEGATIVE_ONE_AS_U64: u64 = 18446744073709551615;
+    use crate::art_object::ArtObjectId;
 
     #[test]
-    fn test_it_converts_from_godot_ints() {
-        assert_eq!(ArtObject::from_godot_int(1).0, 1);
-        assert_eq!(ArtObject::from_godot_int(-1).0, NEGATIVE_ONE_AS_U64);
+    fn test_it_converts_from_raw_i64() {
+        assert_eq!(ArtObjectId::from_raw_i64(1).to_raw_i64(), 1);
     }
 
     #[test]
     fn test_it_converts_to_godot_ints() {
-        assert_eq!(ArtObject(1).to_godot_int(), 1);
-        assert_eq!(ArtObject(NEGATIVE_ONE_AS_U64).to_godot_int(), -1);
+        assert_eq!(ArtObjectId::Met(1).to_raw_i64(), 1);
     }
 }

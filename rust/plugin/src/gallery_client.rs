@@ -5,7 +5,7 @@ use std::{
     thread::{self, JoinHandle},
 };
 
-use gallery::{art_object::ArtObject, gallery_db::DEFAULT_GALLERY_DB_FILENAME, image::ImageSize};
+use gallery::{art_object::ArtObjectId, gallery_db::DEFAULT_GALLERY_DB_FILENAME, image::ImageSize};
 use godot::{
     engine::{
         multiplayer_api::RpcMode,
@@ -268,7 +268,7 @@ impl GalleryClient {
 
     #[func]
     fn get_met_object_url(&self, met_object_id: i64) -> String {
-        ArtObject::from_godot_int(met_object_id).url()
+        ArtObjectId::from_raw_i64(met_object_id).url()
     }
 
     fn send_request(&mut self, body: RequestBody) -> u32 {
@@ -307,7 +307,7 @@ impl GalleryClient {
         y: f64,
     ) {
         self.send_request(RequestBody::MoveMetObject {
-            met_object_id: ArtObject::from_godot_int(met_object_id).0,
+            met_object_id: ArtObjectId::from_raw_i64(met_object_id),
             gallery_id,
             wall_id,
             x,
@@ -326,7 +326,7 @@ impl GalleryClient {
     #[func]
     fn fetch_small_image(&mut self, object_id: i64) -> u32 {
         self.send_request(RequestBody::FetchImage {
-            object_id: ArtObject::from_godot_int(object_id).0,
+            object_id: ArtObjectId::from_raw_i64(object_id),
             size: ImageSize::Small,
         })
     }
@@ -334,7 +334,7 @@ impl GalleryClient {
     #[func]
     fn fetch_large_image(&mut self, object_id: i64) -> u32 {
         self.send_request(RequestBody::FetchImage {
-            object_id: ArtObject::from_godot_int(object_id).0,
+            object_id: ArtObjectId::from_raw_i64(object_id),
             size: ImageSize::Large,
         })
     }
@@ -461,7 +461,7 @@ impl GalleryClient {
                                 response: InnerMetResponse::MetObjects(Array::from_iter(
                                     objects.into_iter().map(|object| {
                                         Gd::from_object(MetObject {
-                                            object_id: ArtObject(object.object_id).to_godot_int(),
+                                            object_id: object.object_id.to_raw_i64(),
                                             title: object.title.into_godot(),
                                             date: object.date.into_godot(),
                                             width: object.width,

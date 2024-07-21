@@ -1,6 +1,7 @@
 use anyhow::Result;
 use gallery::{
-    gallery_db::PublicDomain2DMetObjectRecord, wikidata::try_to_parse_qid_from_wikidata_url,
+    art_object::ArtObjectId, gallery_db::PublicDomain2DMetObjectRecord,
+    wikidata::try_to_parse_qid_from_wikidata_url,
 };
 use regex_lite::Regex;
 use serde::{de, Deserialize};
@@ -16,7 +17,7 @@ pub struct MetObjectCsvRecord {
     pub highlight: bool,
 
     #[serde(rename = "Object ID")]
-    pub object_id: u64,
+    pub object_id: i64,
 
     #[serde(rename = "Artist End Date", deserialize_with = "deserialize_csv_year")]
     pub artist_end_date: Option<u16>,
@@ -181,7 +182,7 @@ fn try_into_public_domain_2d_met_object(
             }
 
             return Some(PublicDomain2DMetObjectRecord {
-                object_id: csv_record.object_id,
+                object_id: ArtObjectId::Met(csv_record.object_id),
                 artist: csv_record.artist_display_name,
                 accession_year,
                 culture: csv_record.culture,
