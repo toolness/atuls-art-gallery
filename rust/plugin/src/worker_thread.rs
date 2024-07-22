@@ -102,6 +102,7 @@ pub struct SimplifiedRecord {
     pub height: f64,
     pub x: f64,
     pub y: f64,
+    pub collection: String,
 }
 
 fn get_met_objects_for_gallery_wall(
@@ -120,6 +121,7 @@ fn get_met_objects_for_gallery_wall(
             height: object.height,
             artist: object.artist,
             medium: object.medium,
+            collection: object.collection,
             x,
             y,
         });

@@ -65,9 +65,15 @@ fn filter_to_sql(filter: Filter, query_parts: &mut Vec<String>, params: &mut Vec
         Filter::Term(term) => {
             params.push(format!("%{term}%"));
             let num = params.len();
-            query_parts.push(
-                format!("((title LIKE ?{num}) OR (artist LIKE ?{num}) OR (medium LIKE ?{num}) OR (culture LIKE ?{num}))")
-            )
+            query_parts.push(format!(
+                "(
+                    (title LIKE ?{num}) OR
+                    (artist LIKE ?{num}) OR
+                    (medium LIKE ?{num}) OR
+                    (culture LIKE ?{num}) OR
+                    (collection LIKE ?{num})
+                )"
+            ))
         }
     }
 }
@@ -206,7 +212,8 @@ impl GalleryDb {
                 width REAL NOT NULL,
                 height REAL NOT NULL,
                 fallback_wikidata_qid INTEGER,
-                filename TEXT NOT NULL
+                filename TEXT NOT NULL,
+                collection TEXT NOT NULL
             )
             ",
             (),
@@ -238,7 +245,8 @@ impl GalleryDb {
                     artist,
                     culture,
                     fallback_wikidata_qid,
-                    filename
+                    filename,
+                    collection
                 ) VALUES (
                     ?1,
                     ?2,
@@ -249,7 +257,8 @@ impl GalleryDb {
                     ?7,
                     ?8,
                     ?9,
-                    ?10
+                    ?10,
+                    ?11
                 )
                 ",
                 (
@@ -263,6 +272,7 @@ impl GalleryDb {
                     &record.culture,
                     &record.fallback_wikidata_qid,
                     &record.filename,
+                    &record.collection,
                 ),
             )?;
         }
@@ -297,7 +307,8 @@ impl GalleryDb {
                     mo.artist,
                     mo.culture,
                     mo.fallback_wikidata_qid,
-                    mo.filename
+                    mo.filename,
+                    mo.collection
                 FROM
                     met_objects AS mo
                 WHERE
@@ -318,6 +329,7 @@ impl GalleryDb {
             culture: row.get(6)?,
             fallback_wikidata_qid: row.get(7)?,
             filename: row.get(8)?,
+            collection: row.get(9)?,
         }))
     }
 
@@ -342,7 +354,8 @@ impl GalleryDb {
                 mo.artist,
                 mo.culture,
                 mo.fallback_wikidata_qid,
-                mo.filename
+                mo.filename,
+                mo.collection
             FROM
                 met_objects AS mo
             INNER JOIN
@@ -369,6 +382,7 @@ impl GalleryDb {
                 culture: row.get(9)?,
                 fallback_wikidata_qid: row.get(10)?,
                 filename: row.get(11)?,
+                collection: row.get(12)?,
             };
             result.push((object, location));
         }
@@ -389,6 +403,7 @@ pub struct PublicDomain2DMetObjectRecord {
     pub height: f64,
     pub fallback_wikidata_qid: Option<i64>,
     pub filename: String,
+    pub collection: String,
 }
 
 #[derive(Debug)]

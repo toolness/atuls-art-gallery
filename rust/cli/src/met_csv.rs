@@ -192,6 +192,7 @@ fn try_into_public_domain_2d_met_object(
                 )
                 .map(|qid| qid as i64),
                 filename: String::default(),
+                collection: "Metropolitan Museum of Art".into(),
             });
         }
     }

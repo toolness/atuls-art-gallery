@@ -14,6 +14,8 @@ pub struct MetObject {
     #[var]
     pub date: GString,
     #[var]
+    pub collection: GString,
+    #[var]
     pub width: f64,
     #[var]
     pub height: f64,

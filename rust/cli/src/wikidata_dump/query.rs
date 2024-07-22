@@ -37,8 +37,7 @@ struct WikidataCsvRecord {
     pub width: f64,
     pub height: f64,
     pub materials: String,
-    // TODO: Actually use this.
-    // pub collection: String,
+    pub collection: String,
     pub filename: String,
 }
 
@@ -73,6 +72,7 @@ pub fn iter_wikidata_objects(
                     height: record.height / 100.0, // Convert centimeters to meters
                     filename: record.filename,
                     fallback_wikidata_qid: None,
+                    collection: record.collection,
                 })
             }
             Err(err) => Err(err),
