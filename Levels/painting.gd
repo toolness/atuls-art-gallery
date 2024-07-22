@@ -64,6 +64,9 @@ var started_loading_large_image := false
 ## The date the painting was created, set by the server.
 @export var date: String
 
+## The collection the painting is part of, set by the server.
+@export var collection: String
+
 var small_image_texture: ImageTexture
 
 func _ready():
@@ -188,8 +191,7 @@ func configure_wall_label() -> void:
 		return
 	wall_label_quaternary.position.x = left_edge
 	wall_label_quaternary.position.y = wall_label_tertiary.position.y - wall_label_tertiary.get_aabb().size.y - WALL_LABEL_QUATERNARY_TOP_PADDING
-	# TODO: Populate this with the actual collection info.
-	wall_label_quaternary.text = "Metropolitan Museum of Art"
+	wall_label_quaternary.text = collection
 	wall_label_quaternary.visible = true
 
 
@@ -206,6 +208,7 @@ func init_with_met_object(object: MetObject):
 	title = object.title
 	medium = object.medium
 	date = object.date
+	collection = object.collection
 
 
 func try_to_open_in_browser():

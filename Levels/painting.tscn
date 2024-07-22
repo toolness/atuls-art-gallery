@@ -30,6 +30,9 @@ properties/6/replication_mode = 2
 properties/7/path = NodePath(".:date")
 properties/7/spawn = true
 properties/7/replication_mode = 2
+properties/8/path = NodePath(".:collection")
+properties/8/spawn = true
+properties/8/replication_mode = 1
 
 [node name="Painting" type="Node3D"]
 script = ExtResource("1_wlgeq")
