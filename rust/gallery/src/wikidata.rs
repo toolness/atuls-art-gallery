@@ -275,7 +275,10 @@ struct Claims {
     /// P195 - Collection
     #[serde(rename = "P195", default)]
     p195: Statements,
-    // TODO: Add P571 (inception), will need to parse time types: https://www.wikidata.org/wiki/Special:ListDatatypes
+
+    /// P571 - Inception
+    #[serde(rename = "P571", default)]
+    p571: Statements,
 }
 
 impl Claims {
@@ -337,6 +340,63 @@ enum Datavalue {
 
     #[serde(rename = "wikibase-entityid")]
     Entity { value: EntityId },
+
+    #[serde(rename = "time")]
+    Time { value: Time },
+}
+
+/// This structure is documented here: https://www.wikidata.org/wiki/Special:ListDatatypes
+#[derive(Debug, Deserialize)]
+struct Time {
+    #[serde(
+        rename = "time",
+        deserialize_with = "deserialize_year_from_iso_timestamp"
+    )]
+    year: Option<i16>,
+
+    /// The numbers have the following meaning:
+    ///   0 - billion years, 1 - hundred million years, ...,
+    ///   6 - millennium, 7 - century, 8 - decade, 9 - year,
+    ///   10 - month, 11 - day, 12 - hour, 13 - minute, 14 - second.
+    precision: u16,
+}
+
+impl Time {
+    fn to_string(&self) -> Option<String> {
+        let Some(year) = self.year else { return None };
+        if self.precision == 7 {
+            // TODO: This won't work for BC
+            let century = (year / 100) + 1;
+            // TODO: This will look weird for 1st, 2nd, 3rd century AD
+            return Some(format!("{century}th century"));
+        }
+        // TODO: If year is BC, this will just have a negative sign in front of it,
+        // which will look weird.
+        if self.precision == 8 {
+            return Some(format!("{year}s"));
+        }
+        if self.precision >= 9 {
+            return Some(format!("{year}"));
+        }
+        None
+    }
+}
+
+fn try_to_parse_year_from_iso_timestamp(value: &str) -> Option<i16> {
+    let to_parse = if value.starts_with("+") {
+        &value[1..5]
+    } else {
+        &value[0..4]
+    };
+    to_parse.parse::<i16>().ok()
+}
+
+fn deserialize_year_from_iso_timestamp<'de, D>(deserializer: D) -> Result<Option<i16>, D::Error>
+where
+    D: de::Deserializer<'de>,
+{
+    let s: String = de::Deserialize::deserialize(deserializer)?;
+    Ok(try_to_parse_year_from_iso_timestamp(&s))
 }
 
 impl Datavalue {
@@ -414,10 +474,12 @@ pub fn load_wikidata_image_info(
 mod tests {
     use crate::{
         image::ImageSize,
-        wikidata::{get_url_for_image, parse_wikidata_claims_json},
+        wikidata::{
+            get_url_for_image, parse_wikidata_claims_json, try_to_parse_year_from_iso_timestamp,
+        },
     };
 
-    use super::{get_supported_image_ext, try_to_parse_qid_from_wikidata_url};
+    use super::{get_supported_image_ext, try_to_parse_qid_from_wikidata_url, Time};
 
     #[test]
     fn test_try_to_parse_qid_from_wikidata_url_works() {
@@ -476,6 +538,55 @@ mod tests {
             response.claims.image_filename(),
             Some(&"Juan Gris - Nature morte à la nappe à carreaux.jpg".to_owned())
         );
+    }
+
+    #[test]
+    fn test_try_to_parse_year_from_iso_timestamp_works() {
+        assert_eq!(
+            try_to_parse_year_from_iso_timestamp("+1915-03-00T00:00:00Z"),
+            Some(1915)
+        );
+        assert_eq!(try_to_parse_year_from_iso_timestamp("blah"), None);
+    }
+
+    #[test]
+    fn test_parse_time_works_for_year_precision() {
+        // Taken from Juan Gris painting
+        let json = r#"{"time":"+1915-03-00T00:00:00Z","timezone":0,"before":0,"after":0,"precision":10,"calendarmodel":"http://www.wikidata.org/entity/Q1985727"}"#;
+        let time: Time = serde_json::from_str(json).unwrap();
+        assert_eq!(time.year, Some(1915));
+        assert_eq!(time.precision, 10);
+        assert_eq!(time.to_string(), Some("1915".into()));
+    }
+
+    #[test]
+    fn test_parse_time_works_for_decade_precision() {
+        // Taken from Dracula
+        let json = r#"{"time":"+1890-00-00T00:00:00Z","timezone":0,"before":0,"after":0,"precision":8,"calendarmodel":"http://www.wikidata.org/entity/Q1985727"}"#;
+        let time: Time = serde_json::from_str(json).unwrap();
+        assert_eq!(time.year, Some(1890));
+        assert_eq!(time.precision, 8);
+        assert_eq!(time.to_string(), Some("1890s".into()));
+    }
+
+    #[test]
+    fn test_time_to_string_works() {
+        fn test_time(year: i16, precision: u16, expected: Option<&str>) {
+            assert_eq!(
+                Time {
+                    year: Some(year),
+                    precision,
+                }
+                .to_string(),
+                expected.map(|s| s.to_string())
+            );
+        }
+
+        test_time(-9999, 1, None);
+        test_time(1800, 7, Some("19th century"));
+        test_time(1910, 8, Some("1910s"));
+        test_time(1912, 9, Some("1912"));
+        test_time(2014, 14, Some("2014"));
     }
 
     #[test]
