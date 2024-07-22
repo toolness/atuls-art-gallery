@@ -22,6 +22,7 @@ struct WikidataCsvRecordToSerialize<'a> {
     pub qid: u64,
     pub artist: &'a str,
     pub title: &'a str,
+    pub inception: &'a str,
     pub width: f64,
     pub height: f64,
     pub materials: String,
@@ -34,6 +35,7 @@ struct WikidataCsvRecord {
     pub qid: u64,
     pub artist: String,
     pub title: String,
+    pub inception: String,
     pub width: f64,
     pub height: f64,
     pub materials: String,
@@ -63,7 +65,7 @@ pub fn iter_wikidata_objects(
                 }
                 Ok(PublicDomain2DMetObjectRecord {
                     object_id: ArtObjectId::Wikidata(record.qid as i64),
-                    object_date: String::default(),
+                    object_date: record.inception,
                     culture: String::default(),
                     artist: record.artist,
                     title: record.title,
@@ -149,6 +151,7 @@ pub fn execute_wikidata_query(input: PathBuf, output: PathBuf, limit: Option<usi
         // Get optional fields.
         let title = entity.label().unwrap_or_default();
         let artist = get_dependency_label(&dependencies, entity.creator_id());
+        let inception = &entity.inception().unwrap_or_default();
         let materials = get_dependency_labels(&dependencies, entity.material_ids());
         let collection = get_dependency_label(&dependencies, entity.collection_id());
 
@@ -156,6 +159,7 @@ pub fn execute_wikidata_query(input: PathBuf, output: PathBuf, limit: Option<usi
             qid: *qid,
             artist,
             title,
+            inception,
             width,
             height,
             materials: materials.join(", "),

@@ -179,6 +179,12 @@ impl WikidataEntity {
     pub fn collection_id(&self) -> Option<u64> {
         self.claims.p195.find(|datavalue| datavalue.entity_id())
     }
+    pub fn inception(&self) -> Option<String> {
+        self.claims.p571.find(|datavalue| match datavalue {
+            Datavalue::Time { value } => value.to_string(),
+            _ => None,
+        })
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -361,10 +367,14 @@ struct Time {
     precision: u16,
 }
 
+const PRECISION_CENTURY: u16 = 7;
+const PRECISION_DECADE: u16 = 8;
+const PRECISION_YEAR: u16 = 9;
+
 impl Time {
     fn to_string(&self) -> Option<String> {
         let Some(year) = self.year else { return None };
-        if self.precision == 7 {
+        if self.precision == PRECISION_CENTURY {
             // TODO: This won't work for BC
             let century = (year / 100) + 1;
             // TODO: This will look weird for 1st, 2nd, 3rd century AD
@@ -372,10 +382,17 @@ impl Time {
         }
         // TODO: If year is BC, this will just have a negative sign in front of it,
         // which will look weird.
-        if self.precision == 8 {
-            return Some(format!("{year}s"));
+        if self.precision == PRECISION_DECADE {
+            let decade = (year / 10) * 10;
+            return Some(if decade == year {
+                format!("{year}s")
+            } else {
+                // If the year doesn't fall on a decade, it will look weird, e.g. "1916s", so
+                // instead, let's prepend "circa" to indicate that it's not exact.
+                format!("ca. {year}")
+            });
         }
-        if self.precision >= 9 {
+        if self.precision >= PRECISION_YEAR {
             return Some(format!("{year}"));
         }
         None
@@ -476,6 +493,7 @@ mod tests {
         image::ImageSize,
         wikidata::{
             get_url_for_image, parse_wikidata_claims_json, try_to_parse_year_from_iso_timestamp,
+            PRECISION_CENTURY, PRECISION_DECADE, PRECISION_YEAR,
         },
     };
 
@@ -583,9 +601,10 @@ mod tests {
         }
 
         test_time(-9999, 1, None);
-        test_time(1800, 7, Some("19th century"));
-        test_time(1910, 8, Some("1910s"));
-        test_time(1912, 9, Some("1912"));
+        test_time(1800, PRECISION_CENTURY, Some("19th century"));
+        test_time(1910, PRECISION_DECADE, Some("1910s"));
+        test_time(1916, PRECISION_DECADE, Some("ca. 1916"));
+        test_time(1912, PRECISION_YEAR, Some("1912"));
         test_time(2014, 14, Some("2014"));
     }
 
