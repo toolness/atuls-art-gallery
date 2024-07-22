@@ -71,6 +71,7 @@ font_size = 16
 outline_size = 0
 horizontal_alignment = 0
 vertical_alignment = 0
+line_spacing = -3.0
 autowrap_mode = 2
 width = 300.0
 
