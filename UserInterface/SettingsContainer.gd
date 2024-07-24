@@ -49,7 +49,7 @@ class SettingsConfig:
 	const POTATO_MODE = "potato_mode"
 
 	func url() -> String:
-		return MetObjects.ROOT_DIR + "settings.cfg"
+		return ArtObjects.ROOT_DIR + "settings.cfg"
 
 	func load():
 		if file.load(url()) != OK:

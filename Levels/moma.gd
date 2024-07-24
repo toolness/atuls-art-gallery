@@ -82,7 +82,7 @@ class MovingPainting:
 		painting.finish_interactive_placement()
 		if not Lobby.IS_CLIENT:
 			print("New painting position is object_id=", painting.art_object_id, " gallery_id=", gallery_id, " wall_id=", wall_id, " x=", wall_x, " y=", wall_y)
-			MetObjects.gallery_client.move_art_object(painting.art_object_id, gallery_id, wall_id, wall_x, wall_y)
+			ArtObjects.gallery_client.move_art_object(painting.art_object_id, gallery_id, wall_id, wall_x, wall_y)
 
 	func _populate_wall_info(wall: Wall):
 		var relative_position = painting.global_position - wall.get_global_base_position()
@@ -233,7 +233,7 @@ func populate_with_paintings(players: Array[Player]) -> int:
 		sort_walls_by_distance_from_player(walls, players[0])
 
 	for wall in walls:
-		var art_objects := await MetObjects.get_art_objects_for_gallery_wall(gallery_id, wall.name)
+		var art_objects := await ArtObjects.get_art_objects_for_gallery_wall(gallery_id, wall.name)
 		if not is_inside_tree():
 			return count
 		for art_object in art_objects:

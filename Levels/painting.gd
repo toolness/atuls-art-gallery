@@ -109,7 +109,7 @@ func _maybe_load_small_image():
 		return
 	# print("Loading painting with art object id ", art_object_id, " (", distance_from_player, " m from player).")
 	started_loading_small_image = true
-	var small_image := await MetObjects.fetch_small_image(art_object_id)
+	var small_image := await ArtObjects.fetch_small_image(art_object_id)
 	if not is_inside_tree():
 		# We despawned, exit.
 		return
@@ -212,7 +212,7 @@ func init_with_art_object(object: ArtObject):
 
 
 func try_to_open_in_browser():
-	OS.shell_open(MetObjects.get_art_object_url(art_object_id))
+	OS.shell_open(ArtObjects.get_art_object_url(art_object_id))
 
 
 func start_interactive_placement():
@@ -291,7 +291,7 @@ func handle_player_looking_at(camera: Camera3D):
 
 	if area_ratio > LARGE_IMAGE_AREA_RATIO_THRESHOLD:
 		started_loading_large_image = true
-		var large_image := await MetObjects.fetch_large_image(art_object_id)
+		var large_image := await ArtObjects.fetch_large_image(art_object_id)
 		if not is_inside_tree():
 			# We despawned, exit.
 			return

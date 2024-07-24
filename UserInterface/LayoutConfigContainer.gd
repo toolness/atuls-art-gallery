@@ -32,7 +32,7 @@ func _on_filter_text_changed(filter: String):
 		# The player left the UI, or their input has changed, so don't
 		# process the filter.
 		return
-	var count := await MetObjects.count_art_objects(filter)
+	var count := await ArtObjects.count_art_objects(filter)
 	if !is_inside_tree() || version != _latest_filter_text_version:
 		# The player left the UI, or their input has changed, so our count is no
 		# longer accurate.
@@ -66,7 +66,7 @@ func _on_do_layout_button_pressed():
 	do_layout_button.disabled = true
 	back_button.disabled = true
 
-	await MetObjects.layout(filter, use_dense_layout)
+	await ArtObjects.layout(filter, use_dense_layout)
 	do_layout_button.disabled = false
 	back_button.disabled = false
 	new_layout_complete.emit()
