@@ -11,21 +11,11 @@ pub const DEFAULT_GALLERY_DB_FILENAME: &'static str = "gallery5.sqlite";
 #[derive(Default)]
 pub struct MetObjectQueryOptions {
     pub filter: Option<String>,
-    /// TODO: This is currently a string that's just interpolated into the
-    /// query, exposing the user to an SQL injection attack. Should use some
-    /// kind of struct that provides a limited set of safe values.
-    pub order_by: Option<String>,
 }
 
 impl MetObjectQueryOptions {
     fn order_by_clause(&self) -> String {
-        format!(
-            "ORDER BY {}",
-            self.order_by
-                .as_ref()
-                .map(|value| value.as_str())
-                .unwrap_or("id")
-        )
+        format!("ORDER BY id")
     }
 
     pub fn where_clause(&self) -> (String, Vec<String>) {

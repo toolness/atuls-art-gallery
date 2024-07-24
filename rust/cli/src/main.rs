@@ -247,10 +247,6 @@ fn layout_command(
 
     let options = MetObjectQueryOptions {
         filter,
-        order_by: match sort.unwrap_or_default() {
-            Sort::Id => Some("id".to_owned()),
-            Sort::Random => None,
-        },
         ..Default::default()
     };
 
@@ -524,7 +520,6 @@ mod tests {
     fn get_num_filter_results(db: &GalleryDb, filter: &'static str) -> usize {
         let options = MetObjectQueryOptions {
             filter: Some(filter.into()),
-            order_by: None,
         };
         let objects_len = db.get_all_met_objects_for_layout(&options).unwrap().len();
         assert_eq!(db.count_met_objects(&options).unwrap(), objects_len);
