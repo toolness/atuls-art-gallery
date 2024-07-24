@@ -1,10 +1,8 @@
-use crate::met_csv::MetObjectCsvResult;
-
 use super::sledcache::{iter_and_cache_entities, sledcache_path_for_dumpfile, CachedEntityInfo};
 use super::sparql_csv_export::parse_sparql_csv_export;
 use anyhow::Result;
 use gallery::art_object::ArtObjectId;
-use gallery::gallery_db::PublicDomain2DMetObjectRecord;
+use gallery::gallery_db::ArtObjectRecord;
 use gallery::wikidata::WikidataEntity;
 use indicatif::ProgressBar;
 use serde::ser::Error;
@@ -52,7 +50,7 @@ struct PreparedQuery {
 
 pub fn iter_wikidata_objects(
     reader: csv::Reader<BufReader<File>>,
-) -> impl Iterator<Item = MetObjectCsvResult> {
+) -> impl Iterator<Item = Result<ArtObjectRecord, csv::Error>> {
     reader
         .into_deserialize::<WikidataCsvRecord>()
         .map(move |result| match result {
@@ -63,7 +61,7 @@ pub fn iter_wikidata_objects(
                         record.qid
                     )));
                 }
-                Ok(PublicDomain2DMetObjectRecord {
+                Ok(ArtObjectRecord {
                     object_id: ArtObjectId::Wikidata(record.qid as i64),
                     object_date: record.inception,
                     culture: String::default(),

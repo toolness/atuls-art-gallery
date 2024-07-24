@@ -11,7 +11,7 @@ use clap::{Parser, Subcommand};
 use gallery::art_object::ArtObjectId;
 use gallery::gallery_cache::GalleryCache;
 use gallery::gallery_db::{
-    GalleryDb, MetObjectQueryOptions, PublicDomain2DMetObjectRecord, DEFAULT_GALLERY_DB_FILENAME,
+    ArtObjectQueryOptions, ArtObjectRecord, GalleryDb, DEFAULT_GALLERY_DB_FILENAME,
 };
 use gallery::gallery_wall::GalleryWall;
 use gallery::layout::layout;
@@ -81,7 +81,7 @@ enum Commands {
     },
     /// Layout gallery walls.
     Layout {
-        /// How to sort the art in the galleries. Defaults to met object ID.
+        /// How to sort the art in the galleries. Defaults to art object ID.
         #[arg(short, long)]
         sort: Option<Sort>,
 
@@ -226,7 +226,7 @@ fn show_layout_command(db: GalleryDb, gallery_id: i64) -> Result<()> {
     let walls = get_walls()?;
     for wall in walls {
         println!("Wall {}:", wall.name);
-        for (object, layout) in db.get_met_objects_for_gallery_wall(gallery_id, wall.name)? {
+        for (object, layout) in db.get_art_objects_for_gallery_wall(gallery_id, wall.name)? {
             println!("  {:?} {:?}", object, layout);
         }
     }
@@ -245,7 +245,7 @@ fn layout_command(
     let walls = get_walls()?;
     db.reset_layout_table()?;
 
-    let options = MetObjectQueryOptions {
+    let options = ArtObjectQueryOptions {
         filter,
         ..Default::default()
     };
@@ -258,15 +258,15 @@ fn layout_command(
         }
     }
 
-    let mut met_objects = db.get_all_met_objects_for_layout(&options)?;
+    let mut art_objects = db.get_all_art_objects_for_layout(&options)?;
     if matches!(sort, Some(Sort::Random)) {
         let mut rng = Rng::new(random_seed);
         println!("Randomizing layout using seed {}.", rng.seed);
-        rng.shuffle(&mut met_objects);
+        rng.shuffle(&mut art_objects);
     }
     println!(
-        "Laying out {} met objects across galleries with {} walls each.",
-        met_objects.len(),
+        "Laying out {} art objects across galleries with {} walls each.",
+        art_objects.len(),
         walls.len()
     );
 
@@ -274,7 +274,7 @@ fn layout_command(
         use_dense_layout,
         LAYOUT_START_GALLERY_ID,
         &walls,
-        met_objects,
+        art_objects,
         warnings,
     )?;
 
@@ -304,7 +304,7 @@ fn csv_command(
     let wikidata_reader = BufReader::new(File::open(wikidata_csv_file)?);
     let wikidata_objects_iterator =
         iter_wikidata_objects(csv::Reader::from_reader(wikidata_reader));
-    db.reset_met_objects_table()?;
+    db.reset_art_objects_table()?;
     let mut count: usize = 0;
     let mut records_to_commit = vec![];
     let met_objects_iterator = iter_public_domain_2d_met_csv_objects(
@@ -328,7 +328,7 @@ fn csv_command(
     for result in combined_iterator {
         // Notice that we need to provide a type hint for automatic
         // deserialization.
-        let csv_record: PublicDomain2DMetObjectRecord = result?;
+        let csv_record: ArtObjectRecord = result?;
         if let Some(qid) = csv_record.fallback_wikidata_qid {
             fallback_wikidata_qids.insert(qid);
         } else if let ArtObjectId::Wikidata(qid) = csv_record.object_id {
@@ -359,7 +359,7 @@ fn csv_command(
             if verbose {
                 println!("Committing {} records.", records_to_commit.len());
             }
-            db.add_public_domain_2d_met_objects(&records_to_commit)?;
+            db.add_art_objects(&records_to_commit)?;
             records_to_commit.clear();
             bar.tick();
             bar.set_message(format!("Processed {count} records."));
@@ -375,7 +375,7 @@ fn csv_command(
         if verbose {
             println!("Committing {} records.", records_to_commit.len());
         }
-        db.add_public_domain_2d_met_objects(&records_to_commit)?;
+        db.add_art_objects(&records_to_commit)?;
     }
     bar.set_message(format!("Processed {count} records."));
     bar.finish();
@@ -397,7 +397,7 @@ mod tests {
     use gallery::{
         art_object::ArtObjectId,
         gallery_cache::GalleryCache,
-        gallery_db::{LayoutRecord, MetObjectQueryOptions},
+        gallery_db::{ArtObjectQueryOptions, LayoutRecord},
     };
     use rusqlite::Connection;
 
@@ -408,7 +408,7 @@ mod tests {
     #[test]
     fn test_it_works() {
         let mut db = GalleryDb::new(Connection::open_in_memory().unwrap());
-        db.reset_met_objects_table().unwrap();
+        db.reset_art_objects_table().unwrap();
         db.reset_layout_table().unwrap();
 
         let manifest_dir: PathBuf = env!("CARGO_MANIFEST_DIR").into();
@@ -420,19 +420,19 @@ mod tests {
         for result in iter_public_domain_2d_met_csv_objects(rdr, Default::default()) {
             records.push(result.unwrap());
         }
-        db.add_public_domain_2d_met_objects(&records).unwrap();
+        db.add_art_objects(&records).unwrap();
 
         let rows = db
-            .get_all_met_objects_for_layout(&Default::default())
+            .get_all_art_objects_for_layout(&Default::default())
             .unwrap();
         assert!(rows.len() > 0);
-        let met_object_id = rows.get(0).unwrap().id;
+        let art_object_id = rows.get(0).unwrap().id;
 
         // Add a painting to the layout.
         db.set_layout_records(&vec![LayoutRecord {
             gallery_id: 5,
             wall_id: "wall_1",
-            met_object_id,
+            art_object_id,
             x: 1.0,
             y: 6.0,
         }])
@@ -440,17 +440,17 @@ mod tests {
 
         // Make sure it got placed where we placed it.
         let (record, (x, y)) = db
-            .get_met_objects_for_gallery_wall(5, "wall_1")
+            .get_art_objects_for_gallery_wall(5, "wall_1")
             .unwrap()
             .pop()
             .unwrap();
-        assert_eq!(record.object_id, met_object_id);
+        assert_eq!(record.object_id, art_object_id);
         assert_eq!(x, 1.0);
         assert_eq!(y, 6.0);
 
         // Make sure there's nothing in the place we want to move it to.
         assert_eq!(
-            db.get_met_objects_for_gallery_wall(6, "wall_2")
+            db.get_art_objects_for_gallery_wall(6, "wall_2")
                 .unwrap()
                 .len(),
             0
@@ -460,7 +460,7 @@ mod tests {
         db.upsert_layout_records(&vec![LayoutRecord {
             gallery_id: 6,
             wall_id: "wall_2",
-            met_object_id,
+            art_object_id,
             x: 4.0,
             y: 9.0,
         }])
@@ -468,7 +468,7 @@ mod tests {
 
         // Make sure there's nothing in the place we moved it from.
         assert_eq!(
-            db.get_met_objects_for_gallery_wall(5, "wall_1")
+            db.get_art_objects_for_gallery_wall(5, "wall_1")
                 .unwrap()
                 .len(),
             0
@@ -476,11 +476,11 @@ mod tests {
 
         // Make sure it actually got moved to where we moved it.
         let (record, (x, y)) = db
-            .get_met_objects_for_gallery_wall(6, "wall_2")
+            .get_art_objects_for_gallery_wall(6, "wall_2")
             .unwrap()
             .pop()
             .unwrap();
-        assert_eq!(record.object_id, met_object_id);
+        assert_eq!(record.object_id, art_object_id);
         assert_eq!(x, 4.0);
         assert_eq!(y, 9.0);
 
@@ -497,32 +497,32 @@ mod tests {
 
         // Search for nonexistent met object
         assert_eq!(
-            db.get_met_object_fallback_wikidata_qid(ArtObjectId::Met(999999))
+            db.get_art_object_fallback_wikidata_qid(ArtObjectId::Met(999999))
                 .unwrap(),
             None
         );
 
         // Search for existing met object without QID
         assert_eq!(
-            db.get_met_object_fallback_wikidata_qid(ArtObjectId::Met(39))
+            db.get_art_object_fallback_wikidata_qid(ArtObjectId::Met(39))
                 .unwrap(),
             None
         );
 
         // Search for existing met object with QID
         assert_eq!(
-            db.get_met_object_fallback_wikidata_qid(ArtObjectId::Met(482))
+            db.get_art_object_fallback_wikidata_qid(ArtObjectId::Met(482))
                 .unwrap(),
             Some(79023693)
         );
     }
 
     fn get_num_filter_results(db: &GalleryDb, filter: &'static str) -> usize {
-        let options = MetObjectQueryOptions {
+        let options = ArtObjectQueryOptions {
             filter: Some(filter.into()),
         };
-        let objects_len = db.get_all_met_objects_for_layout(&options).unwrap().len();
-        assert_eq!(db.count_met_objects(&options).unwrap(), objects_len);
+        let objects_len = db.get_all_art_objects_for_layout(&options).unwrap().len();
+        assert_eq!(db.count_art_objects(&options).unwrap(), objects_len);
         objects_len
     }
 }

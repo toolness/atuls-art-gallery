@@ -1,6 +1,6 @@
 use anyhow::Result;
 use gallery::{
-    art_object::ArtObjectId, gallery_db::PublicDomain2DMetObjectRecord,
+    art_object::ArtObjectId, gallery_db::ArtObjectRecord,
     wikidata::try_to_parse_qid_from_wikidata_url,
 };
 use regex_lite::Regex;
@@ -106,10 +106,10 @@ where
     }
 }
 
-/// This list was obtained by running the CLI with `--all-media`, then
+/// This list was obtained by running the CLI with `--met-objects-all-media`, then
 /// running the following SQL query on the generated DB:
 ///
-///     select medium, count(*) as c from met_objects group by medium order by c desc limit 60;
+///     select medium, count(*) as c from art_objects group by medium order by c desc limit 60;
 ///
 /// I then ignored any medium that wasn't flat, two-dimensional art with a
 /// matte surface. Examples of these are stone, glass, silk, iron, ceramic,
@@ -145,11 +145,11 @@ pub struct PublicDomain2DMetObjectOptions {
     pub warnings: bool,
 }
 
-fn try_into_public_domain_2d_met_object(
+fn try_into_art_object(
     dimension_parser: &DimensionParser,
     csv_record: MetObjectCsvRecord,
     options: &PublicDomain2DMetObjectOptions,
-) -> Option<PublicDomain2DMetObjectRecord> {
+) -> Option<ArtObjectRecord> {
     let public_domain_status = csv_record.public_domain_status();
     if public_domain_status == PublicDomainStatus::Nope {
         return None;
@@ -178,7 +178,7 @@ fn try_into_public_domain_2d_met_object(
                 // we might as well try to get it later.
             }
 
-            return Some(PublicDomain2DMetObjectRecord {
+            return Some(ArtObjectRecord {
                 object_id: ArtObjectId::Met(csv_record.object_id),
                 artist: csv_record.artist_display_name,
                 culture: csv_record.culture,
@@ -200,22 +200,20 @@ fn try_into_public_domain_2d_met_object(
     None
 }
 
-pub type MetObjectCsvResult = Result<PublicDomain2DMetObjectRecord, csv::Error>;
+type ArtObjectCsvResult = Result<ArtObjectRecord, csv::Error>;
 
 pub fn iter_public_domain_2d_met_csv_objects<R: std::io::Read>(
     reader: csv::Reader<R>,
     options: PublicDomain2DMetObjectOptions,
-) -> impl Iterator<Item = MetObjectCsvResult> {
+) -> impl Iterator<Item = ArtObjectCsvResult> {
     let parser = DimensionParser::new();
     reader
         .into_deserialize::<MetObjectCsvRecord>()
         .filter_map(move |result| match result {
-            Ok(csv_record) => {
-                match try_into_public_domain_2d_met_object(&parser, csv_record, &options) {
-                    Some(record) => Some(Ok(record)),
-                    None => None,
-                }
-            }
+            Ok(csv_record) => match try_into_art_object(&parser, csv_record, &options) {
+                Some(record) => Some(Ok(record)),
+                None => None,
+            },
             Err(err) => Some(Err(err)),
         })
 }

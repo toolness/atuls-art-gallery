@@ -9,11 +9,11 @@ use crate::{
 pub const DEFAULT_GALLERY_DB_FILENAME: &'static str = "gallery5.sqlite";
 
 #[derive(Default)]
-pub struct MetObjectQueryOptions {
+pub struct ArtObjectQueryOptions {
     pub filter: Option<String>,
 }
 
-impl MetObjectQueryOptions {
+impl ArtObjectQueryOptions {
     fn order_by_clause(&self) -> String {
         format!("ORDER BY id")
     }
@@ -81,15 +81,15 @@ impl GalleryDb {
         let tx = self.conn.transaction()?;
 
         tx.execute("DROP TABLE IF EXISTS layout", ())?;
-        // Note that conceptually, `met_object_id` is a foreign key to the met_objects
+        // Note that conceptually, `art_object_id` is a foreign key to the art_objects
         // table, but we don't want to enforce a constraint because we want to
-        // be able to blow away the met_objects table for re-importing if needed.
+        // be able to blow away the art_objects table for re-importing if needed.
         tx.execute(
             "
             CREATE TABLE layout (
                 gallery_id INTEGER NOT NULL,
                 wall_id TEXT NOT NULL,
-                met_object_id INTEGER NOT NULL UNIQUE,
+                art_object_id INTEGER NOT NULL UNIQUE,
                 x REAL NOT NULL,
                 y REAL NOT NULL
             )
@@ -108,8 +108,8 @@ impl GalleryDb {
         for record in records {
             tx.execute(
             "
-                INSERT INTO layout (gallery_id, wall_id, met_object_id, x, y) VALUES (?1, ?2, ?3, ?4, ?5)
-                    ON CONFLICT(met_object_id) DO UPDATE SET
+                INSERT INTO layout (gallery_id, wall_id, art_object_id, x, y) VALUES (?1, ?2, ?3, ?4, ?5)
+                    ON CONFLICT(art_object_id) DO UPDATE SET
                         gallery_id=excluded.gallery_id,
                         wall_id=excluded.wall_id,
                         x=excluded.x,
@@ -118,7 +118,7 @@ impl GalleryDb {
         (
                     &record.gallery_id,
                     record.wall_id.as_ref(),
-                    &record.met_object_id.to_raw_i64(),
+                    &record.art_object_id.to_raw_i64(),
                     &record.x,
                     &record.y
                 ),
@@ -149,11 +149,11 @@ impl GalleryDb {
         Ok(())
     }
 
-    pub fn count_met_objects(&self, options: &MetObjectQueryOptions) -> Result<usize> {
+    pub fn count_art_objects(&self, options: &ArtObjectQueryOptions) -> Result<usize> {
         let (where_clause, params) = options.where_clause();
         let mut statement = self.conn.prepare(&format!(
             "
-            SELECT COUNT(*) FROM met_objects {where_clause}
+            SELECT COUNT(*) FROM art_objects {where_clause}
             ",
         ))?;
         Ok(
@@ -163,21 +163,21 @@ impl GalleryDb {
         )
     }
 
-    pub fn get_all_met_objects_for_layout(
+    pub fn get_all_art_objects_for_layout(
         &self,
-        options: &MetObjectQueryOptions,
-    ) -> Result<Vec<MetObjectLayoutInfo>> {
+        options: &ArtObjectQueryOptions,
+    ) -> Result<Vec<ArtObjectLayoutInfo>> {
         let order_by_clause = options.order_by_clause();
         let (where_clause, params) = options.where_clause();
         let mut statement = self.conn.prepare(&format!(
             "
-            SELECT id, width, height FROM met_objects {where_clause} {order_by_clause}
+            SELECT id, width, height FROM art_objects {where_clause} {order_by_clause}
             ",
         ))?;
         let mut rows = statement.query(rusqlite::params_from_iter(params.into_iter()))?;
-        let mut result: Vec<MetObjectLayoutInfo> = Vec::new();
+        let mut result: Vec<ArtObjectLayoutInfo> = Vec::new();
         while let Some(row) = rows.next()? {
-            result.push(MetObjectLayoutInfo {
+            result.push(ArtObjectLayoutInfo {
                 id: ArtObjectId::from_raw_i64(row.get(0)?),
                 width: row.get(1)?,
                 height: row.get(2)?,
@@ -186,13 +186,13 @@ impl GalleryDb {
         Ok(result)
     }
 
-    pub fn reset_met_objects_table(&mut self) -> Result<()> {
+    pub fn reset_art_objects_table(&mut self) -> Result<()> {
         let tx = self.conn.transaction()?;
 
-        tx.execute("DROP TABLE IF EXISTS met_objects", ())?;
+        tx.execute("DROP TABLE IF EXISTS art_objects", ())?;
         tx.execute(
             "
-            CREATE TABLE met_objects (
+            CREATE TABLE art_objects (
                 id INTEGER PRIMARY KEY,
                 title TEXT NOT NULL,
                 artist TEXT NOT NULL,
@@ -216,16 +216,13 @@ impl GalleryDb {
 
     /// Add a bunch of records in a single transaction. This is much faster than adding
     /// a single record in a single transaction.
-    pub fn add_public_domain_2d_met_objects(
-        &mut self,
-        records: &Vec<PublicDomain2DMetObjectRecord>,
-    ) -> Result<()> {
+    pub fn add_art_objects(&mut self, records: &Vec<ArtObjectRecord>) -> Result<()> {
         let tx = self.conn.transaction()?;
 
         for record in records {
             tx.execute(
                 "
-                INSERT INTO met_objects (
+                INSERT INTO art_objects (
                     id,
                     title,
                     date,
@@ -272,43 +269,40 @@ impl GalleryDb {
         Ok(())
     }
 
-    pub fn get_met_object_fallback_wikidata_qid(
+    pub fn get_art_object_fallback_wikidata_qid(
         &self,
         object_id: ArtObjectId,
     ) -> Result<Option<i64>> {
         Ok(self
-            .get_met_object(object_id)?
+            .get_art_object(object_id)?
             .map(|record| record.fallback_wikidata_qid)
             .flatten())
     }
 
-    pub fn get_met_object(
-        &self,
-        object_id: ArtObjectId,
-    ) -> Result<Option<PublicDomain2DMetObjectRecord>> {
+    pub fn get_art_object(&self, object_id: ArtObjectId) -> Result<Option<ArtObjectRecord>> {
         let mut statement = self.conn.prepare_cached(
             "
                 SELECT
-                    mo.title,
-                    mo.date,
-                    mo.medium,
-                    mo.width,
-                    mo.height,
-                    mo.artist,
-                    mo.culture,
-                    mo.fallback_wikidata_qid,
-                    mo.filename,
-                    mo.collection
+                    ao.title,
+                    ao.date,
+                    ao.medium,
+                    ao.width,
+                    ao.height,
+                    ao.artist,
+                    ao.culture,
+                    ao.fallback_wikidata_qid,
+                    ao.filename,
+                    ao.collection
                 FROM
-                    met_objects AS mo
+                    art_objects AS ao
                 WHERE
-                    mo.id = ?1",
+                    ao.id = ?1",
         )?;
         let mut rows = statement.query([object_id.to_raw_i64()])?;
         let Some(row) = rows.next()? else {
             return Ok(None);
         };
-        Ok(Some(PublicDomain2DMetObjectRecord {
+        Ok(Some(ArtObjectRecord {
             object_id,
             title: row.get(0)?,
             object_date: row.get(1)?,
@@ -323,35 +317,35 @@ impl GalleryDb {
         }))
     }
 
-    pub fn get_met_objects_for_gallery_wall<T: AsRef<str>>(
+    pub fn get_art_objects_for_gallery_wall<T: AsRef<str>>(
         &self,
         gallery_id: i64,
         wall_id: T,
-    ) -> Result<Vec<(PublicDomain2DMetObjectRecord, (f64, f64))>> {
+    ) -> Result<Vec<(ArtObjectRecord, (f64, f64))>> {
         let mut result = vec![];
 
         let mut statement = self.conn.prepare_cached(
             "
             SELECT
-                layout.met_object_id,
+                layout.art_object_id,
                 layout.x,
                 layout.y,
-                mo.title,
-                mo.date,
-                mo.medium,
-                mo.width,
-                mo.height,
-                mo.artist,
-                mo.culture,
-                mo.fallback_wikidata_qid,
-                mo.filename,
-                mo.collection
+                ao.title,
+                ao.date,
+                ao.medium,
+                ao.width,
+                ao.height,
+                ao.artist,
+                ao.culture,
+                ao.fallback_wikidata_qid,
+                ao.filename,
+                ao.collection
             FROM
-                met_objects AS mo
+                art_objects AS ao
             INNER JOIN
                 layout
             ON
-                layout.met_object_id = mo.id
+                layout.art_object_id = ao.id
             WHERE
                 layout.gallery_id = ?1 AND
                 layout.wall_id = ?2
@@ -361,7 +355,7 @@ impl GalleryDb {
         while let Some(row) = rows.next()? {
             let id = ArtObjectId::from_raw_i64(row.get(0)?);
             let location: (f64, f64) = (row.get(1)?, row.get(2)?);
-            let object = PublicDomain2DMetObjectRecord {
+            let object = ArtObjectRecord {
                 object_id: id,
                 title: row.get(3)?,
                 object_date: row.get(4)?,
@@ -382,7 +376,7 @@ impl GalleryDb {
 }
 
 #[derive(Debug)]
-pub struct PublicDomain2DMetObjectRecord {
+pub struct ArtObjectRecord {
     pub object_id: ArtObjectId,
     pub object_date: String,
     pub culture: String,
@@ -397,7 +391,7 @@ pub struct PublicDomain2DMetObjectRecord {
 }
 
 #[derive(Debug)]
-pub struct MetObjectLayoutInfo {
+pub struct ArtObjectLayoutInfo {
     pub id: ArtObjectId,
     pub width: f64,
     pub height: f64,
@@ -406,7 +400,7 @@ pub struct MetObjectLayoutInfo {
 pub struct LayoutRecord<T: AsRef<str>> {
     pub gallery_id: i64,
     pub wall_id: T,
-    pub met_object_id: ArtObjectId,
+    pub art_object_id: ArtObjectId,
     pub x: f64,
     pub y: f64,
 }

@@ -1,5 +1,5 @@
 use super::{
-    gallery_db::{LayoutRecord, MetObjectLayoutInfo},
+    gallery_db::{ArtObjectLayoutInfo, LayoutRecord},
     gallery_wall::GalleryWall,
 };
 
@@ -21,15 +21,15 @@ const PAINTING_HORIZ_MIN_MOUNT_AREA: f64 = 2.0;
 
 const PAINTING_VERT_MIN_MOUNT_AREA: f64 = 0.5;
 
-pub struct MetObjectLayoutFitter {
-    unused: Vec<MetObjectLayoutInfo>,
-    remaining: Vec<MetObjectLayoutInfo>,
+pub struct ArtObjectLayoutFitter {
+    unused: Vec<ArtObjectLayoutInfo>,
+    remaining: Vec<ArtObjectLayoutInfo>,
     warnings: bool,
 }
 
-impl MetObjectLayoutFitter {
-    pub fn new(remaining: Vec<MetObjectLayoutInfo>, warnings: bool) -> Self {
-        MetObjectLayoutFitter {
+impl ArtObjectLayoutFitter {
+    pub fn new(remaining: Vec<ArtObjectLayoutInfo>, warnings: bool) -> Self {
+        ArtObjectLayoutFitter {
             unused: vec![],
             remaining,
             warnings,
@@ -41,24 +41,24 @@ impl MetObjectLayoutFitter {
         max_width: f64,
         max_height: f64,
         walls: &Vec<GalleryWall>,
-    ) -> Option<MetObjectLayoutInfo> {
+    ) -> Option<ArtObjectLayoutInfo> {
         let idx = self
             .unused
             .iter()
-            .position(|met_object| can_object_fit_in(&met_object, max_width, max_height));
+            .position(|art_object| can_object_fit_in(&art_object, max_width, max_height));
         if let Some(idx) = idx {
             return Some(self.unused.swap_remove(idx));
         }
-        while let Some(met_object) = self.remaining.pop() {
-            if can_object_fit_in(&met_object, max_width, max_height) {
-                return Some(met_object);
+        while let Some(art_object) = self.remaining.pop() {
+            if can_object_fit_in(&art_object, max_width, max_height) {
+                return Some(art_object);
             }
-            if can_object_fit_anywhere(&met_object, &walls) {
-                self.unused.push(met_object);
+            if can_object_fit_anywhere(&art_object, &walls) {
+                self.unused.push(art_object);
             } else if self.warnings {
                 println!(
                     "Warning: object {:?} can't fit on any walls.",
-                    met_object.id
+                    art_object.id
                 );
             }
         }
@@ -75,11 +75,11 @@ impl MetObjectLayoutFitter {
     }
 }
 
-fn can_object_fit_in(object_layout: &MetObjectLayoutInfo, max_width: f64, max_height: f64) -> bool {
+fn can_object_fit_in(object_layout: &ArtObjectLayoutInfo, max_width: f64, max_height: f64) -> bool {
     object_layout.width < max_width && object_layout.height < max_height
 }
 
-fn can_object_fit_anywhere(object_layout: &MetObjectLayoutInfo, walls: &Vec<GalleryWall>) -> bool {
+fn can_object_fit_anywhere(object_layout: &ArtObjectLayoutInfo, walls: &Vec<GalleryWall>) -> bool {
     for wall in walls {
         if can_object_fit_in(
             object_layout,
@@ -96,7 +96,7 @@ pub fn place_paintings_along_wall<'a>(
     gallery_id: i64,
     walls: &Vec<GalleryWall>,
     wall_name: &'a str,
-    finder: &mut MetObjectLayoutFitter,
+    finder: &mut ArtObjectLayoutFitter,
     x_start: f64,
     y_start: f64,
     max_width: f64,
@@ -109,25 +109,25 @@ pub fn place_paintings_along_wall<'a>(
     if max_painting_width <= 0.0 {
         return;
     }
-    if let Some(met_object) = finder.get_object_fitting_in(max_painting_width, max_height, &walls) {
+    if let Some(art_object) = finder.get_object_fitting_in(max_painting_width, max_height, &walls) {
         let x = x_start + max_width / 2.0;
         let y = y_start
             + if center_vertically {
                 let base_y = max_height / 2.0;
-                if met_object.height < max_height - PAINTING_EYE_LEVEL_Y_OFFSET * 2.0 {
+                if art_object.height < max_height - PAINTING_EYE_LEVEL_Y_OFFSET * 2.0 {
                     base_y - PAINTING_EYE_LEVEL_Y_OFFSET
                 } else {
                     base_y
                 }
             } else {
-                max_height - met_object.height / 2.0 - PAINTING_VERT_MARGIN
+                max_height - art_object.height / 2.0 - PAINTING_VERT_MARGIN
             };
-        let margin_height = y - met_object.height / 2.0;
-        let margin_width = max_width / 2.0 - met_object.width / 2.0;
+        let margin_height = y - art_object.height / 2.0;
+        let margin_width = max_width / 2.0 - art_object.width / 2.0;
         layout_records.push(LayoutRecord {
             gallery_id,
             wall_id: &wall_name,
-            met_object_id: met_object.id,
+            art_object_id: art_object.id,
             x,
             y,
         });
@@ -137,9 +137,9 @@ pub fn place_paintings_along_wall<'a>(
             let below_y_start = y_start + PAINTING_MIN_DISTANCE_FROM_FLOOR;
             if vertical_space_below > PAINTING_VERT_MIN_MOUNT_AREA {
                 let left_edge =
-                    x_start + (max_width / 2.0 - met_object.width / 2.0 - PAINTING_HORIZ_MARGIN);
+                    x_start + (max_width / 2.0 - art_object.width / 2.0 - PAINTING_HORIZ_MARGIN);
                 let right_edge =
-                    x_start + (max_width / 2.0 + met_object.width / 2.0 + PAINTING_HORIZ_MARGIN);
+                    x_start + (max_width / 2.0 + art_object.width / 2.0 + PAINTING_HORIZ_MARGIN);
                 place_paintings_along_wall(
                     gallery_id,
                     walls,
@@ -174,7 +174,7 @@ pub fn place_paintings_along_wall<'a>(
                 walls,
                 wall_name,
                 finder,
-                x_start + (max_width / 2.0 + met_object.width / 2.0),
+                x_start + (max_width / 2.0 + art_object.width / 2.0),
                 y_start,
                 margin_width,
                 max_height,
@@ -190,13 +190,13 @@ pub fn layout<'a>(
     use_dense_layout: bool,
     gallery_start_id: i64,
     walls: &'a Vec<GalleryWall>,
-    mut met_objects: Vec<MetObjectLayoutInfo>,
+    mut art_objects: Vec<ArtObjectLayoutInfo>,
     warnings: bool,
 ) -> Result<(usize, Vec<LayoutRecord<&'a str>>)> {
     // Reverse the objects, since we'll be popping them off the end of the vec.
     // This isn't terribly efficient but it'll do for now.
-    met_objects.reverse();
-    let mut finder = MetObjectLayoutFitter::new(met_objects, warnings);
+    art_objects.reverse();
+    let mut finder = ArtObjectLayoutFitter::new(art_objects, warnings);
     let mut layout_records: Vec<LayoutRecord<&'a str>> = vec![];
     let mut wall_idx = 0;
     let mut gallery_id = gallery_start_id;

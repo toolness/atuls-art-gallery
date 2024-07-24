@@ -9,7 +9,7 @@ use anyhow::Result;
 use gallery::{
     art_object::ArtObjectId,
     gallery_cache::GalleryCache,
-    gallery_db::{GalleryDb, LayoutRecord, MetObjectQueryOptions, DEFAULT_GALLERY_DB_FILENAME},
+    gallery_db::{ArtObjectQueryOptions, GalleryDb, LayoutRecord, DEFAULT_GALLERY_DB_FILENAME},
     gallery_wall::GalleryWall,
     image::ImageSize,
     layout::layout,
@@ -111,7 +111,7 @@ fn get_met_objects_for_gallery_wall(
     wall_id: String,
 ) -> Result<Vec<SimplifiedRecord>> {
     let mut result = vec![];
-    let objects = db.get_met_objects_for_gallery_wall(gallery_id, wall_id)?;
+    let objects = db.get_art_objects_for_gallery_wall(gallery_id, wall_id)?;
     for (object, (x, y)) in objects {
         result.push(SimplifiedRecord {
             object_id: object.object_id,
@@ -162,7 +162,7 @@ fn try_to_download_wikidata_image(
     object_id: ArtObjectId,
     size: ImageSize,
 ) -> Result<Option<PathBuf>> {
-    if let Some(record) = db.get_met_object(object_id)? {
+    if let Some(record) = db.get_art_object(object_id)? {
         if let ArtObjectId::Wikidata(qid) = object_id {
             Ok(fetch_wikidata_image_from_qid_and_filename(
                 cache,
@@ -310,11 +310,11 @@ pub fn work_thread(
                         dense,
                     } => {
                         let walls: Vec<GalleryWall> = serde_json::from_str(&walls_json)?;
-                        let options = MetObjectQueryOptions {
+                        let options = ArtObjectQueryOptions {
                             filter,
                             ..Default::default()
                         };
-                        let met_objects = db.get_all_met_objects_for_layout(&options)?;
+                        let met_objects = db.get_all_art_objects_for_layout(&options)?;
                         let gallery_start_id = 1;
                         let (galleries_created, layout_records) =
                             layout(dense, gallery_start_id, &walls, met_objects, false)?;
@@ -327,11 +327,11 @@ pub fn work_thread(
                         send_response(ResponseBody::Empty);
                     }
                     RequestBody::CountMetObjects { filter } => {
-                        let options = MetObjectQueryOptions {
+                        let options = ArtObjectQueryOptions {
                             filter,
                             ..Default::default()
                         };
-                        let count = db.count_met_objects(&options)?;
+                        let count = db.count_art_objects(&options)?;
                         send_response(ResponseBody::Integer(count as i64))
                     }
                     RequestBody::MoveMetObject {
@@ -344,7 +344,7 @@ pub fn work_thread(
                         db.upsert_layout_records(&vec![LayoutRecord {
                             gallery_id,
                             wall_id,
-                            met_object_id,
+                            art_object_id: met_object_id,
                             x,
                             y,
                         }])?;
