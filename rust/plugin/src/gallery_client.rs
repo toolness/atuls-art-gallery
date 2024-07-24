@@ -16,8 +16,8 @@ use godot::{
 };
 
 use crate::{
-    met_object::MetObject,
-    met_response::{InnerMetResponse, MetResponse},
+    art_object::ArtObject,
+    gallery_response::{GalleryResponse, InnerGalleryResponse},
     worker_thread::{
         work_thread, MessageFromWorker, MessageToWorker, Request, RequestBody, Response,
         ResponseBody,
@@ -267,8 +267,8 @@ impl GalleryClient {
     }
 
     #[func]
-    fn get_met_object_url(&self, met_object_id: i64) -> String {
-        ArtObjectId::from_raw_i64(met_object_id).url()
+    fn get_art_object_url(&self, art_object_id: i64) -> String {
+        ArtObjectId::from_raw_i64(art_object_id).url()
     }
 
     fn send_request(&mut self, body: RequestBody) -> u32 {
@@ -298,16 +298,16 @@ impl GalleryClient {
     }
 
     #[func]
-    fn move_met_object(
+    fn move_art_object(
         &mut self,
-        met_object_id: i64,
+        art_object_id: i64,
         gallery_id: i64,
         wall_id: String,
         x: f64,
         y: f64,
     ) {
-        self.send_request(RequestBody::MoveMetObject {
-            met_object_id: ArtObjectId::from_raw_i64(met_object_id),
+        self.send_request(RequestBody::MoveArtObject {
+            art_object_id: ArtObjectId::from_raw_i64(art_object_id),
             gallery_id,
             wall_id,
             x,
@@ -316,8 +316,8 @@ impl GalleryClient {
     }
 
     #[func]
-    fn get_met_objects_for_gallery_wall(&mut self, gallery_id: i64, wall_id: String) -> u32 {
-        self.send_request(RequestBody::GetMetObjectsForGalleryWall {
+    fn get_art_objects_for_gallery_wall(&mut self, gallery_id: i64, wall_id: String) -> u32 {
+        self.send_request(RequestBody::GetArtObjectsForGalleryWall {
             gallery_id,
             wall_id,
         })
@@ -340,8 +340,8 @@ impl GalleryClient {
     }
 
     #[func]
-    fn count_met_objects(&mut self, filter: String) -> u32 {
-        self.send_request(RequestBody::CountMetObjects {
+    fn count_art_objects(&mut self, filter: String) -> u32 {
+        self.send_request(RequestBody::CountArtObjects {
             filter: to_optional_string(filter),
         })
     }
@@ -368,7 +368,7 @@ impl GalleryClient {
     }
 
     #[func]
-    fn poll(&mut self) -> Option<Gd<MetResponse>> {
+    fn poll(&mut self) -> Option<Gd<GalleryResponse>> {
         if !self.queued_requests.is_empty() {
             if let Some(peer) = self.get_multiplayer_client() {
                 if peer.get_connection_status() == ConnectionStatus::CONNECTED {
@@ -447,20 +447,20 @@ impl GalleryClient {
                     None
                 } else {
                     match response.body {
-                        ResponseBody::Empty => Some(Gd::from_object(MetResponse {
+                        ResponseBody::Empty => Some(Gd::from_object(GalleryResponse {
                             request_id,
-                            response: InnerMetResponse::default(),
+                            response: InnerGalleryResponse::default(),
                         })),
-                        ResponseBody::Integer(int) => Some(Gd::from_object(MetResponse {
+                        ResponseBody::Integer(int) => Some(Gd::from_object(GalleryResponse {
                             request_id,
-                            response: InnerMetResponse::Variant(int.to_variant()),
+                            response: InnerGalleryResponse::Variant(int.to_variant()),
                         })),
-                        ResponseBody::MetObjectsForGalleryWall(objects) => {
-                            Some(Gd::from_object(MetResponse {
+                        ResponseBody::ArtObjectsForGalleryWall(objects) => {
+                            Some(Gd::from_object(GalleryResponse {
                                 request_id,
-                                response: InnerMetResponse::MetObjects(Array::from_iter(
+                                response: InnerGalleryResponse::ArtObjects(Array::from_iter(
                                     objects.into_iter().map(|object| {
-                                        Gd::from_object(MetObject {
+                                        Gd::from_object(ArtObject {
                                             object_id: object.object_id.to_raw_i64(),
                                             title: object.title.into_godot(),
                                             date: object.date.into_godot(),
@@ -484,9 +484,9 @@ impl GalleryClient {
                                     ))
                                 })
                                 .flatten();
-                            Some(Gd::from_object(MetResponse {
+                            Some(Gd::from_object(GalleryResponse {
                                 request_id,
-                                response: InnerMetResponse::Image(image),
+                                response: InnerGalleryResponse::Image(image),
                             }))
                         }
                     }

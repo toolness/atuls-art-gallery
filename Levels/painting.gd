@@ -49,8 +49,8 @@ var started_loading_large_image := false
 ## seems to be unable to access.)
 @export var inner_painting_scale: Vector3
 
-## The met object ID of the painting, set by the server.
-@export var met_object_id: int
+## The art object ID of the painting, set by the server.
+@export var art_object_id: int
 
 ## The title of the painting, set by the server.
 @export var title: String
@@ -75,8 +75,8 @@ func _ready():
 		painting.set_scale(inner_painting_scale)
 	else:
 		print("Warning: No inner_painting_scale available for painting!")
-	if not met_object_id:
-		print("Warning: No met_object_id available for painting!")
+	if not art_object_id:
+		print("Warning: No art_object_id available for painting!")
 	var material: StandardMaterial3D = painting.mesh.surface_get_material(PAINTING_SURFACE_IDX)
 	painting_surface_material = material.duplicate()
 	painting_surface_material.albedo_color = Color.TRANSPARENT
@@ -99,7 +99,7 @@ func _ready():
 func _maybe_load_small_image():
 	if started_loading_small_image:
 		return
-	if not met_object_id:
+	if not art_object_id:
 		return
 	var player: Player = UserInterface.main_player
 	if not player:
@@ -107,9 +107,9 @@ func _maybe_load_small_image():
 	var distance_from_player := player.global_position.distance_to(global_position)
 	if distance_from_player > SMALL_IMAGE_DISTANCE_THRESHOLD:
 		return
-	# print("Loading painting with met object id ", met_object_id, " (", distance_from_player, " m from player).")
+	# print("Loading painting with art object id ", art_object_id, " (", distance_from_player, " m from player).")
 	started_loading_small_image = true
-	var small_image := await MetObjects.fetch_small_image(met_object_id)
+	var small_image := await MetObjects.fetch_small_image(art_object_id)
 	if not is_inside_tree():
 		# We despawned, exit.
 		return
@@ -201,9 +201,9 @@ func _default_str(value: String, default: String) -> String:
 	return default
 
 
-func init_with_met_object(object: MetObject):
+func init_with_art_object(object: ArtObject):
 	inner_painting_scale = Vector3(object.width, object.height, 1.0)
-	met_object_id = object.object_id
+	art_object_id = object.object_id
 	artist = object.artist
 	title = object.title
 	medium = object.medium
@@ -212,7 +212,7 @@ func init_with_met_object(object: MetObject):
 
 
 func try_to_open_in_browser():
-	OS.shell_open(MetObjects.get_met_object_url(met_object_id))
+	OS.shell_open(MetObjects.get_art_object_url(art_object_id))
 
 
 func start_interactive_placement():
@@ -258,7 +258,7 @@ func _set_large_image(large_image: Image):
 		var weak_old_painting: WeakRef = paintings_with_large_images.pop_front()
 		var old_painting: Painting = weak_old_painting.get_ref()
 		if old_painting and old_painting.is_inside_tree():
-			print("Evicting large image for met object id ", old_painting.met_object_id, ".")
+			print("Evicting large image for art object id ", old_painting.art_object_id, ".")
 			old_painting.painting_surface_material.albedo_texture = old_painting.small_image_texture
 			old_painting.started_loading_large_image = false
 	paintings_with_large_images.push_back(weakref(self))
@@ -291,7 +291,7 @@ func handle_player_looking_at(camera: Camera3D):
 
 	if area_ratio > LARGE_IMAGE_AREA_RATIO_THRESHOLD:
 		started_loading_large_image = true
-		var large_image := await MetObjects.fetch_large_image(met_object_id)
+		var large_image := await MetObjects.fetch_large_image(art_object_id)
 		if not is_inside_tree():
 			# We despawned, exit.
 			return
@@ -300,4 +300,4 @@ func handle_player_looking_at(camera: Camera3D):
 			return
 		_set_large_image(large_image)
 		var new_size := large_image.get_size()
-		print("Loaded large ", new_size.x, "x", new_size.y, " image for met object id ", met_object_id, " (area ratio was ", area_ratio, ").")
+		print("Loaded large ", new_size.x, "x", new_size.y, " image for art object id ", art_object_id, " (area ratio was ", area_ratio, ").")

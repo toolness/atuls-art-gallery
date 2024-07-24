@@ -30,14 +30,14 @@ pub struct Request {
 // to proxy requests to and from servers.
 #[derive(Debug, Deserialize, Serialize)]
 pub enum RequestBody {
-    MoveMetObject {
-        met_object_id: ArtObjectId,
+    MoveArtObject {
+        art_object_id: ArtObjectId,
         gallery_id: i64,
         wall_id: String,
         x: f64,
         y: f64,
     },
-    GetMetObjectsForGalleryWall {
+    GetArtObjectsForGalleryWall {
         gallery_id: i64,
         wall_id: String,
     },
@@ -50,7 +50,7 @@ pub enum RequestBody {
         filter: Option<String>,
         dense: bool,
     },
-    CountMetObjects {
+    CountArtObjects {
         filter: Option<String>,
     },
 }
@@ -64,7 +64,7 @@ pub struct Response {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum ResponseBody {
-    MetObjectsForGalleryWall(Vec<SimplifiedRecord>),
+    ArtObjectsForGalleryWall(Vec<SimplifiedRecord>),
     Image(Option<PathBuf>),
     Empty,
     Integer(i64),
@@ -105,7 +105,7 @@ pub struct SimplifiedRecord {
     pub collection: String,
 }
 
-fn get_met_objects_for_gallery_wall(
+fn get_art_objects_for_gallery_wall(
     db: &mut GalleryDb,
     gallery_id: i64,
     wall_id: String,
@@ -314,10 +314,10 @@ pub fn work_thread(
                             filter,
                             ..Default::default()
                         };
-                        let met_objects = db.get_all_art_objects_for_layout(&options)?;
+                        let art_objects = db.get_all_art_objects_for_layout(&options)?;
                         let gallery_start_id = 1;
                         let (galleries_created, layout_records) =
-                            layout(dense, gallery_start_id, &walls, met_objects, false)?;
+                            layout(dense, gallery_start_id, &walls, art_objects, false)?;
                         db.set_layout_records(&layout_records)?;
                         println!(
                             "Created layout across {} galleries with {} walls each, dense={dense}.",
@@ -326,7 +326,7 @@ pub fn work_thread(
                         );
                         send_response(ResponseBody::Empty);
                     }
-                    RequestBody::CountMetObjects { filter } => {
+                    RequestBody::CountArtObjects { filter } => {
                         let options = ArtObjectQueryOptions {
                             filter,
                             ..Default::default()
@@ -334,8 +334,8 @@ pub fn work_thread(
                         let count = db.count_art_objects(&options)?;
                         send_response(ResponseBody::Integer(count as i64))
                     }
-                    RequestBody::MoveMetObject {
-                        met_object_id,
+                    RequestBody::MoveArtObject {
+                        art_object_id,
                         gallery_id,
                         wall_id,
                         x,
@@ -344,18 +344,18 @@ pub fn work_thread(
                         db.upsert_layout_records(&vec![LayoutRecord {
                             gallery_id,
                             wall_id,
-                            art_object_id: met_object_id,
+                            art_object_id,
                             x,
                             y,
                         }])?;
                     }
-                    RequestBody::GetMetObjectsForGalleryWall {
+                    RequestBody::GetArtObjectsForGalleryWall {
                         gallery_id,
                         wall_id,
                     } => {
                         let objects =
-                            get_met_objects_for_gallery_wall(&mut db, gallery_id, wall_id)?;
-                        send_response(ResponseBody::MetObjectsForGalleryWall(objects));
+                            get_art_objects_for_gallery_wall(&mut db, gallery_id, wall_id)?;
+                        send_response(ResponseBody::ArtObjectsForGalleryWall(objects));
                     }
                     RequestBody::FetchImage { object_id, size } => match object_id {
                         ArtObjectId::Met(met_object_id) => {

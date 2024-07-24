@@ -1,11 +1,11 @@
 use godot::prelude::*;
 
-struct MyExtension;
+struct GalleryExtension;
 
+mod art_object;
 mod gallery_client;
-mod met_object;
-mod met_response;
+mod gallery_response;
 mod worker_thread;
 
 #[gdextension]
-unsafe impl ExtensionLibrary for MyExtension {}
+unsafe impl ExtensionLibrary for GalleryExtension {}

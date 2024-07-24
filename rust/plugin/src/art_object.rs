@@ -2,7 +2,7 @@ use godot::prelude::*;
 
 #[derive(Debug, GodotClass)]
 #[class(init)]
-pub struct MetObject {
+pub struct ArtObject {
     #[var]
     pub object_id: i64,
     #[var]

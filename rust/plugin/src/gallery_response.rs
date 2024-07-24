@@ -1,36 +1,36 @@
 use godot::{engine::Image, prelude::*};
 
-use crate::met_object::MetObject;
+use crate::art_object::ArtObject;
 
 #[derive(Debug)]
-pub enum InnerMetResponse {
+pub enum InnerGalleryResponse {
     Variant(Variant),
-    MetObjects(Array<Gd<MetObject>>),
+    ArtObjects(Array<Gd<ArtObject>>),
     Image(Option<Gd<Image>>),
 }
 
-impl Default for InnerMetResponse {
+impl Default for InnerGalleryResponse {
     fn default() -> Self {
-        InnerMetResponse::Variant(Variant::default())
+        InnerGalleryResponse::Variant(Variant::default())
     }
 }
 
 #[derive(Debug, GodotClass)]
 #[class(init)]
-pub struct MetResponse {
+pub struct GalleryResponse {
     #[var]
     pub request_id: u32,
-    pub response: InnerMetResponse,
+    pub response: InnerGalleryResponse,
 }
 
 #[godot_api]
-impl MetResponse {
+impl GalleryResponse {
     #[func]
-    fn take_met_objects(&mut self) -> Array<Gd<MetObject>> {
+    fn take_art_objects(&mut self) -> Array<Gd<ArtObject>> {
         match std::mem::take(&mut self.response) {
-            InnerMetResponse::MetObjects(response) => response,
+            InnerGalleryResponse::ArtObjects(response) => response,
             _ => {
-                godot_error!("MetResponse is not MetObjects!");
+                godot_error!("GalleryResponse is not ArtObjects!");
                 Array::new()
             }
         }
@@ -39,9 +39,9 @@ impl MetResponse {
     #[func]
     fn take_optional_image(&mut self) -> Option<Gd<Image>> {
         match std::mem::take(&mut self.response) {
-            InnerMetResponse::Image(response) => response,
+            InnerGalleryResponse::Image(response) => response,
             _ => {
-                godot_error!("MetResponse is not Image!");
+                godot_error!("GalleryResponse is not Image!");
                 None
             }
         }
@@ -50,9 +50,9 @@ impl MetResponse {
     #[func]
     fn take_variant(&mut self) -> Variant {
         match std::mem::take(&mut self.response) {
-            InnerMetResponse::Variant(variant) => variant,
+            InnerGalleryResponse::Variant(variant) => variant,
             _ => {
-                godot_error!("MetResponse is not Variant!");
+                godot_error!("GalleryResponse is not Variant!");
                 Variant::nil()
             }
         }

@@ -8,8 +8,8 @@ const NULL_REQUEST_ID = 0
 var requests = {}
 
 
-class MetObjectsRequest:
-	var response: Array[MetObject]
+class ArtObjectsRequest:
+	var response: Array[ArtObject]
 	signal responded
 
 
@@ -54,9 +54,9 @@ func fetch_large_image(object_id: int) -> Image:
 	return await _fetch_image(object_id, "large")
 
 
-func count_met_objects(filter: String) -> int:
+func count_art_objects(filter: String) -> int:
 	var request := IntRequest.new()
-	var request_id := gallery_client.count_met_objects(filter)
+	var request_id := gallery_client.count_art_objects(filter)
 	if request_id == NULL_REQUEST_ID:
 		# Oof, something went wrong.
 		return 0
@@ -77,9 +77,9 @@ func layout(filter: String, dense: bool) -> void:
 	print("Layout complete.")
 
 
-func get_met_objects_for_gallery_wall(gallery_id: int, wall_id: String) -> Array[MetObject]:
-	var request := MetObjectsRequest.new()
-	var request_id := gallery_client.get_met_objects_for_gallery_wall(gallery_id, wall_id)
+func get_art_objects_for_gallery_wall(gallery_id: int, wall_id: String) -> Array[ArtObject]:
+	var request := ArtObjectsRequest.new()
+	var request_id := gallery_client.get_art_objects_for_gallery_wall(gallery_id, wall_id)
 	if request_id == NULL_REQUEST_ID:
 		# Oof, something went wrong.
 		return []
@@ -88,8 +88,8 @@ func get_met_objects_for_gallery_wall(gallery_id: int, wall_id: String) -> Array
 	return request.response
 
 
-func get_met_object_url(id: int) -> String:
-	return gallery_client.get_met_object_url(id)
+func get_art_object_url(id: int) -> String:
+	return gallery_client.get_art_object_url(id)
 
 
 var fatal_error_message: String
@@ -188,9 +188,9 @@ func _process(_delta) -> void:
 			var r: ImageRequest = request
 			r.response = obj.take_optional_image()
 			r.responded.emit()
-		elif request is MetObjectsRequest:
-			var r: MetObjectsRequest = request
-			r.response = obj.take_met_objects()
+		elif request is ArtObjectsRequest:
+			var r: ArtObjectsRequest = request
+			r.response = obj.take_art_objects()
 			r.responded.emit()
 		elif request is EmptyRequest:
 			var r: EmptyRequest = request
