@@ -1,9 +1,16 @@
 extends Node
 
 
-const MAX_REQUESTS_PER_FRAME = 10
-
 const NULL_REQUEST_ID = 0
+
+## Try to only spend these many microseconds per frame processing
+## responses from the Rust side, as we don't want to skip frames.
+const MAX_USEC_PER_FRAME = 8000
+
+## If we spend more than these many microseconds processing
+## responses from the Rust side, log a warning.
+const WARNING_USEC_PER_FRAME = 16000
+
 
 var requests = {}
 
@@ -175,7 +182,8 @@ func _process(_delta) -> void:
 		requests.clear()
 		return
 	# TODO: If we're headless, possibly no need to handle max requests per frame.
-	for i in range(MAX_REQUESTS_PER_FRAME):
+	var start_time := Time.get_ticks_usec()
+	while true:
 		var obj := gallery_client.poll()
 		if not obj:
 			return
@@ -204,3 +212,8 @@ func _process(_delta) -> void:
 			r.responded.emit()
 		else:
 			assert(false, "Unknown request type, cannot fill response")
+		var time_elapsed := Time.get_ticks_usec() - start_time
+		if time_elapsed > MAX_USEC_PER_FRAME:
+			if time_elapsed > WARNING_USEC_PER_FRAME:
+				print("Warning: spent ", time_elapsed, " usec processing responses from Rust.")
+			return
