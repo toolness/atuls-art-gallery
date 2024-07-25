@@ -493,9 +493,21 @@ impl GalleryClient {
                             //     > stalls because they require synchronization with the RenderingServer,
                             //     > as data needs to be transmitted to or updated on the GPU.
                             //
+                            //     Yet another part of the same document seems to contradict this:
+                            //
+                            //     > ... handling references on multiple threads is supported, hence
+                            //     > loading resources on a thread is as well - scenes, textures, meshes,
+                            //     > etc - can be loaded and manipulated on a thread and then added to the
+                            //     > active scene on the main thread.
+                            //
+                            //     It's also unclear whether the `Image` resource is actually loaded
+                            //     directly into the GPU, vs. loaded into memory. If it's just loaded into
+                            //     memory, we could at least load images into memory from a different
+                            //     thread, while bringing them into the GPU on the main thread.
+                            //
                             //     [1] https://docs.godotengine.org/en/stable/tutorials/performance/thread_safe_apis.html#rendering
                             //
-                            // So for now we're just going to load images on the main thread.
+                            // Regardless, for now we're just going to load images on the main thread.
                             let image = image_path
                                 .map(|image_path| {
                                     Image::load_from_file(GString::from(
