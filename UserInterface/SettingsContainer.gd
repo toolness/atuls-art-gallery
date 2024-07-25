@@ -23,6 +23,7 @@ var _player: Player
 @onready var fov_value: Label = %FOVValue
 
 @onready var sensitivity_dropdown: OptionButton = %SensitivityDropdown
+@onready var shadow_panel: Control = %ShadowPanel
 @onready var shadow_option_button: OptionButton = %ShadowOptionButton
 @onready var ssaa_option_button: OptionButton = %SSAAOptionButton
 @onready var msaa_option_button: OptionButton = %MSAAOptionButton
@@ -85,7 +86,7 @@ func _ready() -> void:
 	# Default shadow quality to medium.
 	shadow_option_button.select(shadow_option_button.selected)
 	_on_shadow_option_button_item_selected(shadow_option_button.selected)
-	
+
 	# Enable SSAA
 	ssaa_option_button.select(ssaa_option_button.selected)
 	_on_ssaa_option_button_item_selected(ssaa_option_button.selected)
@@ -145,6 +146,7 @@ func _on_fullscreen_check_button_toggled(button_pressed: bool) -> void:
 func _on_potato_mode_check_button_toggled(toggled_on: bool):
 	config_file.set_bool(config_file.POTATO_MODE, toggled_on)
 	UserInterface.potato_mode = toggled_on
+	shadow_panel.visible = not toggled_on
 
 func _on_shadow_option_button_item_selected(index: int) -> void:
 	match index:
