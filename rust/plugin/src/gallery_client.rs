@@ -477,6 +477,25 @@ impl GalleryClient {
                             }))
                         }
                         ResponseBody::Image(image_path) => {
+                            // Note that ideally we'd load this image in a separate thread, so we wouldn't
+                            // potentially cause frame skips. But there are a few things in the way:
+                            //
+                            //   * gdext has a Cargo feature called `experimental-threads` which provides
+                            //     experimental support for multithreading, but the underlying safety
+                            //     rules are still being worked out as of 2024-07-25, as such there may
+                            //     be unsoundness and an unstable API.
+                            //
+                            //   * According to the Godot docs on Multithreading [1]:
+                            //
+                            //     > You should avoid calling functions involving direct interaction with
+                            //     > the GPU on other threads, such as creating new textures or modifying
+                            //     > and retrieving image data, these operations can lead to performance
+                            //     > stalls because they require synchronization with the RenderingServer,
+                            //     > as data needs to be transmitted to or updated on the GPU.
+                            //
+                            //     [1] https://docs.godotengine.org/en/stable/tutorials/performance/thread_safe_apis.html#rendering
+                            //
+                            // So for now we're just going to load images on the main thread.
                             let image = image_path
                                 .map(|image_path| {
                                     Image::load_from_file(GString::from(
