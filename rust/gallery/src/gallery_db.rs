@@ -269,16 +269,6 @@ impl GalleryDb {
         Ok(())
     }
 
-    pub fn get_art_object_fallback_wikidata_qid(
-        &self,
-        object_id: ArtObjectId,
-    ) -> Result<Option<i64>> {
-        Ok(self
-            .get_art_object(object_id)?
-            .map(|record| record.fallback_wikidata_qid)
-            .flatten())
-    }
-
     pub fn get_art_object(&self, object_id: ArtObjectId) -> Result<Option<ArtObjectRecord>> {
         let mut statement = self.conn.prepare_cached(
             "

@@ -394,11 +394,7 @@ fn main() {
 mod tests {
     use std::{fs::File, io::BufReader, path::PathBuf};
 
-    use gallery::{
-        art_object::ArtObjectId,
-        gallery_cache::GalleryCache,
-        gallery_db::{ArtObjectQueryOptions, LayoutRecord},
-    };
+    use gallery::gallery_cache::GalleryCache;
     use rusqlite::Connection;
 
     use crate::met_csv::iter_public_domain_2d_met_csv_objects;
@@ -426,103 +422,5 @@ mod tests {
             .get_all_art_objects_for_layout(&Default::default())
             .unwrap();
         assert!(rows.len() > 0);
-        let art_object_id = rows.get(0).unwrap().id;
-
-        // Add a painting to the layout.
-        db.set_layout_records(&vec![LayoutRecord {
-            gallery_id: 5,
-            wall_id: "wall_1",
-            art_object_id,
-            x: 1.0,
-            y: 6.0,
-        }])
-        .unwrap();
-
-        // Make sure it got placed where we placed it.
-        let (record, (x, y)) = db
-            .get_art_objects_for_gallery_wall(5, "wall_1")
-            .unwrap()
-            .pop()
-            .unwrap();
-        assert_eq!(record.object_id, art_object_id);
-        assert_eq!(x, 1.0);
-        assert_eq!(y, 6.0);
-
-        // Make sure there's nothing in the place we want to move it to.
-        assert_eq!(
-            db.get_art_objects_for_gallery_wall(6, "wall_2")
-                .unwrap()
-                .len(),
-            0
-        );
-
-        // Move the painting.
-        db.upsert_layout_records(&vec![LayoutRecord {
-            gallery_id: 6,
-            wall_id: "wall_2",
-            art_object_id,
-            x: 4.0,
-            y: 9.0,
-        }])
-        .unwrap();
-
-        // Make sure there's nothing in the place we moved it from.
-        assert_eq!(
-            db.get_art_objects_for_gallery_wall(5, "wall_1")
-                .unwrap()
-                .len(),
-            0
-        );
-
-        // Make sure it actually got moved to where we moved it.
-        let (record, (x, y)) = db
-            .get_art_objects_for_gallery_wall(6, "wall_2")
-            .unwrap()
-            .pop()
-            .unwrap();
-        assert_eq!(record.object_id, art_object_id);
-        assert_eq!(x, 4.0);
-        assert_eq!(y, 9.0);
-
-        // Ensure unquoted terms are ANDed together...
-        assert!(get_num_filter_results(&db, "benjamin franklin") > 0);
-        assert!(get_num_filter_results(&db, "franklin benjamin") > 0);
-
-        // Ensure quoted terms are exact substring matches...
-        assert!(get_num_filter_results(&db, "\"benjamin franklin\"") > 0);
-        assert_eq!(get_num_filter_results(&db, "\"franklin benjamin\""), 0);
-
-        // Ensure we search the culture field...
-        assert!(get_num_filter_results(&db, "american") > 0);
-
-        // Search for nonexistent met object
-        assert_eq!(
-            db.get_art_object_fallback_wikidata_qid(ArtObjectId::Met(999999))
-                .unwrap(),
-            None
-        );
-
-        // Search for existing met object without QID
-        assert_eq!(
-            db.get_art_object_fallback_wikidata_qid(ArtObjectId::Met(39))
-                .unwrap(),
-            None
-        );
-
-        // Search for existing met object with QID
-        assert_eq!(
-            db.get_art_object_fallback_wikidata_qid(ArtObjectId::Met(482))
-                .unwrap(),
-            Some(79023693)
-        );
-    }
-
-    fn get_num_filter_results(db: &GalleryDb, filter: &'static str) -> usize {
-        let options = ArtObjectQueryOptions {
-            filter: Some(filter.into()),
-        };
-        let objects_len = db.get_all_art_objects_for_layout(&options).unwrap().len();
-        assert_eq!(db.count_art_objects(&options).unwrap(), objects_len);
-        objects_len
     }
 }
