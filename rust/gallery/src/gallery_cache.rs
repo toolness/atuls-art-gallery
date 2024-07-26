@@ -4,9 +4,11 @@ use std::{
     path::PathBuf,
     time::Duration,
 };
-use ureq::{Agent, AgentBuilder};
+use ureq::{Agent, AgentBuilder, Response};
 
 const TIMEOUT_SECS: u64 = 10;
+
+const MAX_FILE_SIZE: u64 = 10_000_000;
 
 pub struct GalleryCache {
     cache_dir: PathBuf,
@@ -47,9 +49,7 @@ impl GalleryCache {
         ensure_parent_dir(&cached_path)?;
         println!("Caching {} -> {}...", url.as_ref(), cached_path.display());
         let response = self.agent.get(url.as_ref()).call()?;
-        if response.status() != 200 {
-            return Err(anyhow!("Got HTTP {}", response.status()));
-        }
+        validate_response(&response)?;
         let mut response_body = response.into_reader();
         let mut outfile = File::create(cached_path.clone())?;
         match std::io::copy(&mut response_body, &mut outfile) {
@@ -73,9 +73,7 @@ impl GalleryCache {
         ensure_parent_dir(&cached_path)?;
         println!("Caching {} -> {}...", url.as_ref(), cached_path.display());
         let response = self.agent.get(url.as_ref()).call()?;
-        if response.status() != 200 {
-            return Err(anyhow!("Got HTTP {}", response.status()));
-        }
+        validate_response(&response)?;
         if response.content_type() != "application/json" {
             return Err(anyhow!("Content type is {}", response.content_type()));
         }
@@ -91,6 +89,22 @@ impl GalleryCache {
     pub fn load_cached_string<T: AsRef<str>>(&self, filename: T) -> Result<String> {
         Ok(std::fs::read_to_string(self.get_cached_path(filename))?)
     }
+}
+
+fn validate_response(response: &Response) -> Result<()> {
+    if response.status() != 200 {
+        return Err(anyhow!("Got HTTP {}", response.status()));
+    }
+    let Some(size) = response.header("Content-Length") else {
+        return Err(anyhow!("Response has no content-length header"));
+    };
+    let Ok(size) = size.parse::<u64>() else {
+        return Err(anyhow!("Unable to part content-length: {size:?}"));
+    };
+    if size > MAX_FILE_SIZE {
+        return Err(anyhow!("Response is too large ({size} bytes)"));
+    }
+    Ok(())
 }
 
 fn ensure_parent_dir(cached_path: &PathBuf) -> Result<()> {
