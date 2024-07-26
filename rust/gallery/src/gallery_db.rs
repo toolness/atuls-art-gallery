@@ -375,7 +375,7 @@ impl GalleryDb {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct ArtObjectRecord {
     pub object_id: ArtObjectId,
     pub object_date: String,
@@ -390,7 +390,7 @@ pub struct ArtObjectRecord {
     pub collection: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct ArtObjectLayoutInfo {
     pub id: ArtObjectId,
     pub width: f64,
@@ -403,4 +403,103 @@ pub struct LayoutRecord<T: AsRef<str>> {
     pub art_object_id: ArtObjectId,
     pub x: f64,
     pub y: f64,
+}
+
+#[cfg(test)]
+mod tests {
+    use rusqlite::Connection;
+
+    use crate::{
+        art_object::ArtObjectId,
+        gallery_db::{ArtObjectQueryOptions, LayoutRecord},
+    };
+
+    use super::{ArtObjectLayoutInfo, ArtObjectRecord, GalleryDb};
+
+    const FUNKY_PAINTING_ID: ArtObjectId = ArtObjectId::Met(1);
+    const FUNKY_PAINTING_WIDTH: f64 = 64.5;
+    const FUNKY_PAINTING_HEIGHT: f64 = 28.2;
+    const FUNKY_PAINTING_LAYOUT_POS: (f64, f64) = (5.0, 10.0);
+
+    fn make_funky_painting() -> ArtObjectRecord {
+        ArtObjectRecord {
+            object_id: FUNKY_PAINTING_ID,
+            object_date: "1864".into(),
+            culture: "Martian".into(),
+            artist: "Boop Jones".into(),
+            title: "Funky Painting".into(),
+            medium: "Oil on canvas".into(),
+            width: FUNKY_PAINTING_WIDTH,
+            height: FUNKY_PAINTING_HEIGHT,
+            fallback_wikidata_qid: Some(1234),
+            filename: "funky-painting.jpg".into(),
+            collection: "Martian Museum of Art".into(),
+        }
+    }
+
+    fn make_funky_painting_layout() -> LayoutRecord<String> {
+        LayoutRecord {
+            gallery_id: 1,
+            wall_id: "wall_01".into(),
+            art_object_id: FUNKY_PAINTING_ID,
+            x: FUNKY_PAINTING_LAYOUT_POS.0,
+            y: FUNKY_PAINTING_LAYOUT_POS.1,
+        }
+    }
+
+    fn make_funky_painting_art_object_layout_info() -> ArtObjectLayoutInfo {
+        ArtObjectLayoutInfo {
+            id: FUNKY_PAINTING_ID,
+            width: FUNKY_PAINTING_WIDTH,
+            height: FUNKY_PAINTING_HEIGHT,
+        }
+    }
+
+    fn test_filter(db: &GalleryDb, filter: &'static str, expected: &Vec<ArtObjectLayoutInfo>) {
+        let options = ArtObjectQueryOptions {
+            filter: Some(filter.into()),
+        };
+        let actual = db.get_all_art_objects_for_layout(&options).unwrap();
+        assert_eq!(&actual, expected);
+        assert_eq!(db.count_art_objects(&options).unwrap(), expected.len());
+    }
+
+    #[test]
+    fn test_it_works() {
+        let mut db = GalleryDb::new(Connection::open_in_memory().unwrap());
+        db.reset_art_objects_table().unwrap();
+        db.reset_layout_table().unwrap();
+
+        db.add_art_objects(&vec![make_funky_painting()]).unwrap();
+        assert_eq!(
+            db.get_art_object(FUNKY_PAINTING_ID).unwrap(),
+            Some(make_funky_painting())
+        );
+        assert_eq!(db.get_art_object(ArtObjectId::Met(12345)).unwrap(), None);
+
+        let funky_layout_info = vec![make_funky_painting_art_object_layout_info()];
+        let empty_layout_info = vec![];
+
+        test_filter(&db, "boop", &funky_layout_info);
+        test_filter(&db, "-boop", &empty_layout_info);
+        test_filter(&db, "boop jones", &funky_layout_info);
+        test_filter(&db, "jones boop", &funky_layout_info);
+        test_filter(&db, "\"boop jones\"", &funky_layout_info);
+        test_filter(&db, "\"jones boop\"", &empty_layout_info);
+
+        db.set_layout_records(&vec![make_funky_painting_layout()])
+            .unwrap();
+
+        let funky_layout = make_funky_painting_layout();
+        assert_eq!(
+            db.get_art_objects_for_gallery_wall(funky_layout.gallery_id, funky_layout.wall_id)
+                .unwrap(),
+            vec![(make_funky_painting(), FUNKY_PAINTING_LAYOUT_POS)]
+        );
+        assert_eq!(
+            db.get_art_objects_for_gallery_wall(1234, "nonexistent wall")
+                .unwrap(),
+            vec![]
+        );
+    }
 }
