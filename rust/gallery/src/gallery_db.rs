@@ -424,12 +424,13 @@ mod tests {
         }
     }
 
-    fn make_funky_painting_art_object_layout_info() -> ArtObjectLayoutInfo {
-        let painting = make_funky_painting();
-        ArtObjectLayoutInfo {
-            id: painting.object_id,
-            width: painting.width,
-            height: painting.height,
+    impl Into<ArtObjectLayoutInfo> for ArtObjectRecord {
+        fn into(self) -> ArtObjectLayoutInfo {
+            ArtObjectLayoutInfo {
+                id: self.object_id,
+                width: self.width,
+                height: self.height,
+            }
         }
     }
 
@@ -458,7 +459,7 @@ mod tests {
         );
         assert_eq!(db.get_art_object(ArtObjectId::Met(12345)).unwrap(), None);
 
-        let funky_layout_info = vec![make_funky_painting_art_object_layout_info()];
+        let funky_layout_info = vec![make_funky_painting().into()];
         let empty_layout_info = vec![];
 
         // Search for the art object.
