@@ -443,13 +443,16 @@ mod tests {
         assert_eq!(db.count_art_objects(&options).unwrap(), expected.len());
     }
 
-    #[test]
-    fn test_it_works() {
+    fn create_db() -> GalleryDb {
         let mut db = GalleryDb::new(Connection::open_in_memory().unwrap());
         db.reset_art_objects_table().unwrap();
         db.reset_layout_table().unwrap();
+        db
+    }
 
-        // Add an art object...
+    #[test]
+    fn test_get_art_object_works() {
+        let mut db = create_db();
         db.add_art_objects(&vec![make_funky_painting()]).unwrap();
 
         // Make sure we can retrieve it.
@@ -458,6 +461,12 @@ mod tests {
             Some(make_funky_painting())
         );
         assert_eq!(db.get_art_object(ArtObjectId::Met(12345)).unwrap(), None);
+    }
+
+    #[test]
+    fn test_filtering_works() {
+        let mut db = create_db();
+        db.add_art_objects(&vec![make_funky_painting()]).unwrap();
 
         let funky_layout_info = vec![make_funky_painting().into()];
         let empty_layout_info = vec![];
@@ -473,6 +482,12 @@ mod tests {
         // Ensure quoted terms are exact substring matches...
         test_filter(&db, "\"boop jones\"", &funky_layout_info);
         test_filter(&db, "\"jones boop\"", &empty_layout_info);
+    }
+
+    #[test]
+    fn test_layout_works() {
+        let mut db = create_db();
+        db.add_art_objects(&vec![make_funky_painting()]).unwrap();
 
         // Add a painting to the layout.
         db.set_layout_records(&vec![LayoutRecord {
