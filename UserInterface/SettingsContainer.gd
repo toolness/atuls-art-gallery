@@ -29,6 +29,8 @@ var _player: Player
 @onready var msaa_option_button: OptionButton = %MSAAOptionButton
 @onready var fullscreen_check_button: CheckButton = %FullscreenCheckButton
 @onready var potato_mode_check_button: CheckButton = %PotatoModeCheckButton
+@onready var gi_panel: Control = %GIPanel
+@onready var gi_mode_check_button: CheckButton = %GIModeCheckButton
 
 @onready var master_slider: HSlider = %MasterSlider
 @onready var music_slider: HSlider = %MusicSlider
@@ -48,6 +50,7 @@ class SettingsConfig:
 
 	const SETTINGS_SECTION = "settings"
 	const POTATO_MODE = "potato_mode"
+	const GI_ENABLED = "global_illumination"
 
 	func url() -> String:
 		return ArtObjects.ROOT_DIR + "settings.cfg"
@@ -75,6 +78,7 @@ func _ready() -> void:
 	config_file.load()
 
 	potato_mode_check_button.set_pressed(config_file.get_bool(config_file.POTATO_MODE, false))
+	gi_mode_check_button.set_pressed(config_file.get_bool(config_file.GI_ENABLED, true))
 
 	fov_slider.min_value = min_fov
 	fov_slider.max_value = max_fov
@@ -147,6 +151,11 @@ func _on_potato_mode_check_button_toggled(toggled_on: bool):
 	config_file.set_bool(config_file.POTATO_MODE, toggled_on)
 	UserInterface.potato_mode = toggled_on
 	shadow_panel.visible = not toggled_on
+	gi_panel.visible = not toggled_on
+
+func _on_gi_mode_check_button_toggled(toggled_on:bool):
+	config_file.set_bool(config_file.GI_ENABLED, toggled_on)
+	UserInterface.global_illumination = toggled_on
 
 func _on_shadow_option_button_item_selected(index: int) -> void:
 	match index:

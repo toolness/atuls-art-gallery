@@ -124,6 +124,26 @@ unique_name_in_owner = true
 layout_mode = 2
 mouse_default_cursor_shape = 2
 
+[node name="GIPanel" type="PanelContainer" parent="VBoxContainer/TabContainer/Video"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_8ppig")
+
+[node name="GIContainer" type="HBoxContainer" parent="VBoxContainer/TabContainer/Video/GIPanel"]
+layout_mode = 2
+theme_override_constants/separation = 64
+
+[node name="GILabel" type="Label" parent="VBoxContainer/TabContainer/Video/GIPanel/GIContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Global Illumination"
+
+[node name="GIModeCheckButton" type="CheckButton" parent="VBoxContainer/TabContainer/Video/GIPanel/GIContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_default_cursor_shape = 2
+button_pressed = true
+
 [node name="SSAAPanel" type="PanelContainer" parent="VBoxContainer/TabContainer/Video"]
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_8ppig")
@@ -370,6 +390,7 @@ text = "Back"
 [connection signal="visibility_changed" from="." to="." method="_on_visibility_changed"]
 [connection signal="toggled" from="VBoxContainer/TabContainer/Video/FullscreenPanel/FullscreenContainer/FullscreenCheckButton" to="." method="_on_fullscreen_check_button_toggled"]
 [connection signal="toggled" from="VBoxContainer/TabContainer/Video/PotatoModePanel/PotatoModeContainer/PotatoModeCheckButton" to="." method="_on_potato_mode_check_button_toggled"]
+[connection signal="toggled" from="VBoxContainer/TabContainer/Video/GIPanel/GIContainer/GIModeCheckButton" to="." method="_on_gi_mode_check_button_toggled"]
 [connection signal="item_selected" from="VBoxContainer/TabContainer/Video/SSAAPanel/SSAAContainer/SSAAOptionButton" to="." method="_on_ssaa_option_button_item_selected"]
 [connection signal="item_selected" from="VBoxContainer/TabContainer/Video/MSAAPanel/MSAAContainer/MSAAOptionButton" to="." method="_on_msaa_option_button_item_selected"]
 [connection signal="item_selected" from="VBoxContainer/TabContainer/Video/ShadowPanel/ShadowContainer/ShadowOptionButton" to="." method="_on_shadow_option_button_item_selected"]

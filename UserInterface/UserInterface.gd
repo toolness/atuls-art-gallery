@@ -27,7 +27,9 @@ var in_main_menu: bool = false
 
 signal before_reload(hard_reset: bool)
 
-signal potato_mode_changed(value: bool)
+signal potato_mode_changed
+
+signal global_illumination_changed
 
 signal debug_draw_changed(value: Viewport.DebugDraw)
 
@@ -60,7 +62,12 @@ var main_player: Player = null:
 var potato_mode := false:
 	set(value):
 		potato_mode = value
-		potato_mode_changed.emit(potato_mode)
+		potato_mode_changed.emit()
+
+var global_illumination := true:
+	set(value):
+		global_illumination = value
+		global_illumination_changed.emit()
 
 func _ready() -> void:
 	fade_in(create_tween())

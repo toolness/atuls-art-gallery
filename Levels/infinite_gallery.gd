@@ -135,6 +135,7 @@ func _ready() -> void:
 
 	UserInterface.debug_draw_changed.connect(_on_debug_draw_changed)
 	UserInterface.layout_config_container.new_layout_complete.connect(_on_new_layout_complete)
+	UserInterface.global_illumination_changed.connect(reset_lighting)
 
 	sync_galleries()
 
@@ -193,22 +194,26 @@ func _on_debug_draw_changed(value: Viewport.DebugDraw):
 		reset_lighting()
 
 
+func _should_disable_sdfgi() -> bool:
+	return UserInterface.potato_mode or not UserInterface.global_illumination
+
+
 func reset_lighting():
-	if UserInterface.potato_mode:
-		# Potato mode doesn't support SDFGI, so no need to reset it.
+	if _should_disable_sdfgi():
+		# Settings disable SDFGI, so no need to reset it.
 		return
 
 	print("Resetting SDFGI for proper lighting.")
 
 	world_environment.environment.sdfgi_enabled = false
-	# TODO: Technically there's a tiny chance the user could enable
-	# potato mode while we're waiting, in which case we're going to
-	# be enabling SDFGI in an environment that isn't even supposed to
-	# support it.
 	for i in range(5):
 		await get_tree().process_frame
 		if not is_inside_tree():
 			return
+	if _should_disable_sdfgi():
+		# Oof, the user changed settings while we were waiting! Don't enable
+		# SDFGI after all.
+		return
 	world_environment.environment.sdfgi_enabled = true
 
 
