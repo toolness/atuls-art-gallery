@@ -417,9 +417,6 @@ mod tests {
     use super::{ArtObjectLayoutInfo, ArtObjectRecord, GalleryDb};
 
     const FUNKY_PAINTING_ID: ArtObjectId = ArtObjectId::Met(1);
-    const FUNKY_PAINTING_WIDTH: f64 = 64.5;
-    const FUNKY_PAINTING_HEIGHT: f64 = 28.2;
-    const FUNKY_PAINTING_LAYOUT_POS: (f64, f64) = (5.0, 10.0);
 
     fn make_funky_painting() -> ArtObjectRecord {
         ArtObjectRecord {
@@ -429,29 +426,20 @@ mod tests {
             artist: "Boop Jones".into(),
             title: "Funky Painting".into(),
             medium: "Oil on canvas".into(),
-            width: FUNKY_PAINTING_WIDTH,
-            height: FUNKY_PAINTING_HEIGHT,
+            width: 64.5,
+            height: 28.2,
             fallback_wikidata_qid: Some(1234),
             filename: "funky-painting.jpg".into(),
             collection: "Martian Museum of Art".into(),
         }
     }
 
-    fn make_funky_painting_layout() -> LayoutRecord<String> {
-        LayoutRecord {
-            gallery_id: 1,
-            wall_id: "wall_01".into(),
-            art_object_id: FUNKY_PAINTING_ID,
-            x: FUNKY_PAINTING_LAYOUT_POS.0,
-            y: FUNKY_PAINTING_LAYOUT_POS.1,
-        }
-    }
-
     fn make_funky_painting_art_object_layout_info() -> ArtObjectLayoutInfo {
+        let painting = make_funky_painting();
         ArtObjectLayoutInfo {
-            id: FUNKY_PAINTING_ID,
-            width: FUNKY_PAINTING_WIDTH,
-            height: FUNKY_PAINTING_HEIGHT,
+            id: painting.object_id,
+            width: painting.width,
+            height: painting.height,
         }
     }
 
@@ -470,7 +458,10 @@ mod tests {
         db.reset_art_objects_table().unwrap();
         db.reset_layout_table().unwrap();
 
+        // Add an art object...
         db.add_art_objects(&vec![make_funky_painting()]).unwrap();
+
+        // Make sure we can retrieve it.
         assert_eq!(
             db.get_art_object(FUNKY_PAINTING_ID).unwrap(),
             Some(make_funky_painting())
@@ -480,26 +471,60 @@ mod tests {
         let funky_layout_info = vec![make_funky_painting_art_object_layout_info()];
         let empty_layout_info = vec![];
 
+        // Search for the art object.
         test_filter(&db, "boop", &funky_layout_info);
         test_filter(&db, "-boop", &empty_layout_info);
+
+        // Ensure unquoted terms are ANDed together...
         test_filter(&db, "boop jones", &funky_layout_info);
         test_filter(&db, "jones boop", &funky_layout_info);
+
+        // Ensure quoted terms are exact substring matches...
         test_filter(&db, "\"boop jones\"", &funky_layout_info);
         test_filter(&db, "\"jones boop\"", &empty_layout_info);
 
-        db.set_layout_records(&vec![make_funky_painting_layout()])
-            .unwrap();
+        // Add a painting to the layout.
+        db.set_layout_records(&vec![LayoutRecord {
+            gallery_id: 1,
+            wall_id: "wall_02",
+            art_object_id: FUNKY_PAINTING_ID,
+            x: 1.2,
+            y: 3.4,
+        }])
+        .unwrap();
 
-        let funky_layout = make_funky_painting_layout();
+        // Make sure it got placed where we placed it.
         assert_eq!(
-            db.get_art_objects_for_gallery_wall(funky_layout.gallery_id, funky_layout.wall_id)
-                .unwrap(),
-            vec![(make_funky_painting(), FUNKY_PAINTING_LAYOUT_POS)]
+            db.get_art_objects_for_gallery_wall(1, "wall_02").unwrap(),
+            vec![(make_funky_painting(), (1.2, 3.4))]
         );
+
+        // Make sure there's nothing in the place we want to move it to.
         assert_eq!(
-            db.get_art_objects_for_gallery_wall(1234, "nonexistent wall")
-                .unwrap(),
+            db.get_art_objects_for_gallery_wall(3, "wall_04").unwrap(),
             vec![]
+        );
+
+        // Move the painting.
+        db.upsert_layout_records(&vec![LayoutRecord {
+            gallery_id: 3,
+            wall_id: "wall_04",
+            art_object_id: FUNKY_PAINTING_ID,
+            x: 5.6,
+            y: 7.8,
+        }])
+        .unwrap();
+
+        // Make sure there's nothing in the place we moved it from.
+        assert_eq!(
+            db.get_art_objects_for_gallery_wall(1, "wall_02").unwrap(),
+            vec![]
+        );
+
+        // Make sure it actually got moved to where we moved it.
+        assert_eq!(
+            db.get_art_objects_for_gallery_wall(3, "wall_04").unwrap(),
+            vec![(make_funky_painting(), (5.6, 7.8))]
         );
     }
 }
