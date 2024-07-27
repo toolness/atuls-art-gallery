@@ -113,7 +113,6 @@ func _maybe_load_small_image():
 		# Oof, fetching the image failed.
 		visible = false
 		return
-	small_image.generate_mipmaps()
 	small_image_texture = ImageTexture.create_from_image(small_image)
 	painting_surface_material.albedo_texture = small_image_texture
 
@@ -249,7 +248,6 @@ func _set_large_image(large_image: Image):
 			old_painting.painting_surface_material.albedo_texture = old_painting.small_image_texture
 			old_painting.started_loading_large_image = false
 	paintings_with_large_images.push_back(weakref(self))
-	large_image.generate_mipmaps()
 	var large_image_texture := ImageTexture.create_from_image(large_image)
 	# TODO: Godot actually supports the concept of a "detail texture, with the ability
 	# to mix between standard and detail. We could potentially use this feature to tween

@@ -300,6 +300,8 @@ class ImageLoadingThread:
 				return
 			if image_to_load:
 				var image := Image.load_from_file(image_to_load.image_path)
+				if image:
+					image.generate_mipmaps()
 				image_to_load.response = image
 				mutex.lock()
 				_loaded_images.push_back(image_to_load)
