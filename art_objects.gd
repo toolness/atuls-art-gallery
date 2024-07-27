@@ -194,7 +194,10 @@ func _process(_delta) -> void:
 		requests.erase(obj.request_id)
 		if request is ImageRequest:
 			var r: ImageRequest = request
-			r.response = obj.take_optional_image()
+			var path = obj.take_variant()
+			if path is String:
+				var string_path: String = path
+				r.response = Image.load_from_file(string_path)
 			r.responded.emit()
 		elif request is ArtObjectsRequest:
 			var r: ArtObjectsRequest = request

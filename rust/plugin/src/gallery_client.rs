@@ -10,7 +10,7 @@ use godot::{
     engine::{
         multiplayer_api::RpcMode,
         multiplayer_peer::{ConnectionStatus, TransferMode},
-        FileAccess, Image, MultiplayerPeer, OfflineMultiplayerPeer, ProjectSettings,
+        FileAccess, MultiplayerPeer, OfflineMultiplayerPeer, ProjectSettings,
     },
     prelude::*,
 };
@@ -511,17 +511,17 @@ impl GalleryClient {
                             //
                             //     [1] https://docs.godotengine.org/en/stable/tutorials/performance/thread_safe_apis.html#rendering
                             //
-                            // Regardless, for now we're just going to load images on the main thread.
-                            let image = image_path
-                                .map(|image_path| {
-                                    Image::load_from_file(GString::from(
-                                        image_path.to_string_lossy().into_owned(),
-                                    ))
-                                })
-                                .flatten();
+                            // Regardless, for now we're just going to pass the image path to Godot, and it
+                            // can do whatever it wants with it.
+                            let variant: Variant = match image_path {
+                                Some(image_path) => {
+                                    Variant::from(image_path.to_string_lossy().into_godot())
+                                }
+                                None => Variant::nil(),
+                            };
                             Some(Gd::from_object(GalleryResponse {
                                 request_id,
-                                response: InnerGalleryResponse::Image(image),
+                                response: InnerGalleryResponse::Variant(variant),
                             }))
                         }
                     }
