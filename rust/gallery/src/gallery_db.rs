@@ -473,7 +473,12 @@ mod tests {
 
         // Search for the art object.
         test_filter(&db, "boop", &funky_layout_info);
+
+        // Excluding a term in the art object shouldn't find anything.
         test_filter(&db, "-boop", &empty_layout_info);
+
+        // Excluding a term *not* in the art object should find it.
+        test_filter(&db, "-blargblarg", &funky_layout_info);
 
         // Ensure unquoted terms are ANDed together...
         test_filter(&db, "boop jones", &funky_layout_info);
