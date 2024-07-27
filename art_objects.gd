@@ -233,6 +233,8 @@ func _process(_delta) -> void:
 			return
 
 
+# Ideally we'd do all this from Rust, but support for multi-threading in gdext
+# is still evolving, so we're doing it here.
 class ImageLoadingThread:
 	var thread: Thread
 	var semaphore: Semaphore
