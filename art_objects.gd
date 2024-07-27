@@ -21,6 +21,7 @@ class ArtObjectsRequest:
 
 
 class ImageRequest:
+	var image_path: String
 	var response: Image
 	signal responded
 
@@ -196,9 +197,8 @@ func _process(_delta) -> void:
 			var r: ImageRequest = request
 			var path = obj.take_variant()
 			if path is String:
-				var string_path: String = path
-				r.response = Image.load_from_file(string_path)
-			r.responded.emit()
+				r.image_path = path
+				image_loading_thread.load_image(r)
 		elif request is ArtObjectsRequest:
 			var r: ArtObjectsRequest = request
 			r.response = obj.take_art_objects()
@@ -218,5 +218,84 @@ func _process(_delta) -> void:
 		var time_elapsed := Time.get_ticks_usec() - start_time
 		if time_elapsed > MAX_USEC_PER_FRAME:
 			if time_elapsed > WARNING_USEC_PER_FRAME:
+				print("Warning: spent ", time_elapsed, " usec processing responses.")
+			return
+
+		var image_request := image_loading_thread.get_loaded_image()
+		if image_request:
+			image_request.responded.emit()
+
+		# TODO: Move this logic into its own class so we don't duplicate it multiple times.
+		time_elapsed = Time.get_ticks_usec() - start_time
+		if time_elapsed > MAX_USEC_PER_FRAME:
+			if time_elapsed > WARNING_USEC_PER_FRAME:
 				print("Warning: spent ", time_elapsed, " usec processing responses from Rust.")
 			return
+
+
+class ImageLoadingThread:
+	var thread: Thread
+	var semaphore: Semaphore
+	var mutex: Mutex
+
+	# Access to these must all be protected by Mutxes.
+	var _images_to_load: Array[ImageRequest]
+	var _loaded_images: Array[ImageRequest]
+	var _should_exit: bool
+
+	func start():
+		mutex = Mutex.new()
+		semaphore = Semaphore.new()
+		_images_to_load = []
+		_loaded_images = []
+		_should_exit = false
+		thread = Thread.new()
+		thread.start(_run)
+
+	func load_image(request: ImageRequest):
+		assert(request.image_path is String and len(request.image_path) > 0)
+		if not thread:
+			self.start()
+		mutex.lock()
+		_images_to_load.push_back(request)
+		mutex.unlock()
+		semaphore.post()
+
+	func get_loaded_image() -> ImageRequest:
+		if not thread:
+			return null
+		mutex.lock()
+		var request: ImageRequest = _loaded_images.pop_back()
+		mutex.unlock()
+		return request
+
+	func join():
+		if thread:
+			mutex.lock()
+			_should_exit = true
+			mutex.unlock()
+			semaphore.post()
+			thread.wait_to_finish()
+
+	func _run():
+		while true:
+			semaphore.wait()
+			mutex.lock()
+			var should_exit := _should_exit
+			var image_to_load: ImageRequest = _images_to_load.pop_back()
+			mutex.unlock()
+			if should_exit:
+				return
+			if image_to_load:
+				var image := Image.load_from_file(image_to_load.image_path)
+				image_to_load.response = image
+				mutex.lock()
+				_loaded_images.push_back(image_to_load)
+				mutex.unlock()
+
+
+var image_loading_thread := ImageLoadingThread.new()
+
+
+func _exit_tree():
+	image_loading_thread.join()
