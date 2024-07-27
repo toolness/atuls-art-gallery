@@ -183,27 +183,32 @@ func _process(_delta) -> void:
 		requests.clear()
 		return
 	# TODO: If we're headless, possibly no need to handle max requests per frame.
-	var start_time := Time.get_ticks_usec()
+	var tracker := ElapsedTimeTracker.new()
 	while true:
 		var obj := gallery_client.poll()
 		_handle_gallery_response(obj)
 
-		var time_elapsed := Time.get_ticks_usec() - start_time
-		if time_elapsed > MAX_USEC_PER_FRAME:
-			if time_elapsed > WARNING_USEC_PER_FRAME:
-				print("Warning: spent ", time_elapsed, " usec processing responses.")
+		if tracker.has_too_much_time_elapsed():
 			return
 
 		var image_request := image_loading_thread.get_loaded_image()
 		if image_request:
 			image_request.responded.emit()
 
-		# TODO: Move this logic into its own class so we don't duplicate it multiple times.
-		time_elapsed = Time.get_ticks_usec() - start_time
+		if tracker.has_too_much_time_elapsed():
+			return
+
+
+class ElapsedTimeTracker:
+	var start_time := Time.get_ticks_usec()
+
+	func has_too_much_time_elapsed() -> bool:
+		var time_elapsed := Time.get_ticks_usec() - start_time
 		if time_elapsed > MAX_USEC_PER_FRAME:
 			if time_elapsed > WARNING_USEC_PER_FRAME:
 				print("Warning: spent ", time_elapsed, " usec processing responses.")
-			return
+			return true
+		return false
 
 
 func _handle_gallery_response(obj: GalleryResponse):
