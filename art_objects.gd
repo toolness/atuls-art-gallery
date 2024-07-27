@@ -21,6 +21,7 @@ class ArtObjectsRequest:
 
 
 class ImageRequest:
+	var image_path: String
 	var response: Image
 	signal responded
 
@@ -182,38 +183,144 @@ func _process(_delta) -> void:
 		requests.clear()
 		return
 	# TODO: If we're headless, possibly no need to handle max requests per frame.
-	var start_time := Time.get_ticks_usec()
+	var tracker := ElapsedTimeTracker.new()
 	while true:
 		var obj := gallery_client.poll()
-		if not obj:
+		_handle_gallery_response(obj)
+
+		if tracker.has_too_much_time_elapsed():
 			return
-		if not requests.has(obj.request_id):
-			print("Warning: request #", obj.request_id, " does not exist.")
+
+		var image_request := image_loading_thread.get_loaded_image()
+		if image_request:
+			image_request.responded.emit()
+
+		if tracker.has_too_much_time_elapsed():
 			return
-		var request = requests[obj.request_id]
-		requests.erase(obj.request_id)
-		if request is ImageRequest:
-			var r: ImageRequest = request
-			r.response = obj.take_optional_image()
-			r.responded.emit()
-		elif request is ArtObjectsRequest:
-			var r: ArtObjectsRequest = request
-			r.response = obj.take_art_objects()
-			r.responded.emit()
-		elif request is EmptyRequest:
-			var r: EmptyRequest = request
-			assert(obj.take_variant() == null)
-			r.responded.emit()
-		elif request is IntRequest:
-			var r: IntRequest = request
-			var result = obj.take_variant()
-			assert(result is int)
-			r.response = result
-			r.responded.emit()
-		else:
-			assert(false, "Unknown request type, cannot fill response")
+
+
+class ElapsedTimeTracker:
+	var start_time := Time.get_ticks_usec()
+
+	func has_too_much_time_elapsed() -> bool:
 		var time_elapsed := Time.get_ticks_usec() - start_time
 		if time_elapsed > MAX_USEC_PER_FRAME:
 			if time_elapsed > WARNING_USEC_PER_FRAME:
-				print("Warning: spent ", time_elapsed, " usec processing responses from Rust.")
-			return
+				print("Warning: spent ", time_elapsed, " usec processing responses.")
+			return true
+		return false
+
+
+func _handle_gallery_response(obj: GalleryResponse):
+	if not obj:
+		return
+	if not requests.has(obj.request_id):
+		print("Warning: request #", obj.request_id, " does not exist.")
+		return
+	var request = requests[obj.request_id]
+	requests.erase(obj.request_id)
+	if request is ImageRequest:
+		var r: ImageRequest = request
+		var path = obj.take_variant()
+		if path is String:
+			r.image_path = path
+			image_loading_thread.load_image(r)
+	elif request is ArtObjectsRequest:
+		var r: ArtObjectsRequest = request
+		r.response = obj.take_art_objects()
+		r.responded.emit()
+	elif request is EmptyRequest:
+		var r: EmptyRequest = request
+		assert(obj.take_variant() == null)
+		r.responded.emit()
+	elif request is IntRequest:
+		var r: IntRequest = request
+		var result = obj.take_variant()
+		assert(result is int)
+		r.response = result
+		r.responded.emit()
+	else:
+		assert(false, "Unknown request type, cannot fill response")
+
+
+# Ideally we'd do all this from Rust, but support for multi-threading in gdext
+# is still evolving, so we're doing it here.
+class ImageLoadingThread:
+	var thread: Thread
+	var semaphore: Semaphore
+	var mutex: Mutex
+
+	# Access to these must all be protected by Mutxes.
+	var _images_to_load: Array[ImageRequest]
+	var _loaded_images: Array[ImageRequest]
+	var _should_exit: bool
+
+	func start():
+		mutex = Mutex.new()
+		semaphore = Semaphore.new()
+		_images_to_load = []
+		_loaded_images = []
+		_should_exit = false
+		thread = Thread.new()
+		thread.start(_run)
+
+	func load_image(request: ImageRequest):
+		assert(request.image_path is String and len(request.image_path) > 0)
+		if not thread:
+			self.start()
+		mutex.lock()
+		_images_to_load.push_back(request)
+		mutex.unlock()
+		semaphore.post()
+
+	func get_loaded_image() -> ImageRequest:
+		if not thread:
+			return null
+		mutex.lock()
+		var request: ImageRequest = _loaded_images.pop_back()
+		mutex.unlock()
+		return request
+
+	func join():
+		if thread:
+			mutex.lock()
+			_should_exit = true
+			mutex.unlock()
+			semaphore.post()
+			thread.wait_to_finish()
+
+	func _run():
+		while true:
+			semaphore.wait()
+			mutex.lock()
+			var should_exit := _should_exit
+			var image_to_load: ImageRequest = _images_to_load.pop_back()
+			mutex.unlock()
+			if should_exit:
+				return
+			if image_to_load:
+				var image := Image.load_from_file(image_to_load.image_path)
+				if image:
+					image.generate_mipmaps()
+				# It's possible that we could convert to an ImageTexture here in this other thread,
+				# but it's unclear if that would actually improve performance. From the Godot
+				# documentation [1]:
+				#
+				# > You should avoid calling functions involving direct interaction with the GPU
+				# > on other threads, such as creating new textures or modifying and
+				# > retrieving image data, these operations can lead to performance stalls
+				# > because they require synchronization with the RenderingServer, as data
+				# > needs to be transmitted to or updated on the GPU.
+				#
+				# [1]: https://docs.godotengine.org/en/stable/tutorials/performance/thread_safe_apis.html#rendering
+				image_to_load.response = image
+				mutex.lock()
+				_loaded_images.push_back(image_to_load)
+				mutex.unlock()
+
+
+var image_loading_thread := ImageLoadingThread.new()
+
+
+func _exit_tree():
+	image_loading_thread.join()

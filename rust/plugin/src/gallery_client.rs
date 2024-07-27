@@ -10,7 +10,7 @@ use godot::{
     engine::{
         multiplayer_api::RpcMode,
         multiplayer_peer::{ConnectionStatus, TransferMode},
-        FileAccess, Image, MultiplayerPeer, OfflineMultiplayerPeer, ProjectSettings,
+        FileAccess, MultiplayerPeer, OfflineMultiplayerPeer, ProjectSettings,
     },
     prelude::*,
 };
@@ -478,12 +478,16 @@ impl GalleryClient {
                         }
                         ResponseBody::Image(image_path) => {
                             // Note that ideally we'd load this image in a separate thread, so we wouldn't
-                            // potentially cause frame skips. But there are a few things in the way:
+                            // potentially cause frame skips. But there are a few things in the way, at
+                            // least for doing this in Rust:
                             //
                             //   * gdext has a Cargo feature called `experimental-threads` which provides
                             //     experimental support for multithreading, but the underlying safety
                             //     rules are still being worked out as of 2024-07-25, as such there may
                             //     be unsoundness and an unstable API.
+                            //
+                            //     Even then, though, it looks like `Image` is !Send, so we can't simply
+                            //     load the image in a separate thread and send it over a channel.
                             //
                             //   * According to the Godot docs on Multithreading [1]:
                             //
@@ -507,17 +511,17 @@ impl GalleryClient {
                             //
                             //     [1] https://docs.godotengine.org/en/stable/tutorials/performance/thread_safe_apis.html#rendering
                             //
-                            // Regardless, for now we're just going to load images on the main thread.
-                            let image = image_path
-                                .map(|image_path| {
-                                    Image::load_from_file(GString::from(
-                                        image_path.to_string_lossy().into_owned(),
-                                    ))
-                                })
-                                .flatten();
+                            // Regardless, for now we're just going to pass the image path to Godot, and it
+                            // can do whatever it wants with it.
+                            let variant: Variant = match image_path {
+                                Some(image_path) => {
+                                    Variant::from(image_path.to_string_lossy().into_godot())
+                                }
+                                None => Variant::nil(),
+                            };
                             Some(Gd::from_object(GalleryResponse {
                                 request_id,
-                                response: InnerGalleryResponse::Image(image),
+                                response: InnerGalleryResponse::Variant(variant),
                             }))
                         }
                     }

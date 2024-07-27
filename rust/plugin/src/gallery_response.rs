@@ -1,4 +1,4 @@
-use godot::{engine::Image, prelude::*};
+use godot::prelude::*;
 
 use crate::art_object::ArtObject;
 
@@ -6,7 +6,6 @@ use crate::art_object::ArtObject;
 pub enum InnerGalleryResponse {
     Variant(Variant),
     ArtObjects(Array<Gd<ArtObject>>),
-    Image(Option<Gd<Image>>),
 }
 
 impl Default for InnerGalleryResponse {
@@ -32,17 +31,6 @@ impl GalleryResponse {
             _ => {
                 godot_error!("GalleryResponse is not ArtObjects!");
                 Array::new()
-            }
-        }
-    }
-
-    #[func]
-    fn take_optional_image(&mut self) -> Option<Gd<Image>> {
-        match std::mem::take(&mut self.response) {
-            InnerGalleryResponse::Image(response) => response,
-            _ => {
-                godot_error!("GalleryResponse is not Image!");
-                None
             }
         }
     }
