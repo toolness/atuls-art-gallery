@@ -478,12 +478,16 @@ impl GalleryClient {
                         }
                         ResponseBody::Image(image_path) => {
                             // Note that ideally we'd load this image in a separate thread, so we wouldn't
-                            // potentially cause frame skips. But there are a few things in the way:
+                            // potentially cause frame skips. But there are a few things in the way, at
+                            // least for doing this in Rust:
                             //
                             //   * gdext has a Cargo feature called `experimental-threads` which provides
                             //     experimental support for multithreading, but the underlying safety
                             //     rules are still being worked out as of 2024-07-25, as such there may
                             //     be unsoundness and an unstable API.
+                            //
+                            //     Even then, though, it looks like `Image` is !Send, so we can't simply
+                            //     load the image in a separate thread and send it over a channel.
                             //
                             //   * According to the Godot docs on Multithreading [1]:
                             //
