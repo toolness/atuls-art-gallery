@@ -186,35 +186,8 @@ func _process(_delta) -> void:
 	var start_time := Time.get_ticks_usec()
 	while true:
 		var obj := gallery_client.poll()
-		if not obj:
-			return
-		if not requests.has(obj.request_id):
-			print("Warning: request #", obj.request_id, " does not exist.")
-			return
-		var request = requests[obj.request_id]
-		requests.erase(obj.request_id)
-		if request is ImageRequest:
-			var r: ImageRequest = request
-			var path = obj.take_variant()
-			if path is String:
-				r.image_path = path
-				image_loading_thread.load_image(r)
-		elif request is ArtObjectsRequest:
-			var r: ArtObjectsRequest = request
-			r.response = obj.take_art_objects()
-			r.responded.emit()
-		elif request is EmptyRequest:
-			var r: EmptyRequest = request
-			assert(obj.take_variant() == null)
-			r.responded.emit()
-		elif request is IntRequest:
-			var r: IntRequest = request
-			var result = obj.take_variant()
-			assert(result is int)
-			r.response = result
-			r.responded.emit()
-		else:
-			assert(false, "Unknown request type, cannot fill response")
+		_handle_gallery_response(obj)
+
 		var time_elapsed := Time.get_ticks_usec() - start_time
 		if time_elapsed > MAX_USEC_PER_FRAME:
 			if time_elapsed > WARNING_USEC_PER_FRAME:
@@ -229,8 +202,40 @@ func _process(_delta) -> void:
 		time_elapsed = Time.get_ticks_usec() - start_time
 		if time_elapsed > MAX_USEC_PER_FRAME:
 			if time_elapsed > WARNING_USEC_PER_FRAME:
-				print("Warning: spent ", time_elapsed, " usec processing responses from Rust.")
+				print("Warning: spent ", time_elapsed, " usec processing responses.")
 			return
+
+
+func _handle_gallery_response(obj: GalleryResponse):
+	if not obj:
+		return
+	if not requests.has(obj.request_id):
+		print("Warning: request #", obj.request_id, " does not exist.")
+		return
+	var request = requests[obj.request_id]
+	requests.erase(obj.request_id)
+	if request is ImageRequest:
+		var r: ImageRequest = request
+		var path = obj.take_variant()
+		if path is String:
+			r.image_path = path
+			image_loading_thread.load_image(r)
+	elif request is ArtObjectsRequest:
+		var r: ArtObjectsRequest = request
+		r.response = obj.take_art_objects()
+		r.responded.emit()
+	elif request is EmptyRequest:
+		var r: EmptyRequest = request
+		assert(obj.take_variant() == null)
+		r.responded.emit()
+	elif request is IntRequest:
+		var r: IntRequest = request
+		var result = obj.take_variant()
+		assert(result is int)
+		r.response = result
+		r.responded.emit()
+	else:
+		assert(false, "Unknown request type, cannot fill response")
 
 
 # Ideally we'd do all this from Rust, but support for multi-threading in gdext
