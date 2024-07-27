@@ -302,6 +302,17 @@ class ImageLoadingThread:
 				var image := Image.load_from_file(image_to_load.image_path)
 				if image:
 					image.generate_mipmaps()
+				# It's possible that we could convert to an ImageTexture here in this other thread,
+				# but it's unclear if that would actually improve performance. From the Godot
+				# documentation [1]:
+				#
+				# > You should avoid calling functions involving direct interaction with the GPU
+				# > on other threads, such as creating new textures or modifying and
+				# > retrieving image data, these operations can lead to performance stalls
+				# > because they require synchronization with the RenderingServer, as data
+				# > needs to be transmitted to or updated on the GPU.
+				#
+				# [1]: https://docs.godotengine.org/en/stable/tutorials/performance/thread_safe_apis.html#rendering
 				image_to_load.response = image
 				mutex.lock()
 				_loaded_images.push_back(image_to_load)
