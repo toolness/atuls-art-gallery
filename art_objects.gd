@@ -1,39 +1,32 @@
 extends Node
 
-
 const NULL_REQUEST_ID = 0
 
 ## Try to only spend these many microseconds per frame processing
-## responses from the Rust side, as we don't want to skip frames.
+## responses, as we don't want to skip frames.
 const MAX_USEC_PER_FRAME = 8000
 
 ## If we spend more than these many microseconds processing
-## responses from the Rust side, log a warning.
+## responses, log a warning.
 const WARNING_USEC_PER_FRAME = 16000
 
-
 var requests = {}
-
 
 class ArtObjectsRequest:
 	var response: Array[ArtObject]
 	signal responded
-
 
 class ImageRequest:
 	var image_path: String
 	var response: Image
 	signal responded
 
-
 class EmptyRequest:
 	signal responded
-
 
 class IntRequest:
 	var response: int
 	signal responded
-
 
 func _fetch_image(object_id: int, size: String) -> Image:
 	if Lobby.IS_HEADLESS:
@@ -45,7 +38,7 @@ func _fetch_image(object_id: int, size: String) -> Image:
 	elif size == "large":
 		request_id = gallery_client.fetch_large_image(object_id)
 	else:
-		crash("Invalid image size: " +  size)
+		crash("Invalid image size: " + size)
 	if request_id == NULL_REQUEST_ID:
 		# Oof, something went wrong.
 		return null
@@ -53,14 +46,11 @@ func _fetch_image(object_id: int, size: String) -> Image:
 	await request.responded
 	return request.response
 
-
 func fetch_small_image(object_id: int) -> Image:
 	return await _fetch_image(object_id, "small")
 
-
 func fetch_large_image(object_id: int) -> Image:
 	return await _fetch_image(object_id, "large")
-
 
 func count_art_objects(filter: String) -> int:
 	var request := IntRequest.new()
@@ -71,7 +61,6 @@ func count_art_objects(filter: String) -> int:
 	requests[request_id] = request
 	await request.responded
 	return request.response
-
 
 func layout(filter: String, dense: bool) -> void:
 	var request := EmptyRequest.new()
@@ -84,7 +73,6 @@ func layout(filter: String, dense: bool) -> void:
 	await request.responded
 	print("Layout complete.")
 
-
 func get_art_objects_for_gallery_wall(gallery_id: int, wall_id: String) -> Array[ArtObject]:
 	var request := ArtObjectsRequest.new()
 	var request_id := gallery_client.get_art_objects_for_gallery_wall(gallery_id, wall_id)
@@ -95,20 +83,16 @@ func get_art_objects_for_gallery_wall(gallery_id: int, wall_id: String) -> Array
 	await request.responded
 	return request.response
 
-
 func get_art_object_url(id: int) -> String:
 	return gallery_client.get_art_object_url(id)
-
 
 var fatal_error_message: String
 
 var gallery_client: GalleryClient
 
-
 func crash(message: String):
 	OS.alert(message)
 	get_tree().quit(1)
-
 
 func copy_initial_db(db_filename: String) -> void:
 	var GALLERY_DB_PATH := ROOT_DIR + db_filename
@@ -147,7 +131,6 @@ func copy_initial_db(db_filename: String) -> void:
 		out_file.close()
 		print("Wrote initial DB (", total, " bytes total).")
 
-
 var ROOT_DIR: String
 
 func _ready() -> void:
@@ -171,7 +154,6 @@ func _ready() -> void:
 	gallery_client.name = "GalleryClient"
 	add_child(gallery_client)
 	gallery_client.connect(ROOT_DIR)
-
 
 func _process(_delta) -> void:
 	if fatal_error_message:
@@ -198,7 +180,6 @@ func _process(_delta) -> void:
 		if tracker.has_too_much_time_elapsed():
 			return
 
-
 class ElapsedTimeTracker:
 	var start_time := Time.get_ticks_usec()
 
@@ -209,7 +190,6 @@ class ElapsedTimeTracker:
 				print("Warning: spent ", time_elapsed, " usec processing responses.")
 			return true
 		return false
-
 
 func _handle_gallery_response(obj: GalleryResponse):
 	if not obj:
@@ -242,7 +222,6 @@ func _handle_gallery_response(obj: GalleryResponse):
 	else:
 		assert(false, "Unknown request type, cannot fill response")
 
-
 # Ideally we'd do all this from Rust, but support for multi-threading in gdext
 # is still evolving, so we're doing it here.
 class ImageLoadingThread:
@@ -256,6 +235,7 @@ class ImageLoadingThread:
 	var _should_exit: bool
 
 	func start():
+		print("Spawning image loading thread.")
 		mutex = Mutex.new()
 		semaphore = Semaphore.new()
 		_images_to_load = []
@@ -283,6 +263,7 @@ class ImageLoadingThread:
 
 	func join():
 		if thread:
+			print("Joining image loading thread.")
 			mutex.lock()
 			_should_exit = true
 			mutex.unlock()
@@ -318,9 +299,7 @@ class ImageLoadingThread:
 				_loaded_images.push_back(image_to_load)
 				mutex.unlock()
 
-
 var image_loading_thread := ImageLoadingThread.new()
-
 
 func _exit_tree():
 	image_loading_thread.join()

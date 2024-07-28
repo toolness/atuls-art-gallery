@@ -37,10 +37,10 @@ impl Connection {
         godot_print!("Root dir is {}.", root_dir.display());
         let (to_worker_tx, to_worker_rx) = channel::<MessageToWorker>();
         let (from_worker_tx, from_worker_rx) = channel::<MessageFromWorker>();
-        godot_print!("Spawning work thread.");
+        godot_print!("Spawning gallery worker thread.");
         let handler = thread::spawn(move || {
             if let Err(err) = work_thread(root_dir.clone(), to_worker_rx, from_worker_tx.clone()) {
-                eprintln!("Thread errored: {err:?}");
+                eprintln!("Gallery worker thread errored: {err:?}");
                 let _ = from_worker_tx.send(MessageFromWorker::FatalError(format!("{err:?}")));
             }
         });
@@ -53,15 +53,18 @@ impl Connection {
 
     fn disconnect(self) {
         if let Err(err) = self.to_worker_tx.send(MessageToWorker::End) {
-            godot_print!("Error sending end signal to thread: {:?}", err);
+            godot_print!(
+                "Error sending end signal to gallery worker thread: {:?}",
+                err
+            );
             return;
         }
         match self.handler.join() {
             Ok(_) => {
-                godot_print!("Joined thread.");
+                godot_print!("Joined gallery worker thread.");
             }
             Err(err) => {
-                godot_print!("Error joining thread: {:?}", err);
+                godot_print!("Error joining gallery worker thread: {:?}", err);
             }
         }
     }
@@ -147,7 +150,7 @@ impl GalleryClient {
 
     fn handle_send_error(&mut self, err: SendError<MessageToWorker>) {
         if self.connection.is_some() {
-            godot_error!("sending message to worker failed: {:?}", err);
+            godot_error!("Sending message to gallery worker thread failed: {:?}", err);
         }
     }
 
@@ -419,12 +422,12 @@ impl GalleryClient {
 
         match message {
             MessageFromWorker::Done => {
-                godot_print!("Work thread exited cleanly.");
+                godot_print!("Gallery worker thread exited cleanly.");
                 self.connection = None;
                 None
             }
             MessageFromWorker::FatalError(message) => {
-                godot_error!("Work thread encountered fatal error: {message}");
+                godot_error!("Gallery worker thread encountered fatal error: {message}");
                 self.fatal_error = Some(message);
                 self.connection = None;
                 None
