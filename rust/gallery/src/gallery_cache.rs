@@ -52,6 +52,8 @@ impl GalleryCache {
         validate_response(&response)?;
         let mut response_body = response.into_reader();
         let mut outfile = File::create(cached_path.clone())?;
+        // TODO: Ideally we should prevent the file from growing too large, since the
+        // response may not have had a content-length header.
         match std::io::copy(&mut response_body, &mut outfile) {
             Ok(_) => Ok(()),
             Err(err) => {
@@ -77,6 +79,8 @@ impl GalleryCache {
         if response.content_type() != "application/json" {
             return Err(anyhow!("Content type is {}", response.content_type()));
         }
+        // TODO: Ideally we should prevent the response from growing too large, since the
+        // response may not have had a content-length header.
         let response_body = response.into_string()?;
         let json_body: serde_json::Value = serde_json::from_str(response_body.as_ref())?;
         let pretty_printed = serde_json::to_string_pretty(&json_body)?;
@@ -95,15 +99,16 @@ fn validate_response(response: &Response) -> Result<()> {
     if response.status() != 200 {
         return Err(anyhow!("Got HTTP {}", response.status()));
     }
-    let Some(size) = response.header("Content-Length") else {
-        return Err(anyhow!("Response has no content-length header"));
+    // Annoyingly, the Met API doesn't serve a content-length header, so we can't
+    // parse them, hence this is optional.
+    if let Some(size) = response.header("Content-Length") {
+        let Ok(size) = size.parse::<u64>() else {
+            return Err(anyhow!("Unable to parse content-length: {size:?}"));
+        };
+        if size > MAX_FILE_SIZE {
+            return Err(anyhow!("Response is too large ({size} bytes)"));
+        }
     };
-    let Ok(size) = size.parse::<u64>() else {
-        return Err(anyhow!("Unable to part content-length: {size:?}"));
-    };
-    if size > MAX_FILE_SIZE {
-        return Err(anyhow!("Response is too large ({size} bytes)"));
-    }
     Ok(())
 }
 
