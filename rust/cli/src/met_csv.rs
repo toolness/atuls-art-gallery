@@ -13,9 +13,8 @@ pub struct MetObjectCsvRecord {
     #[serde(rename = "Is Public Domain", deserialize_with = "deserialize_csv_bool")]
     pub public_domain: bool,
 
-    #[serde(rename = "Is Highlight", deserialize_with = "deserialize_csv_bool")]
-    pub highlight: bool,
-
+    //#[serde(rename = "Is Highlight", deserialize_with = "deserialize_csv_bool")]
+    //pub highlight: bool,
     #[serde(rename = "Object ID")]
     pub object_id: i64,
 
@@ -28,9 +27,8 @@ pub struct MetObjectCsvRecord {
     #[serde(rename = "Artist Display Name")]
     pub artist_display_name: String,
 
-    #[serde(rename = "AccessionYear", deserialize_with = "deserialize_csv_year")]
-    pub accession_year: Option<u16>,
-
+    //#[serde(rename = "AccessionYear", deserialize_with = "deserialize_csv_year")]
+    //pub accession_year: Option<u16>,
     #[serde(rename = "Object Date")]
     pub object_date: String,
 
