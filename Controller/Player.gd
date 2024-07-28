@@ -254,7 +254,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		# MacOS trackpads emit this event instead of triggering a mouse wheel
 		# up/down event.
 		var pan_event: InputEventPanGesture = event
-		zoom += pan_event.delta.y
+		if Input.is_key_pressed(KEY_SHIFT):
+			zoom += pan_event.delta.y
+		else:
+			UserInterface.adjust_fov(pan_event.delta.y)
 
 	if event.is_action_pressed("right_click") and UserInterface.reticle.visible:
 		var painting := Moma.try_to_find_painting_from_collision(raycast.get_collider())

@@ -98,6 +98,9 @@ func _ready() -> void:
 func set_connection_status_text(value: String):
 	connection_status_label.text = value
 
+func adjust_fov(delta: float) -> void:
+	settings_container.adjust_fov(delta)
+
 var DEBUG_DRAW_CYCLE: Array[Viewport.DebugDraw] = [
 	Viewport.DEBUG_DRAW_DISABLED,
 	Viewport.DEBUG_DRAW_OVERDRAW,

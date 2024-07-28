@@ -5,8 +5,8 @@ extends MarginContainer
 signal exit()
 
 @export_category("FOV")
-@export var min_fov: float = 40
-@export var max_fov: float = 100
+@export var min_fov: float = 20
+@export var max_fov: float = 60
 @export var default_fov: float = 60
 
 @export_category("Mouse Sensitivity")
@@ -109,6 +109,10 @@ func _ready() -> void:
 func _on_button_pressed() -> void:
 	config_file.save()
 	exit.emit()
+
+
+func adjust_fov(delta: float) -> void:
+	fov_slider.value = fov_slider.value + delta
 
 
 func _on_fov_slider_value_changed(value: float) -> void:
