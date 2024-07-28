@@ -3,6 +3,10 @@
 From the project root, run:
 
 ```
+# Fetch git submodules
+git submodule init
+git submodule update
+
 cd rust
 
 # Download the Metropolitan Museum of Art open access CSV
