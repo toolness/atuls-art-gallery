@@ -9,6 +9,8 @@ extends Node3D
 
 @onready var player_spawn_point: Node3D = %PlayerSpawnPoint
 
+@onready var player_initial_teleport_point: Node3D = %PlayerInitialTeleportPoint
+
 @onready var gallery_chunks: Array[Moma] = []
 
 @onready var auto_saver: AutoSaver = $AutoSaver
@@ -74,6 +76,14 @@ func get_players() -> Array[Player]:
 	return players
 
 
+func _add_galleries_around_point(point: Vector3, galleries: Dictionary):
+	var middle_gallery_id := get_gallery_id(point.x)
+	var min_gallery_id := middle_gallery_id - GALLERY_SPAWN_RADIUS
+	var max_gallery_id := middle_gallery_id + GALLERY_SPAWN_RADIUS
+	for i in range(min_gallery_id, max_gallery_id + 1):
+		galleries[i] = null
+
+
 func sync_galleries() -> void:
 	if Lobby.IS_CLIENT:
 		# We should never be running this from the client.
@@ -93,11 +103,8 @@ func sync_galleries() -> void:
 	# great.
 	var galleries_to_exist := {}
 	for player in players:
-		var middle_gallery_id := get_gallery_id(player.position.x)
-		var min_gallery_id := middle_gallery_id - GALLERY_SPAWN_RADIUS
-		var max_gallery_id := middle_gallery_id + GALLERY_SPAWN_RADIUS
-		for i in range(min_gallery_id, max_gallery_id + 1):
-			galleries_to_exist[i] = null
+		_add_galleries_around_point(player.position, galleries_to_exist)
+		_add_galleries_around_point(player.teleport_global_transform.origin, galleries_to_exist)
 
 	# Get rid of galleries that are far from the players.
 	var galleries_existing := _despawn_all_galleries_except(galleries_to_exist)
@@ -168,6 +175,7 @@ func _spawn_player(id: int) -> Player:
 	player.initial_rotation = player_spawn_point.global_rotation
 	add_child(player)
 	player.global_position = player_spawn_point.global_position
+	player.teleport_global_transform = player_initial_teleport_point.global_transform
 	print("Spawned ", player.name, ".")
 	return player
 
