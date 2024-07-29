@@ -316,9 +316,17 @@ pub fn work_thread(
                         };
                         let art_objects = db.get_all_art_objects_for_layout(&options)?;
                         let gallery_start_id = 1;
-                        let (galleries_created, layout_records) =
-                            layout(dense, gallery_start_id, &walls, art_objects, false)?;
-                        db.set_layout_records(&layout_records)?;
+                        let except_art_object_ids =
+                            db.get_art_object_ids_in_non_positive_galleries()?;
+                        let (galleries_created, layout_records) = layout(
+                            dense,
+                            gallery_start_id,
+                            &walls,
+                            art_objects,
+                            &except_art_object_ids,
+                            false,
+                        )?;
+                        db.set_layout_records_in_positive_galleries(&layout_records)?;
                         println!(
                             "Created layout across {} galleries with {} walls each, dense={dense}.",
                             galleries_created,

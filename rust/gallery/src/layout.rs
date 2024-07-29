@@ -1,3 +1,7 @@
+use std::collections::HashSet;
+
+use crate::art_object::ArtObjectId;
+
 use super::{
     gallery_db::{ArtObjectLayoutInfo, LayoutRecord},
     gallery_wall::GalleryWall,
@@ -104,6 +108,7 @@ pub fn place_paintings_along_wall<'a>(
     center_vertically: bool,
     use_dense_layout: bool,
     layout_records: &mut Vec<LayoutRecord<&'a str>>,
+    except_art_object_ids: &HashSet<ArtObjectId>,
 ) {
     let max_painting_width = max_width - PAINTING_HORIZ_MARGIN * 2.0;
     if max_painting_width <= 0.0 {
@@ -124,13 +129,19 @@ pub fn place_paintings_along_wall<'a>(
             };
         let margin_height = y - art_object.height / 2.0;
         let margin_width = max_width / 2.0 - art_object.width / 2.0;
-        layout_records.push(LayoutRecord {
-            gallery_id,
-            wall_id: &wall_name,
-            art_object_id: art_object.id,
-            x,
-            y,
-        });
+
+        // Note that even if the art object shouldn't be placed, we leave an empty space where it
+        // would've been. This helps keep layouts consistent.
+        if !except_art_object_ids.contains(&art_object.id) {
+            layout_records.push(LayoutRecord {
+                gallery_id,
+                wall_id: &wall_name,
+                art_object_id: art_object.id,
+                x,
+                y,
+            });
+        }
+
         // Only put at most one painting below the one that's centered vertically.
         if use_dense_layout && center_vertically {
             let vertical_space_below = margin_height - PAINTING_MIN_DISTANCE_FROM_FLOOR;
@@ -152,6 +163,7 @@ pub fn place_paintings_along_wall<'a>(
                     false,
                     false,
                     layout_records,
+                    except_art_object_ids,
                 );
             }
         }
@@ -168,6 +180,7 @@ pub fn place_paintings_along_wall<'a>(
                 center_vertically,
                 use_dense_layout,
                 layout_records,
+                except_art_object_ids,
             );
             place_paintings_along_wall(
                 gallery_id,
@@ -181,6 +194,7 @@ pub fn place_paintings_along_wall<'a>(
                 center_vertically,
                 use_dense_layout,
                 layout_records,
+                except_art_object_ids,
             );
         }
     }
@@ -191,6 +205,7 @@ pub fn layout<'a>(
     gallery_start_id: i64,
     walls: &'a Vec<GalleryWall>,
     mut art_objects: Vec<ArtObjectLayoutInfo>,
+    except_art_object_ids: &HashSet<ArtObjectId>,
     warnings: bool,
 ) -> Result<(usize, Vec<LayoutRecord<&'a str>>)> {
     // Reverse the objects, since we'll be popping them off the end of the vec.
@@ -215,6 +230,7 @@ pub fn layout<'a>(
             true,
             use_dense_layout,
             &mut layout_records,
+            except_art_object_ids,
         );
         wall_idx += 1;
         if wall_idx == walls.len() {

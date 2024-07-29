@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 /// This does, mean, however, that logging done from the Godot side won't be
 /// very helpful. We should probably have Godot only log art object URLs instead
 /// of raw IDs.
-#[derive(Debug, Copy, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum ArtObjectId {
     Met(i64),
     Wikidata(i64),
