@@ -8,6 +8,8 @@ var player_start_position: Vector3
 
 var player_start_rotation: Vector3
 
+var player_start_teleport_position: Vector3
+
 @onready var SAVE_STATE_FILENAME := ArtObjects.ROOT_DIR + "save_state.json"
 
 const AUTOSAVE_INTERVAL := 30.0
@@ -27,6 +29,8 @@ func save_state() -> void:
 	var state := {
 		"player_position": vec3_to_array(player.global_position),
 		"player_rotation": vec3_to_array(player.global_rotation),
+		"player_teleport_position": vec3_to_array(player.teleport_global_transform.origin),
+		# TODO: Save/restore teleport rotation too.
 	}
 	var file := FileAccess.open(SAVE_STATE_FILENAME, FileAccess.WRITE)
 	var json_stringified := JSON.stringify(state)
@@ -58,6 +62,7 @@ func load_state() -> void:
 		state = JSON.parse_string(json_stringified)
 	player.global_position = vec3_from_array(state.get("player_position"), player_start_position)
 	player.global_rotation = vec3_from_array(state.get("player_rotation"), player_start_rotation)
+	player.teleport_global_transform.origin = vec3_from_array(state.get("player_teleport_position"), player_start_teleport_position)
 
 
 func _on_before_reload(hard_reset: bool):
@@ -75,6 +80,7 @@ func init(new_player: Player) -> void:
 	player = new_player
 	player_start_position = player.global_position
 	player_start_rotation = player.global_rotation
+	player_start_teleport_position = player.teleport_global_transform.origin
 	set_process(true)
 	UserInterface.before_reload.connect(_on_before_reload)
 	print("Save state filename is " + SAVE_STATE_FILENAME + ".")
