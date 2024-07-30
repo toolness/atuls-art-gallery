@@ -287,11 +287,25 @@ func _ready():
 const WALL_SURFACE_IDX = 0
 
 func _paint_negative_gallery_walls():
-	for wall in _get_walls():
-		var material: StandardMaterial3D = wall.mesh_instance.mesh.surface_get_material(WALL_SURFACE_IDX).duplicate()
-		# This is Farrow & Ball's "Manor House Gray".
-		material.albedo_color = Color(158.0 / 255.0, 160.0 / 255.0, 157.0 / 255.0)
-		wall.mesh_instance.set_surface_override_material(WALL_SURFACE_IDX, material)
+	var first_wall := _get_walls()[0]
+	var wall_material: StandardMaterial3D = first_wall.mesh_instance.mesh.surface_get_material(WALL_SURFACE_IDX)
+	var override_material: StandardMaterial3D = wall_material.duplicate()
+	# This is Farrow & Ball's "Manor House Gray".
+	override_material.albedo_color = Color(158.0 / 255.0, 160.0 / 255.0, 157.0 / 255.0)
+
+	# We need to paint all surfaces that use the same material as the walls.
+	# This includes not _just_ walls--for instance, passageways need to be painted.
+	for child in gallery.get_children():
+		if not is_instance_of(child, MeshInstance3D):
+			continue
+		var mesh_instance_child: MeshInstance3D = child
+		var mesh := mesh_instance_child.mesh
+		var num_surfaces := mesh.get_surface_count()
+		for i in range(num_surfaces):
+			var material: StandardMaterial3D = mesh.surface_get_material(i)
+			if material == wall_material:
+				# This uses the same material as our walls, so paint it.
+				mesh_instance_child.set_surface_override_material(i, override_material)
 
 
 ## This is only used on the server.
