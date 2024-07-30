@@ -35,6 +35,8 @@ class_name Player
 @export var max_zoom: float = 6.0
 ## How quickly to zoom the camera
 @export var zoom_sensitivity: float = 0.4
+## How to quickly change the FOV
+@export var fov_sensitivity: float = 5.0
 
 @onready var player_input: PlayerInput = $PlayerInput
 
@@ -279,6 +281,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		zoom -= zoom_sensitivity
 	elif event.is_action_pressed("zoom_out"):
 		zoom += zoom_sensitivity
+	if event.is_action_pressed("fov_in"):
+		UserInterface.adjust_fov(fov_sensitivity)
+	elif event.is_action_pressed("fov_out"):
+		UserInterface.adjust_fov(-fov_sensitivity)
 
 	if event.is_action_pressed("toggle_wall_labels"):
 		# This is set in project settings but I'm not sure how to keep it in sync with it.

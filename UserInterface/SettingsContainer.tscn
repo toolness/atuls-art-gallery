@@ -322,6 +322,7 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(512, 0)
 layout_mode = 2
 size_flags_vertical = 1
+step = 0.1
 
 [node name="FOVValue" type="Label" parent="VBoxContainer/TabContainer/Gameplay/FOVPanel/FOVContainer"]
 unique_name_in_owner = true
