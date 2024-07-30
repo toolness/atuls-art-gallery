@@ -38,6 +38,8 @@ class_name Player
 
 @onready var player_input: PlayerInput = $PlayerInput
 
+@export var teleport_global_transform: Transform3D
+
 # Get the gravity from the project settings to be synced with RigidBody nodes.
 var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 # Stores the direction the player is trying to look this frame.
@@ -169,6 +171,12 @@ func _physics_process(delta: float) -> void:
 		
 	update_animation_tree()
 	move_and_slide()
+
+	if player_input.teleported:
+		player_input.teleported = false
+		var previous_global_transform = global_transform
+		global_transform = teleport_global_transform
+		teleport_global_transform = previous_global_transform
 
 	if player_input.clicked:
 		player_input.clicked = false

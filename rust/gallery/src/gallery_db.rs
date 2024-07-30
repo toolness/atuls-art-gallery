@@ -1,4 +1,6 @@
-use anyhow::Result;
+use std::collections::HashSet;
+
+use anyhow::{anyhow, Result};
 use rusqlite::{Connection, Transaction};
 
 use crate::{
@@ -137,13 +139,34 @@ impl GalleryDb {
         Ok(())
     }
 
+    pub fn get_art_object_ids_in_non_positive_galleries(&mut self) -> Result<HashSet<ArtObjectId>> {
+        let mut statement = self
+            .conn
+            .prepare("SELECT art_object_id FROM layout WHERE gallery_id <= 0")?;
+        let mut rows = statement.query(())?;
+        let mut result = HashSet::<ArtObjectId>::new();
+        while let Some(row) = rows.next()? {
+            let raw_id: i64 = row.get(0)?;
+            result.insert(ArtObjectId::from_raw_i64(raw_id));
+        }
+        Ok(result)
+    }
+
     /// Clears the layout and fills it with the given records.
-    pub fn set_layout_records<T: AsRef<str>>(
+    pub fn set_layout_records_in_positive_galleries<T: AsRef<str>>(
         &mut self,
         records: &Vec<LayoutRecord<T>>,
     ) -> Result<()> {
         let tx = self.conn.transaction()?;
-        tx.execute("DELETE FROM layout", ())?;
+        tx.execute("DELETE FROM layout WHERE gallery_id > 0", ())?;
+        for record in records.iter() {
+            if record.gallery_id <= 0 {
+                return Err(anyhow!(
+                    "{:?} is not in a positive gallery!",
+                    record.art_object_id
+                ));
+            }
+        }
         GalleryDb::upsert_layout_records_with_transaction(&tx, records)?;
         tx.commit()?;
         Ok(())
@@ -407,6 +430,7 @@ mod tests {
     use super::{ArtObjectLayoutInfo, ArtObjectRecord, GalleryDb};
 
     const FUNKY_PAINTING_ID: ArtObjectId = ArtObjectId::Met(1);
+    const MONKEY_PAINTING_ID: ArtObjectId = ArtObjectId::Wikidata(5);
 
     fn make_funky_painting() -> ArtObjectRecord {
         ArtObjectRecord {
@@ -421,6 +445,22 @@ mod tests {
             fallback_wikidata_qid: Some(1234),
             filename: "funky-painting.jpg".into(),
             collection: "Martian Museum of Art".into(),
+        }
+    }
+
+    fn make_monkey_painting() -> ArtObjectRecord {
+        ArtObjectRecord {
+            object_id: MONKEY_PAINTING_ID,
+            object_date: "1914".into(),
+            culture: "Simian".into(),
+            artist: "Curious George".into(),
+            title: "A Funky Monkey".into(),
+            medium: "Oil on canvas".into(),
+            width: 128.5,
+            height: 12.2,
+            fallback_wikidata_qid: None,
+            filename: "monkey-painting.jpg".into(),
+            collection: "Monkey Museum of Art".into(),
         }
     }
 
@@ -495,7 +535,7 @@ mod tests {
         db.add_art_objects(&vec![make_funky_painting()]).unwrap();
 
         // Add a painting to the layout.
-        db.set_layout_records(&vec![LayoutRecord {
+        db.set_layout_records_in_positive_galleries(&vec![LayoutRecord {
             gallery_id: 1,
             wall_id: "wall_02",
             art_object_id: FUNKY_PAINTING_ID,
@@ -536,6 +576,67 @@ mod tests {
         assert_eq!(
             db.get_art_objects_for_gallery_wall(3, "wall_04").unwrap(),
             vec![(make_funky_painting(), (5.6, 7.8))]
+        );
+    }
+
+    #[test]
+    fn test_positive_gallery_separation_works() {
+        let mut db = create_db();
+        db.add_art_objects(&vec![make_funky_painting(), make_monkey_painting()])
+            .unwrap();
+
+        // Add paintings to the layout.
+        db.set_layout_records_in_positive_galleries(&vec![LayoutRecord {
+            gallery_id: 1,
+            wall_id: "wall_02",
+            art_object_id: FUNKY_PAINTING_ID,
+            x: 1.2,
+            y: 3.4,
+        }])
+        .unwrap();
+        db.set_layout_records_in_positive_galleries(&vec![LayoutRecord {
+            gallery_id: 2,
+            wall_id: "wall_02",
+            art_object_id: MONKEY_PAINTING_ID,
+            x: 1.2,
+            y: 3.4,
+        }])
+        .unwrap();
+
+        assert_eq!(
+            db.get_art_object_ids_in_non_positive_galleries()
+                .unwrap()
+                .len(),
+            0
+        );
+
+        // Move a painting to gallery 0.
+        db.upsert_layout_records(&vec![LayoutRecord {
+            gallery_id: 0,
+            wall_id: "wall_02",
+            art_object_id: FUNKY_PAINTING_ID,
+            x: 1.2,
+            y: 3.4,
+        }])
+        .unwrap();
+
+        assert_eq!(
+            db.get_art_object_ids_in_non_positive_galleries()
+                .unwrap()
+                .len(),
+            1
+        );
+
+        // Clear the layout.
+        db.set_layout_records_in_positive_galleries::<&'static str>(&vec![])
+            .unwrap();
+
+        // Ensure the painting in gallery 0 is still there.
+        assert_eq!(
+            db.get_art_object_ids_in_non_positive_galleries()
+                .unwrap()
+                .len(),
+            1
         );
     }
 }

@@ -275,10 +275,11 @@ fn layout_command(
         LAYOUT_START_GALLERY_ID,
         &walls,
         art_objects,
+        &HashSet::new(),
         warnings,
     )?;
 
-    db.set_layout_records(&layout_records)?;
+    db.set_layout_records_in_positive_galleries(&layout_records)?;
     println!("Created a layout with {} galleries.", galleries_created);
 
     Ok(())

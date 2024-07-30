@@ -92,12 +92,10 @@ class MovingPainting:
 		gallery_id = wall.gallery.gallery_id
 
 	func move_along_wall(raycast: RayCast3D) -> void:
-		if Lobby.IS_CLIENT:
-			# Don't actually do anything if we're the client: painting position, rotation, and parenting is
-			# server-authoritative, so if we change it on the client it will just result in jitter as
-			# the server will be sending updates to change these things too, only it will be from the past
-			# due to latency, resulting in "fighting" between client and server values.
-			return
+		# Note: if we're in a multiplayer situation and this is the client, we'll see jittering.
+		# I think this is becuase the server will be sending updates to change these things too,
+		# only it will be from the past due to latency, resulting in "fighting" between client
+		# and server values.
 		var wall := Moma.try_to_find_wall_from_collision(raycast.get_collider())
 		if not wall:
 			return

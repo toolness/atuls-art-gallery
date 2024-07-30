@@ -231,6 +231,9 @@ properties/1/replication_mode = 2
 properties/2/path = NodePath(".:initial_rotation")
 properties/2/spawn = true
 properties/2/replication_mode = 2
+properties/3/path = NodePath(".:teleport_global_transform")
+properties/3/spawn = true
+properties/3/replication_mode = 2
 
 [sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_ic4ee"]
 properties/0/path = NodePath("PlayerInput:input_direction")
@@ -301,7 +304,7 @@ unique_name_in_owner = true
 
 [node name="RayCast3D" type="RayCast3D" parent="SmoothCamera"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.08165e-12, 2.08165e-12, 2.08165e-12)
-target_position = Vector3(2.08165e-12, 2.08165e-12, -5)
+target_position = Vector3(2.08165e-12, 2.08165e-12, -30)
 debug_shape_custom_color = Color(1, 1, 1, 1)
 debug_shape_thickness = 5
 

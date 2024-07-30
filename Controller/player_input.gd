@@ -8,6 +8,8 @@ var clicked := false
 
 var jumped := false
 
+var teleported := false
+
 func _ready():
 	pass
 
@@ -31,6 +33,10 @@ func click():
 func jump():
 	jumped = true
 
+@rpc("call_local")
+func teleport():
+	teleported = true
+
 func _unhandled_input(event: InputEvent) -> void:
 	if is_authority():
 		if event.is_action_pressed("click"):
@@ -41,3 +47,5 @@ func _unhandled_input(event: InputEvent) -> void:
 				click.rpc()
 		if event.is_action_pressed("jump"):
 			jump.rpc()
+		if event.is_action_pressed("teleport"):
+			teleport.rpc()
