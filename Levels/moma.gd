@@ -280,6 +280,18 @@ func init(new_gallery_id: int):
 
 func _ready():
 	gallery_label.text = str(gallery_id + GALLERY_LABEL_ID_OFFSET)
+	if gallery_id < 0:
+		_paint_negative_gallery_walls()
+
+
+const WALL_SURFACE_IDX = 0
+
+func _paint_negative_gallery_walls():
+	for wall in _get_walls():
+		var material: StandardMaterial3D = wall.mesh_instance.mesh.surface_get_material(WALL_SURFACE_IDX).duplicate()
+		# This is Farrow & Ball's "Manor House Gray".
+		material.albedo_color = Color(158.0 / 255.0, 160.0 / 255.0, 157.0 / 255.0)
+		wall.mesh_instance.set_surface_override_material(WALL_SURFACE_IDX, material)
 
 
 ## This is only used on the server.
