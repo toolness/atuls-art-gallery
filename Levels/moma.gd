@@ -211,20 +211,27 @@ func sort_walls_by_distance_from_player(walls: Array[Wall], player: Player):
 	walls.sort_custom(sort_by_distance_from_player)
 
 
+func _get_walls() -> Array[Wall]:
+	var walls: Array[Wall] = []
+
+	for child in gallery.get_children():
+		var wall := Wall.try_from_object(child)
+		if wall:
+			walls.push_back(wall)
+
+	return walls
+
+
 ## This is only used on the server.
 func populate_with_paintings(players: Array[Player]) -> int:
 	var count := 0
-	var walls: Array[Wall] = []
 
 	var moving_painting_ids := {}
 	for player in players:
 		if player.moving_painting:
 			moving_painting_ids[player.moving_painting.painting.art_object_id] = null
 
-	for child in gallery.get_children():
-		var wall := Wall.try_from_object(child)
-		if wall:
-			walls.push_back(wall)
+	var walls := _get_walls()
 
 	if len(players) == 1:
 		# Optimization for single player mode: populate the closest walls first.
