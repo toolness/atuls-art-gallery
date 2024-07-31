@@ -146,6 +146,8 @@ enum Commands {
         #[arg(short, long)]
         limit: Option<usize>,
     },
+    /// Export layout for non-positive galleries.
+    ExportLayout {},
 }
 
 fn run() -> Result<()> {
@@ -208,7 +210,15 @@ fn run() -> Result<()> {
             output,
             limit,
         } => execute_wikidata_query(input, output, limit),
+        Commands::ExportLayout {} => export_layout(db),
     }
+}
+
+fn export_layout(mut db: GalleryDb) -> Result<()> {
+    let records = db.get_layout_records_in_non_positive_galleries()?;
+    let json = serde_json::to_string_pretty(&records)?;
+    println!("{}", json);
+    Ok(())
 }
 
 fn get_walls() -> Result<Vec<GalleryWall>> {
