@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use anyhow::{anyhow, Result};
 use rusqlite::{Connection, Transaction};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     art_object::ArtObjectId,
@@ -441,7 +441,7 @@ pub struct ArtObjectLayoutInfo {
     pub height: f64,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct LayoutRecord<T: AsRef<str>> {
     pub gallery_id: i64,
     pub wall_id: T,

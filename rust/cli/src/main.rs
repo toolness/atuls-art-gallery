@@ -11,7 +11,7 @@ use clap::{Parser, Subcommand};
 use gallery::art_object::ArtObjectId;
 use gallery::gallery_cache::GalleryCache;
 use gallery::gallery_db::{
-    ArtObjectQueryOptions, ArtObjectRecord, GalleryDb, DEFAULT_GALLERY_DB_FILENAME,
+    ArtObjectQueryOptions, ArtObjectRecord, GalleryDb, LayoutRecord, DEFAULT_GALLERY_DB_FILENAME,
 };
 use gallery::gallery_wall::GalleryWall;
 use gallery::layout::layout;
@@ -147,7 +147,15 @@ enum Commands {
         limit: Option<usize>,
     },
     /// Export layout for non-positive galleries.
-    ExportLayout {},
+    ExportLayout {
+        #[arg()]
+        output: PathBuf,
+    },
+    /// Import layout for non-positive galleries.
+    ImportLayout {
+        #[arg()]
+        input: PathBuf,
+    },
 }
 
 fn run() -> Result<()> {
@@ -210,14 +218,24 @@ fn run() -> Result<()> {
             output,
             limit,
         } => execute_wikidata_query(input, output, limit),
-        Commands::ExportLayout {} => export_layout(db),
+        Commands::ExportLayout { output } => export_layout(db, output),
+        Commands::ImportLayout { input } => import_layout(db, input),
     }
 }
 
-fn export_layout(mut db: GalleryDb) -> Result<()> {
+fn export_layout(mut db: GalleryDb, output: PathBuf) -> Result<()> {
     let records = db.get_layout_records_in_non_positive_galleries()?;
     let json = serde_json::to_string_pretty(&records)?;
-    println!("{}", json);
+    fs::write(&output, json)?;
+    println!("Wrote {}.", output.display());
+    Ok(())
+}
+
+fn import_layout(mut db: GalleryDb, input: PathBuf) -> Result<()> {
+    let json = fs::read_to_string(input)?;
+    let records: Vec<LayoutRecord<String>> = serde_json::from_str(&json)?;
+    db.upsert_layout_records(&records)?;
+    println!("Imported layout containing {} art objects.", records.len());
     Ok(())
 }
 
