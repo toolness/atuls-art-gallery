@@ -152,6 +152,36 @@ impl GalleryDb {
         Ok(result)
     }
 
+    pub fn get_layout_records_in_non_positive_galleries(
+        &mut self,
+    ) -> Result<Vec<LayoutRecord<String>>> {
+        let mut statement = self.conn.prepare(
+            "
+                SELECT
+                    gallery_id,
+                    wall_id,
+                    art_object_id,
+                    x,
+                    y
+                FROM layout
+                WHERE gallery_id <= 0
+                ORDER BY gallery_id, wall_id, x, y
+                ",
+        )?;
+        let mut rows = statement.query(())?;
+        let mut result = Vec::<LayoutRecord<String>>::new();
+        while let Some(row) = rows.next()? {
+            result.push(LayoutRecord {
+                gallery_id: row.get(0)?,
+                wall_id: row.get(1)?,
+                art_object_id: ArtObjectId::from_raw_i64(row.get(2)?),
+                x: row.get(3)?,
+                y: row.get(4)?,
+            });
+        }
+        Ok(result)
+    }
+
     /// Clears the layout and fills it with the given records.
     pub fn set_layout_records_in_positive_galleries<T: AsRef<str>>(
         &mut self,
@@ -410,6 +440,7 @@ pub struct ArtObjectLayoutInfo {
     pub height: f64,
 }
 
+#[derive(Debug, PartialEq, Clone)]
 pub struct LayoutRecord<T: AsRef<str>> {
     pub gallery_id: i64,
     pub wall_id: T,
@@ -610,15 +641,17 @@ mod tests {
             0
         );
 
-        // Move a painting to gallery 0.
-        db.upsert_layout_records(&vec![LayoutRecord {
+        let funky_layout_record = LayoutRecord {
             gallery_id: 0,
-            wall_id: "wall_02",
+            wall_id: "wall_02".to_string(),
             art_object_id: FUNKY_PAINTING_ID,
             x: 1.2,
             y: 3.4,
-        }])
-        .unwrap();
+        };
+
+        // Move a painting to gallery 0.
+        db.upsert_layout_records(&vec![funky_layout_record.clone()])
+            .unwrap();
 
         assert_eq!(
             db.get_art_object_ids_in_non_positive_galleries()
@@ -637,6 +670,11 @@ mod tests {
                 .unwrap()
                 .len(),
             1
+        );
+
+        assert_eq!(
+            db.get_layout_records_in_non_positive_galleries().unwrap(),
+            vec![funky_layout_record]
         );
     }
 }
