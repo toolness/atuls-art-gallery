@@ -81,6 +81,10 @@ enum Commands {
     },
     /// Layout gallery walls.
     Layout {
+        /// Clear the layout (don't populate it with any art).
+        #[arg(long, default_value_t = false)]
+        clear: bool,
+
         /// How to sort the art in the galleries. Defaults to art object ID.
         #[arg(short, long)]
         sort: Option<Sort>,
@@ -187,6 +191,7 @@ fn run() -> Result<()> {
             warnings,
         ),
         Commands::Layout {
+            clear,
             sort,
             random_seed,
             use_dense_layout,
@@ -194,6 +199,7 @@ fn run() -> Result<()> {
             warnings,
         } => layout_command(
             db,
+            clear,
             sort,
             random_seed,
             use_dense_layout,
@@ -263,6 +269,7 @@ fn show_layout_command(db: GalleryDb, gallery_id: i64) -> Result<()> {
 
 fn layout_command(
     mut db: GalleryDb,
+    clear: bool,
     sort: Option<Sort>,
     random_seed: Option<u64>,
     use_dense_layout: bool,
@@ -286,7 +293,11 @@ fn layout_command(
         }
     }
 
-    let mut art_objects = db.get_all_art_objects_for_layout(&options)?;
+    let mut art_objects = if clear {
+        vec![]
+    } else {
+        db.get_all_art_objects_for_layout(&options)?
+    };
     if matches!(sort, Some(Sort::Random)) {
         let mut rng = Rng::new(random_seed);
         println!("Randomizing layout using seed {}.", rng.seed);
