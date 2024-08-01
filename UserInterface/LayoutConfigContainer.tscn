@@ -60,7 +60,7 @@ size_flags_vertical = 10
 layout_mode = 2
 theme_override_font_sizes/normal_font_size = 20
 bbcode_enabled = true
-text = "[color=#ff0000]WARNING:[/color] Creating a new gallery will destroy your current one."
+text = "[color=#ff0000]WARNING:[/color] Creating a new gallery will destroy art in all positive galleries."
 fit_content = true
 
 [node name="DoLayoutButton" type="Button" parent="VBoxContainer/DoLayoutContainer"]
