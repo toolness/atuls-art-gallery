@@ -94,7 +94,7 @@ func crash(message: String):
 	OS.alert(message)
 	get_tree().quit(1)
 
-func copy_initial_db(db_filename: String) -> void:
+func copy_initial_db(db_filename: String) -> bool:
 	var GALLERY_DB_PATH := PersistedConfig.ROOT_DIR + db_filename
 
 	if not FileAccess.file_exists(GALLERY_DB_PATH):
@@ -116,7 +116,7 @@ func copy_initial_db(db_filename: String) -> void:
 		var in_file := FileAccess.open(INITIAL_DB_PATH, FileAccess.READ)
 		if not in_file:
 			crash("Could not open initial DB for reading!")
-			return
+			return false
 		var out_file := FileAccess.open(GALLERY_DB_PATH, FileAccess.WRITE)
 		if not out_file:
 			crash("Unable to write initial DB!")
@@ -130,13 +130,22 @@ func copy_initial_db(db_filename: String) -> void:
 			out_file.store_buffer(data)
 		out_file.close()
 		print("Wrote initial DB (", total, " bytes total).")
+		return true
+	return false
 
 func _ready() -> void:
 	gallery_client = GalleryClient.new()
-	copy_initial_db(gallery_client.default_db_filename())
+	var did_create_initial_db := copy_initial_db(gallery_client.default_db_filename())
 	gallery_client.name = "GalleryClient"
 	add_child(gallery_client)
 	gallery_client.connect(PersistedConfig.ROOT_DIR)
+	if did_create_initial_db:
+		# Note that we're not waiting for the result of the layout.
+		# I'm too lazy to deal with showing the user an initialization screen
+		# right now and will just trust that this works. If it doesn't, it's not
+		# the end of the world, since the user will just see an empty
+		# layout and can try to layout again via the UI.
+		layout(PersistedConfig.get_string(PersistedConfig.GALLERY_FILTER, ""), false)
 
 func _process(_delta) -> void:
 	if fatal_error_message:
