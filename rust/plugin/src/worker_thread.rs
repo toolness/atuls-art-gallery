@@ -10,6 +10,7 @@ use gallery::{
     art_object::ArtObjectId,
     gallery_cache::GalleryCache,
     gallery_db::{get_default_gallery_db_filename, ArtObjectQueryOptions, GalleryDb, LayoutRecord},
+    gallery_db_migration::migrate_gallery_db,
     gallery_wall::GalleryWall,
     image::ImageSize,
     layout::layout,
@@ -53,6 +54,7 @@ pub enum RequestBody {
     CountArtObjects {
         filter: Option<String>,
     },
+    Migrate,
 }
 
 #[derive(Debug)]
@@ -304,6 +306,10 @@ pub fn work_thread(
                 };
                 //println!("work_thread received request: {:?}", request.body);
                 match request.body {
+                    RequestBody::Migrate => {
+                        migrate_gallery_db(&cache)?;
+                        send_response(ResponseBody::Empty);
+                    }
                     RequestBody::Layout {
                         walls_json,
                         filter,

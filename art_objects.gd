@@ -73,6 +73,17 @@ func layout(filter: String, dense: bool) -> void:
 	await request.responded
 	print("Layout complete.")
 
+func migrate() -> void:
+	var request := EmptyRequest.new()
+	var request_id := gallery_client.migrate()
+	if request_id == NULL_REQUEST_ID:
+		push_error("Migration failed!")
+		# Oof, something went wrong.
+		return
+	requests[request_id] = request
+	await request.responded
+	print("Migration complete.")
+
 func get_art_objects_for_gallery_wall(gallery_id: int, wall_id: String) -> Array[ArtObject]:
 	var request := ArtObjectsRequest.new()
 	var request_id := gallery_client.get_art_objects_for_gallery_wall(gallery_id, wall_id)
@@ -146,6 +157,8 @@ func _ready() -> void:
 		# the end of the world, since the user will just see an empty
 		# layout and can try to layout again via the UI.
 		layout(PersistedConfig.get_string(PersistedConfig.GALLERY_FILTER, ""), false)
+		# We're also not waiting for this to complete.
+		migrate()
 
 func _process(_delta) -> void:
 	if fatal_error_message:

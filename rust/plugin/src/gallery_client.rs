@@ -361,6 +361,11 @@ impl GalleryClient {
         })
     }
 
+    #[func]
+    fn migrate(&mut self) -> u32 {
+        self.send_request(RequestBody::Migrate)
+    }
+
     fn new_request_id(&mut self) -> u32 {
         let request_id = self.next_request_id;
         self.next_request_id += 1;

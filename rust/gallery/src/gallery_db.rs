@@ -9,10 +9,14 @@ use crate::{
     filter_parser::{parse_filter, Filter},
 };
 
-const LATEST_GALLERY_DB_VERSION: usize = 5;
+pub const LATEST_GALLERY_DB_VERSION: usize = 6;
 
 pub fn get_default_gallery_db_filename() -> String {
-    format!("gallery{LATEST_GALLERY_DB_VERSION}.sqlite")
+    get_gallery_db_filename(LATEST_GALLERY_DB_VERSION)
+}
+
+pub fn get_gallery_db_filename(version: usize) -> String {
+    format!("gallery{version}.sqlite")
 }
 
 #[derive(Default)]

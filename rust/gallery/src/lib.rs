@@ -2,6 +2,7 @@ pub mod art_object;
 pub mod filter_parser;
 pub mod gallery_cache;
 pub mod gallery_db;
+pub mod gallery_db_migration;
 pub mod gallery_wall;
 pub mod image;
 pub mod layout;
