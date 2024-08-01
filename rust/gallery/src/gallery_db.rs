@@ -9,7 +9,11 @@ use crate::{
     filter_parser::{parse_filter, Filter},
 };
 
-pub const DEFAULT_GALLERY_DB_FILENAME: &'static str = "gallery5.sqlite";
+const LATEST_GALLERY_DB_VERSION: usize = 5;
+
+pub fn get_default_gallery_db_filename() -> String {
+    format!("gallery{LATEST_GALLERY_DB_VERSION}.sqlite")
+}
 
 #[derive(Default)]
 pub struct ArtObjectQueryOptions {

@@ -11,7 +11,8 @@ use clap::{Parser, Subcommand};
 use gallery::art_object::ArtObjectId;
 use gallery::gallery_cache::GalleryCache;
 use gallery::gallery_db::{
-    ArtObjectQueryOptions, ArtObjectRecord, GalleryDb, LayoutRecord, DEFAULT_GALLERY_DB_FILENAME,
+    get_default_gallery_db_filename, ArtObjectQueryOptions, ArtObjectRecord, GalleryDb,
+    LayoutRecord,
 };
 use gallery::gallery_wall::GalleryWall;
 use gallery::layout::layout;
@@ -170,7 +171,7 @@ fn run() -> Result<()> {
     let db_path = if let Some(db_path) = &args.db_path {
         db_path.clone()
     } else {
-        cache.get_cached_path(DEFAULT_GALLERY_DB_FILENAME)
+        cache.get_cached_path(get_default_gallery_db_filename())
     };
     let db = GalleryDb::new(Connection::open(db_path)?);
     match args.command {

@@ -5,7 +5,9 @@ use std::{
     thread::{self, JoinHandle},
 };
 
-use gallery::{art_object::ArtObjectId, gallery_db::DEFAULT_GALLERY_DB_FILENAME, image::ImageSize};
+use gallery::{
+    art_object::ArtObjectId, gallery_db::get_default_gallery_db_filename, image::ImageSize,
+};
 use godot::{
     engine::{
         multiplayer_api::RpcMode,
@@ -139,7 +141,7 @@ impl INode for GalleryClient {
 impl GalleryClient {
     #[func]
     fn default_db_filename(&mut self) -> GString {
-        DEFAULT_GALLERY_DB_FILENAME.into_godot()
+        get_default_gallery_db_filename().into_godot()
     }
 
     #[func]

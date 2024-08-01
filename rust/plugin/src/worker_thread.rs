@@ -9,7 +9,7 @@ use anyhow::Result;
 use gallery::{
     art_object::ArtObjectId,
     gallery_cache::GalleryCache,
-    gallery_db::{ArtObjectQueryOptions, GalleryDb, LayoutRecord, DEFAULT_GALLERY_DB_FILENAME},
+    gallery_db::{get_default_gallery_db_filename, ArtObjectQueryOptions, GalleryDb, LayoutRecord},
     gallery_wall::GalleryWall,
     image::ImageSize,
     layout::layout,
@@ -271,7 +271,7 @@ pub fn work_thread(
 ) -> Result<()> {
     let cache = GalleryCache::new(root_dir);
     migrate_met_api_cache(&cache)?;
-    let db_path = cache.get_cached_path(DEFAULT_GALLERY_DB_FILENAME);
+    let db_path = cache.get_cached_path(get_default_gallery_db_filename());
     // Check for existence, we don't want SQLite making a zero-byte DB file.
     if !db_path.exists() {
         return Err(anyhow!("DB does not exist: {}", db_path.display()));
