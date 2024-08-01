@@ -7,6 +7,7 @@ var ROOT_DIR: String
 const SETTINGS_SECTION = "settings"
 const POTATO_MODE = "potato_mode"
 const GI_ENABLED = "global_illumination"
+const GALLERY_FILTER = "gallery_filter"
 
 func url() -> String:
 	return ROOT_DIR + "settings.cfg"
@@ -26,6 +27,15 @@ func set_bool(cfg_name: String, value: bool):
 func get_bool(cfg_name: String, default: bool) -> bool:
 	var value = file.get_value(SETTINGS_SECTION, cfg_name, default)
 	if value is bool:
+		return value
+	return default
+
+func set_string(cfg_name: String, value: String):
+	file.set_value(SETTINGS_SECTION, cfg_name, value)
+
+func get_string(cfg_name: String, default: String) -> String:
+	var value = file.get_value(SETTINGS_SECTION, cfg_name, default)
+	if value is String:
 		return value
 	return default
 

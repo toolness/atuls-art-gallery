@@ -19,6 +19,8 @@ var _latest_filter_text_version := 0
 # Called when the node enters the scene tree for the first time.
 func _ready():
 	filter_line_edit.text_changed.connect(_on_filter_text_changed)
+	filter_line_edit.text = PersistedConfig.get_string(PersistedConfig.GALLERY_FILTER, "")
+	filter_line_edit.select_all()
 
 
 func _on_filter_text_changed(filter: String):
@@ -69,4 +71,6 @@ func _on_do_layout_button_pressed():
 	await ArtObjects.layout(filter, use_dense_layout)
 	do_layout_button.disabled = false
 	back_button.disabled = false
+	PersistedConfig.set_string(PersistedConfig.GALLERY_FILTER, filter)
+	PersistedConfig.save()
 	new_layout_complete.emit()
