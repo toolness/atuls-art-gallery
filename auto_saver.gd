@@ -10,7 +10,7 @@ var player_start_rotation: Vector3
 
 var player_start_teleport_position: Vector3
 
-@onready var SAVE_STATE_FILENAME := ArtObjects.ROOT_DIR + "save_state.json"
+@onready var SAVE_STATE_FILENAME := PersistedConfig.ROOT_DIR + "save_state.json"
 
 const AUTOSAVE_INTERVAL := 30.0
 

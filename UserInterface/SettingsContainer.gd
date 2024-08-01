@@ -40,45 +40,12 @@ var _player: Player
 
 @onready var is_fullscreen := DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN
 
-@onready var config_file := SettingsConfig.new()
-
 func focus() -> void:
 	button.grab_focus()
 
-class SettingsConfig:
-	var file := ConfigFile.new()
-
-	const SETTINGS_SECTION = "settings"
-	const POTATO_MODE = "potato_mode"
-	const GI_ENABLED = "global_illumination"
-
-	func url() -> String:
-		return ArtObjects.ROOT_DIR + "settings.cfg"
-
-	func load():
-		if file.load(url()) != OK:
-			# This is fine, the settings file just doesn't exist yet.
-			pass
-
-	func save():
-		if file.save(url()) != OK:
-			push_error("Saving " + url() + " failed.")
-
-	func set_bool(cfg_name: String, value: bool):
-		file.set_value(SETTINGS_SECTION, cfg_name, value)
-
-	func get_bool(cfg_name: String, default: bool) -> bool:
-		var value = file.get_value(SETTINGS_SECTION, cfg_name, default)
-		if value is bool:
-			return value
-		return default
-
-
 func _ready() -> void:
-	config_file.load()
-
-	potato_mode_check_button.set_pressed(config_file.get_bool(config_file.POTATO_MODE, false))
-	gi_mode_check_button.set_pressed(config_file.get_bool(config_file.GI_ENABLED, true))
+	potato_mode_check_button.set_pressed(PersistedConfig.get_bool(PersistedConfig.POTATO_MODE, false))
+	gi_mode_check_button.set_pressed(PersistedConfig.get_bool(PersistedConfig.GI_ENABLED, true))
 
 	fov_slider.min_value = min_fov
 	fov_slider.max_value = max_fov
@@ -107,7 +74,7 @@ func _ready() -> void:
 	sfx_slider.value = db_to_linear(AudioServer.get_bus_volume_db(AudioServer.get_bus_index("SFX")))
 	
 func _on_button_pressed() -> void:
-	config_file.save()
+	PersistedConfig.save()
 	exit.emit()
 
 
@@ -152,13 +119,13 @@ func _on_fullscreen_check_button_toggled(button_pressed: bool) -> void:
 	_update_fullscreen_state(button_pressed)
 
 func _on_potato_mode_check_button_toggled(toggled_on: bool):
-	config_file.set_bool(config_file.POTATO_MODE, toggled_on)
+	PersistedConfig.set_bool(PersistedConfig.POTATO_MODE, toggled_on)
 	UserInterface.potato_mode = toggled_on
 	shadow_panel.visible = not toggled_on
 	gi_panel.visible = not toggled_on
 
 func _on_gi_mode_check_button_toggled(toggled_on:bool):
-	config_file.set_bool(config_file.GI_ENABLED, toggled_on)
+	PersistedConfig.set_bool(PersistedConfig.GI_ENABLED, toggled_on)
 	UserInterface.global_illumination = toggled_on
 
 func _on_shadow_option_button_item_selected(index: int) -> void:

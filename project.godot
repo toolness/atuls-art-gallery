@@ -19,6 +19,7 @@ boot_splash/image="res://GDTVAssetPack/Textures/GDTVSplash.png"
 
 [autoload]
 
+PersistedConfig="*res://persisted_config.gd"
 Lobby="*res://lobby.gd"
 ArtObjects="*res://art_objects.gd"
 UserInterface="*res://UserInterface/UserInterface.tscn"
