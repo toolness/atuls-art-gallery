@@ -134,7 +134,8 @@ bbcode_enabled = true
 text = "[color=bd2424]WASD[/color][color=746c61]:[/color] move
 [color=cc612c]Mouse[/color][color=746c61]:[/color] look
 [color=30aa36]tab[/color][color=746c61]:[/color] inspect mode
-[color=9052a1]esc[/color][color=746c61]:[/color] pause"
+[color=608dd0]T[/color][color=746c61]:[/color] teleport
+[color=9052a1]esc[/color][color=746c61]:[/color] menu"
 fit_content = true
 
 [node name="InspectModeHints" type="MarginContainer" parent="HUD"]
@@ -252,7 +253,7 @@ text = "Settings"
 [node name="LayoutConfigButton" type="Button" parent="PauseScreen/PauseContainer/VBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "New gallery..."
+text = "New temporary exhibition..."
 
 [node name="QuitButton" type="Button" parent="PauseScreen/PauseContainer/VBoxContainer"]
 layout_mode = 2

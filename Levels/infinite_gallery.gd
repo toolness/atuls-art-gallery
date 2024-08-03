@@ -11,6 +11,10 @@ extends Node3D
 
 @onready var player_initial_teleport_point: Node3D = %PlayerInitialTeleportPoint
 
+@onready var welcome_sign_content: Label3D = %WelcomeSign/Content
+
+@onready var welcome_sign_content_template: String = welcome_sign_content.text
+
 @onready var gallery_chunks: Array[Moma] = []
 
 @onready var auto_saver: AutoSaver = $AutoSaver
@@ -45,6 +49,7 @@ func _respawn_galleries() -> void:
 			player.moving_painting = null
 
 	_despawn_all_galleries_except({})
+	_set_welcome_sign_content()
 	sync_galleries()
 
 
@@ -122,9 +127,9 @@ func sync_galleries() -> void:
 
 
 func _enter_tree():
-	# Even if we set the reference gallery to not be visible, raycasts still intersect with
-	# it, which is weird, so just remove it.
-	%Moma_for_reference_only.free()
+	# Even if we set the reference objects to not be visible, raycasts still intersect with
+	# them, which is weird, so just remove them.
+	%ForReferenceOnly.free()
 
 
 # Called when the node enters the scene tree for the first time.
@@ -144,7 +149,24 @@ func _ready() -> void:
 	UserInterface.layout_config_container.new_layout_complete.connect(_on_new_layout_complete)
 	UserInterface.global_illumination_changed.connect(reset_lighting)
 
+	_set_welcome_sign_content()
 	sync_galleries()
+
+
+func _set_welcome_sign_content():
+	var temporary_exhibition_name := PersistedConfig.get_string(
+		PersistedConfig.GALLERY_FILTER,
+		""
+	)
+	if not temporary_exhibition_name:
+		temporary_exhibition_name = "The Sum of All Paintings"
+	if Lobby.IS_CLIENT:
+		# TODO: We should sync the name of the exhibtion from the server.
+		temporary_exhibition_name = Lobby.HOST
+	welcome_sign_content.text = welcome_sign_content_template.replace(
+		"TEMPORARY_EXHIBITION_NAME",
+		temporary_exhibition_name
+	)
 
 
 func _on_new_layout_complete():

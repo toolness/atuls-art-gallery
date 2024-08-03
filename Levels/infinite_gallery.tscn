@@ -1,10 +1,12 @@
-[gd_scene load_steps=6 format=3 uid="uid://dss65i31egqc3"]
+[gd_scene load_steps=8 format=3 uid="uid://dss65i31egqc3"]
 
 [ext_resource type="Script" path="res://Levels/infinite_gallery.gd" id="1_drnpr"]
 [ext_resource type="PackedScene" uid="uid://vwr8ajoufse8" path="res://Controller/Player.tscn" id="2_4hb5h"]
 [ext_resource type="PackedScene" uid="uid://mv0032qsc6tk" path="res://Levels/moma.tscn" id="3_3c1uq"]
 [ext_resource type="Script" path="res://auto_saver.gd" id="4_114bu"]
 [ext_resource type="Script" path="res://Levels/WorldEnvironment.gd" id="4_ll1ux"]
+[ext_resource type="FontFile" uid="uid://c5lxu845lhmyk" path="res://UserInterface/Font/OpenSans-Bold.ttf" id="6_lko7i"]
+[ext_resource type="FontFile" uid="uid://4m8as5alui32" path="res://UserInterface/Font/OpenSans-Regular.ttf" id="7_a0npk"]
 
 [node name="InfiniteGallery" type="Node3D" groups=["InfiniteGallery"]]
 script = ExtResource("1_drnpr")
@@ -15,9 +17,6 @@ player_scene = ExtResource("2_4hb5h")
 unique_name_in_owner = true
 script = ExtResource("4_ll1ux")
 
-[node name="Moma_for_reference_only" parent="." instance=ExtResource("3_3c1uq")]
-unique_name_in_owner = true
-
 [node name="AutoSaver" type="Node" parent="."]
 script = ExtResource("4_114bu")
 
@@ -27,10 +26,133 @@ spawn_path = NodePath("..")
 
 [node name="PlayerSpawnPoint" type="Node3D" parent="."]
 unique_name_in_owner = true
-transform = Transform3D(-7.43469e-06, 0, -1, 0, 1, 0, 1, 0, -7.43469e-06, 26.5, 2, 4.00023)
+transform = Transform3D(-7.43469e-06, 0, -1, 0, 1, 0, 1, 0, -7.43469e-06, 24.5099, 0.924878, 5.67804)
 
 [node name="PlayerInitialTeleportPoint" type="Node3D" parent="."]
 unique_name_in_owner = true
-transform = Transform3D(-4.37114e-08, 3.48787e-16, 1, 3.48787e-16, 1, -3.48787e-16, -1, 3.48787e-16, -4.37114e-08, -27, 2, 4)
+transform = Transform3D(-4.37114e-08, 3.48787e-16, 1, 3.48787e-16, 1, -3.48787e-16, -1, 3.48787e-16, -4.37114e-08, -25.3595, 0.924775, 5.59289)
+
+[node name="WelcomeSign" type="Node3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(-4.37114e-08, -3.48787e-16, -1, 3.48787e-16, 1, -3.48787e-16, 1, -3.48787e-16, -4.37114e-08, 26.995, 1.5, 6.5)
+
+[node name="Title" type="Label3D" parent="WelcomeSign"]
+transform = Transform3D(1, 0, 0, 0, 1, -1.12238e-23, 0, -1.12238e-23, 1, -1, 1.25, 2.08165e-12)
+pixel_size = 0.0008
+modulate = Color(0, 0, 0, 1)
+outline_modulate = Color(0, 0, 0, 0)
+text = "Welcome"
+font = ExtResource("6_lko7i")
+font_size = 200
+outline_size = 0
+horizontal_alignment = 0
+vertical_alignment = 0
+autowrap_mode = 2
+width = 3000.0
+
+[node name="Content" type="Label3D" parent="WelcomeSign"]
+transform = Transform3D(1, 0, 0, 0, 1, -1.12238e-23, 0, -1.12238e-23, 1, -1, 0.75, 2.08165e-12)
+pixel_size = 0.0008
+alpha_antialiasing_mode = 1
+texture_filter = 5
+modulate = Color(0, 0, 0, 1)
+outline_modulate = Color(0, 0, 0, 0)
+text = "Welcome to Atul's Art Gallery.
+
+The current temporary exhibition, \"TEMPORARY_EXHIBITION_NAME\", begins here.
+
+For more information on curating the gallery, turn to your right. Or you can just start exploring!"
+font = ExtResource("7_a0npk")
+font_size = 144
+outline_size = 0
+horizontal_alignment = 0
+vertical_alignment = 0
+autowrap_mode = 2
+width = 2500.0
+
+[node name="PermanentCollectionSign" type="Node3D" parent="."]
+transform = Transform3D(-4.37114e-08, 3.48787e-16, 1, 3.48787e-16, 1, -3.48787e-16, -1, 3.48787e-16, -4.37114e-08, -27.95, 1.5, 6.5)
+
+[node name="Title" type="Label3D" parent="PermanentCollectionSign"]
+transform = Transform3D(1, 0, 0, 0, 1, -1.12238e-23, 0, -1.12238e-23, 1, -1, 1.25, 2.08165e-12)
+pixel_size = 0.0008
+modulate = Color(0, 0, 0, 1)
+outline_modulate = Color(0, 0, 0, 0)
+text = "The permanent collection"
+font = ExtResource("6_lko7i")
+font_size = 200
+outline_size = 0
+horizontal_alignment = 0
+vertical_alignment = 0
+autowrap_mode = 2
+width = 3000.0
+
+[node name="Content" type="Label3D" parent="PermanentCollectionSign"]
+transform = Transform3D(1, 0, 0, 0, 1, -1.12238e-23, 0, -1.12238e-23, 1, -1, 0.75, 2.08165e-12)
+pixel_size = 0.0008
+alpha_antialiasing_mode = 1
+texture_filter = 5
+modulate = Color(0, 0, 0, 1)
+outline_modulate = Color(0, 0, 0, 0)
+text = "This is your permanent collection.
+
+You can curate it by moving art here from the temporary exhibition.
+
+First, press \"T\" to teleport back to the temporary exhibition.
+
+Then press tab to enter inspect mode and left click on an artwork to start moving it.
+
+Finally, press \"T\" to teleport back here and left click to place the artwork."
+font = ExtResource("7_a0npk")
+font_size = 100
+outline_size = 0
+horizontal_alignment = 0
+vertical_alignment = 0
+autowrap_mode = 2
+width = 2500.0
+
+[node name="CuratingSign" type="Node3D" parent="."]
+transform = Transform3D(-1, 3.48787e-16, -8.74228e-08, 3.48787e-16, 1, -3.48787e-16, 8.74228e-08, -3.48787e-16, -1, 24.445, 1.5, 7.995)
+
+[node name="Title" type="Label3D" parent="CuratingSign"]
+transform = Transform3D(1, 0, 0, 0, 1, -1.12238e-23, 0, -1.12238e-23, 1, -1, 1.25, 2.08165e-12)
+pixel_size = 0.0008
+modulate = Color(0, 0, 0, 1)
+outline_modulate = Color(0, 0, 0, 0)
+text = "Curating the gallery"
+font = ExtResource("6_lko7i")
+font_size = 200
+outline_size = 0
+horizontal_alignment = 0
+vertical_alignment = 0
+autowrap_mode = 2
+width = 3000.0
+
+[node name="Content" type="Label3D" parent="CuratingSign"]
+transform = Transform3D(1, 0, 0, 0, 1, -1.12238e-23, 0, -1.12238e-23, 1, -1, 0.75, 2.08165e-12)
+pixel_size = 0.0008
+alpha_antialiasing_mode = 1
+texture_filter = 5
+modulate = Color(0, 0, 0, 1)
+outline_modulate = Color(0, 0, 0, 0)
+text = "You can change the temporary exhibition's art by pressing ESC and selecting the \"New temporary exhibition...\" option.
+
+You also have a permanent collection.  Press \"T\" to teleport there and learn more about it."
+font = ExtResource("7_a0npk")
+font_size = 144
+outline_size = 0
+horizontal_alignment = 0
+vertical_alignment = 0
+autowrap_mode = 2
+width = 2500.0
+
+[node name="ForReferenceOnly" type="Node3D" parent="."]
+unique_name_in_owner = true
+
+[node name="Gallery_0" parent="ForReferenceOnly" instance=ExtResource("3_3c1uq")]
+
+[node name="Gallery_-1" parent="ForReferenceOnly" instance=ExtResource("3_3c1uq")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28, 2.08165e-12, 2.08165e-12)
+gallery_id = -1
 
 [connection signal="spawned" from="MultiplayerSpawner" to="." method="_on_multiplayer_spawner_spawned"]
