@@ -26,7 +26,7 @@ layout_mode = 2
 [node name="Label" type="Label" parent="VBoxContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 128
-text = "New gallery"
+text = "New exhibition"
 horizontal_alignment = 1
 
 [node name="FilterLineEdit" type="LineEdit" parent="VBoxContainer"]
@@ -60,13 +60,13 @@ size_flags_vertical = 10
 layout_mode = 2
 theme_override_font_sizes/normal_font_size = 20
 bbcode_enabled = true
-text = "[color=#ff0000]WARNING:[/color] Creating a new gallery will destroy art in all positive galleries."
+text = "[color=#ff0000]WARNING:[/color] Creating a new temporary exhibition will destroy the current one. It will not affect your permanent collection."
 fit_content = true
 
 [node name="DoLayoutButton" type="Button" parent="VBoxContainer/DoLayoutContainer"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Create new gallery"
+text = "Create new temporary exhibition"
 
 [node name="BackButton" type="Button" parent="VBoxContainer"]
 unique_name_in_owner = true
