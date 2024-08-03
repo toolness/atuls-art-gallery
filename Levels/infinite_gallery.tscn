@@ -30,7 +30,7 @@ transform = Transform3D(-7.43469e-06, 0, -1, 0, 1, 0, 1, 0, -7.43469e-06, 24.509
 
 [node name="PlayerInitialTeleportPoint" type="Node3D" parent="."]
 unique_name_in_owner = true
-transform = Transform3D(-4.37114e-08, 3.48787e-16, 1, 3.48787e-16, 1, -3.48787e-16, -1, 3.48787e-16, -4.37114e-08, -24.6562, 0.924775, 5.59289)
+transform = Transform3D(-4.37114e-08, 3.48787e-16, 1, 3.48787e-16, 1, -3.48787e-16, -1, 3.48787e-16, -4.37114e-08, -25.3595, 0.924775, 5.59289)
 
 [node name="WelcomeSign" type="Node3D" parent="."]
 unique_name_in_owner = true
@@ -70,15 +70,15 @@ vertical_alignment = 0
 autowrap_mode = 2
 width = 2500.0
 
-[node name="WelcomeSign2" type="Node3D" parent="."]
-transform = Transform3D(-1, 3.48787e-16, -8.74228e-08, 3.48787e-16, 1, -3.48787e-16, 8.74228e-08, -3.48787e-16, -1, 24.445, 1.5, 7.995)
+[node name="PermanentCollectionSign" type="Node3D" parent="."]
+transform = Transform3D(-4.37114e-08, 3.48787e-16, 1, 3.48787e-16, 1, -3.48787e-16, -1, 3.48787e-16, -4.37114e-08, -27.95, 1.5, 6.5)
 
-[node name="Title" type="Label3D" parent="WelcomeSign2"]
+[node name="Title" type="Label3D" parent="PermanentCollectionSign"]
 transform = Transform3D(1, 0, 0, 0, 1, -1.12238e-23, 0, -1.12238e-23, 1, -1, 1.25, 2.08165e-12)
 pixel_size = 0.0008
 modulate = Color(0, 0, 0, 1)
 outline_modulate = Color(0, 0, 0, 0)
-text = "Curating the exhibition"
+text = "The permanent collection"
 font = ExtResource("6_lko7i")
 font_size = 200
 outline_size = 0
@@ -87,7 +87,48 @@ vertical_alignment = 0
 autowrap_mode = 2
 width = 3000.0
 
-[node name="Content" type="Label3D" parent="WelcomeSign2"]
+[node name="Content" type="Label3D" parent="PermanentCollectionSign"]
+transform = Transform3D(1, 0, 0, 0, 1, -1.12238e-23, 0, -1.12238e-23, 1, -1, 0.75, 2.08165e-12)
+pixel_size = 0.0008
+alpha_antialiasing_mode = 1
+texture_filter = 5
+modulate = Color(0, 0, 0, 1)
+outline_modulate = Color(0, 0, 0, 0)
+text = "This is your permanent collection.
+
+You can curate it by moving art here from the temporary exhibition.
+
+First, press \"T\" to teleport back to the temporary exhibition.
+
+Then press tab to enter inspect mode and left click on an artwork to start moving it.
+
+Finally, press \"T\" to teleport back here and left click to place the artwork."
+font = ExtResource("7_a0npk")
+font_size = 100
+outline_size = 0
+horizontal_alignment = 0
+vertical_alignment = 0
+autowrap_mode = 2
+width = 2500.0
+
+[node name="CuratingSign" type="Node3D" parent="."]
+transform = Transform3D(-1, 3.48787e-16, -8.74228e-08, 3.48787e-16, 1, -3.48787e-16, 8.74228e-08, -3.48787e-16, -1, 24.445, 1.5, 7.995)
+
+[node name="Title" type="Label3D" parent="CuratingSign"]
+transform = Transform3D(1, 0, 0, 0, 1, -1.12238e-23, 0, -1.12238e-23, 1, -1, 1.25, 2.08165e-12)
+pixel_size = 0.0008
+modulate = Color(0, 0, 0, 1)
+outline_modulate = Color(0, 0, 0, 0)
+text = "Curating the gallery"
+font = ExtResource("6_lko7i")
+font_size = 200
+outline_size = 0
+horizontal_alignment = 0
+vertical_alignment = 0
+autowrap_mode = 2
+width = 3000.0
+
+[node name="Content" type="Label3D" parent="CuratingSign"]
 transform = Transform3D(1, 0, 0, 0, 1, -1.12238e-23, 0, -1.12238e-23, 1, -1, 0.75, 2.08165e-12)
 pixel_size = 0.0008
 alpha_antialiasing_mode = 1
