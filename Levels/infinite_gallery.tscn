@@ -27,7 +27,7 @@ spawn_path = NodePath("..")
 
 [node name="PlayerSpawnPoint" type="Node3D" parent="."]
 unique_name_in_owner = true
-transform = Transform3D(-7.43469e-06, 0, -1, 0, 1, 0, 1, 0, -7.43469e-06, 26.5, 2, 4.00023)
+transform = Transform3D(-7.43469e-06, 0, -1, 0, 1, 0, 1, 0, -7.43469e-06, 23.2305, 0.925941, 5.67942)
 
 [node name="PlayerInitialTeleportPoint" type="Node3D" parent="."]
 unique_name_in_owner = true
