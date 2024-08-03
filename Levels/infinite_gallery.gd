@@ -179,6 +179,7 @@ func _on_new_layout_complete():
 		player.global_rotation = player_spawn_point.global_rotation
 
 		player.global_position = player_spawn_point.global_position
+		player.teleport_global_transform = player_initial_teleport_point.global_transform
 	_respawn_galleries()
 
 
