@@ -8,6 +8,8 @@ class_name UI
 @onready var join_game_container: JoinGameContainer = %JoinGameContainer
 @onready var layout_config_container: LayoutConfigContainer = %LayoutConfigContainer
 @onready var layout_config_button: Button = %LayoutConfigButton
+@onready var import_button: Button = %ImportButton
+@onready var export_button: Button = %ExportButton
 @onready var connection_status_label: Label = %ConnectionStatusLabel
 @onready var version_label: Label = %VersionLabel
 @onready var resume_button: Button = %ResumeButton
@@ -18,6 +20,8 @@ class_name UI
 @onready var reticle: Reticle = %Reticle
 
 @onready var error_dialog: AcceptDialog = %ErrorDialog
+@onready var import_dialog: FileDialog = %ImportDialog
+@onready var export_dialog: FileDialog = %ExportDialog
 
 @export var start_level: PackedScene
 
@@ -46,6 +50,9 @@ var paused := false:
 			# offline mode, and when the server is running. We're not going to support
 			# clients doing this yet because they don't have authority over paintings.
 			layout_config_button.visible = not Lobby.IS_CLIENT
+			# Same goes for import/export, it's just confusing for clients.
+			import_button.visible = not Lobby.IS_CLIENT
+			export_button.visible = not Lobby.IS_CLIENT
 
 			# This menu ignores pause mode so it can still be used.
 			get_tree().paused = true
@@ -283,3 +290,19 @@ func _on_layout_config_container_exit():
 func _on_new_layout_complete():
 	_on_layout_config_container_exit()
 	paused = false
+
+
+func _on_import_button_pressed():
+	import_dialog.popup_centered()
+
+
+func _on_export_button_pressed():
+	export_dialog.popup_centered()
+
+
+func _on_import_dialog_file_selected(path: String):
+	print("TODO IMPORT FILE ", path)
+
+
+func _on_export_dialog_file_selected(path: String):
+	print("TODO EXPORT FILE ", path)
