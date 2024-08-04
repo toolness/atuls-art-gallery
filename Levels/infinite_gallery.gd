@@ -159,7 +159,7 @@ func _set_welcome_sign_content():
 		""
 	)
 	if not temporary_exhibition_name:
-		temporary_exhibition_name = "The Sum of All Paintings"
+		temporary_exhibition_name = "The Sum of All Artwork"
 	if Lobby.IS_CLIENT:
 		# TODO: We should sync the name of the exhibtion from the server.
 		temporary_exhibition_name = Lobby.HOST
