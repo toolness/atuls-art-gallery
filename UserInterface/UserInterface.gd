@@ -80,7 +80,7 @@ func _ready() -> void:
 	version_label.text = ProjectSettings.get_setting("application/config/version")
 
 	# Hook up main menu events.
-	main_menu_container.start_button.pressed.connect(fade_out_and_start_game)
+	main_menu_container.start_button.pressed.connect(_on_main_menu_start_button_pressed)
 	main_menu_container.join_button.pressed.connect(_on_main_menu_join_button_pressed)
 	main_menu_container.host_button.pressed.connect(_on_main_menu_host_button_pressed)
 	main_menu_container.settings_button.pressed.connect(_on_settings_button_pressed)
@@ -233,6 +233,11 @@ func show_main_menu():
 	main_menu_container.visible = true
 	join_game_container.visible = false
 	main_menu_container.focus()
+
+func _on_main_menu_start_button_pressed():
+	if Input.is_physical_key_pressed(KEY_SHIFT):
+		PersistedConfig.delete_player_settings()
+	fade_out_and_start_game()
 
 func _on_main_menu_join_button_pressed():
 	main_menu_container.visible = false

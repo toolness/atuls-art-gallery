@@ -14,13 +14,6 @@ const AUTOSAVE_INTERVAL := 30.0
 
 var seconds_since_last_save := 0.0
 
-func delete_state() -> void:
-	if not player:
-		return
-	print("Deleting player settings.")
-	PersistedConfig.delete_section(PersistedConfig.PLAYER_SECTION)
-	PersistedConfig.save()
-
 func save_state() -> void:
 	if not player:
 		return
@@ -58,7 +51,7 @@ func load_state() -> void:
 
 func _on_before_reload(hard_reset: bool):
 	if hard_reset:
-		delete_state()
+		PersistedConfig.delete_player_settings()
 	else:
 		save_state()
 

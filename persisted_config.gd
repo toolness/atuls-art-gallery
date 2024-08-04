@@ -68,6 +68,11 @@ func delete_section(section: String):
 	if file.has_section(section):
 		file.erase_section(section)
 
+func delete_player_settings():
+	print("Deleting player settings.")
+	delete_section(PersistedConfig.PLAYER_SECTION)
+	save()
+
 # Called when the node enters the scene tree for the first time.
 func _ready():
 	if OS.has_feature("editor"):
