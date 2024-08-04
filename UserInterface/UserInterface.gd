@@ -118,12 +118,24 @@ func cycle_debug_draw():
 	vp.debug_draw = DEBUG_DRAW_CYCLE[next_index]
 	debug_draw_changed.emit(vp.debug_draw)
 
+## Called on _all_ unhandled input events, even when the game
+## is paused.
+##
+## This isn't a standard Godot callback, we call it manually
+## from PauseScreen, which has a process mode of "Always".
+func _unhandled_input_always(event: InputEvent) -> void:
+	if event.is_action_pressed("toggle_fullscreen"):
+		# We want fullscreen toggle to work _everywhere_,
+		# regardless of whether the player is in a menu
+		# or in the game.
+		settings_container.toggle_fullscreen()
+
+## Called on unhandled input events _only_ when the game is
+## not paused.
 func _unhandled_input(event: InputEvent) -> void:
 	# When the player presses the escape key, pause the game.
 	if event.is_action_pressed("ui_cancel"):
 		paused = true
-	elif event.is_action_pressed("toggle_fullscreen"):
-		settings_container.toggle_fullscreen()
 
 	if in_main_menu:
 		return

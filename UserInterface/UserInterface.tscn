@@ -1,10 +1,11 @@
-[gd_scene load_steps=18 format=3 uid="uid://b4mrqfvtlycnc"]
+[gd_scene load_steps=19 format=3 uid="uid://b4mrqfvtlycnc"]
 
 [ext_resource type="Script" path="res://UserInterface/UserInterface.gd" id="1_pjpe8"]
 [ext_resource type="PackedScene" uid="uid://dss65i31egqc3" path="res://Levels/infinite_gallery.tscn" id="2_60fvu"]
 [ext_resource type="Theme" uid="uid://bq6qbvmwxf5gm" path="res://UserInterface/UITheme.tres" id="2_rwlv8"]
 [ext_resource type="Script" path="res://UserInterface/Reticle.gd" id="3_hfmys"]
 [ext_resource type="Shader" uid="uid://wn6mnfchf1w7" path="res://UserInterface/ScreenSpaceBlur.tres" id="4_kynqp"]
+[ext_resource type="Script" path="res://UserInterface/PauseScreen.gd" id="5_ka560"]
 [ext_resource type="PackedScene" uid="uid://sbl4rscivr8g" path="res://UserInterface/SettingsContainer.tscn" id="5_qrem4"]
 [ext_resource type="PackedScene" uid="uid://dkh1asxc7gtkx" path="res://UserInterface/MainMenuContainer.tscn" id="6_6k6vc"]
 [ext_resource type="PackedScene" uid="uid://clcrin3hg2tg5" path="res://UserInterface/JoinGameContainer.tscn" id="8_ftfw4"]
@@ -208,6 +209,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 theme = ExtResource("2_rwlv8")
+script = ExtResource("5_ka560")
 
 [node name="BackgroundBlur" type="TextureRect" parent="PauseScreen"]
 material = SubResource("ShaderMaterial_6vwxw")
