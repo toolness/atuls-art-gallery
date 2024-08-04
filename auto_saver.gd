@@ -25,19 +25,16 @@ func save_state() -> void:
 	if not player:
 		return
 	PersistedConfig.set_vec3(
-		PersistedConfig.POSITION,
+		PersistedConfig.PLAYER_POSITION,
 		player.global_position,
-		PersistedConfig.PLAYER_SECTION
 	)
 	PersistedConfig.set_vec3(
-		PersistedConfig.ROTATION,
+		PersistedConfig.PLAYER_ROTATION,
 		player.global_rotation,
-		PersistedConfig.PLAYER_SECTION
 	)
 	PersistedConfig.set_vec3(
-		PersistedConfig.TELEPORT_POSITION,
+		PersistedConfig.PLAYER_TELEPORT_POSITION,
 		player.teleport_global_transform.origin,
-		PersistedConfig.PLAYER_SECTION
 	)
 	PersistedConfig.save()
 
@@ -46,19 +43,16 @@ func load_state() -> void:
 	if not player:
 		return
 	player.global_position = PersistedConfig.get_vec3(
-		PersistedConfig.POSITION,
+		PersistedConfig.PLAYER_POSITION,
 		player_start_position,
-		PersistedConfig.PLAYER_SECTION
 	)
 	player.global_rotation = PersistedConfig.get_vec3(
-		PersistedConfig.ROTATION,
+		PersistedConfig.PLAYER_ROTATION,
 		player_start_rotation,
-		PersistedConfig.PLAYER_SECTION
 	)
 	player.teleport_global_transform.origin = PersistedConfig.get_vec3(
-		PersistedConfig.TELEPORT_POSITION,
+		PersistedConfig.PLAYER_TELEPORT_POSITION,
 		player_start_teleport_position,
-		PersistedConfig.PLAYER_SECTION
 	)
 
 
