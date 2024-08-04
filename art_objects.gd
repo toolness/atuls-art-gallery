@@ -145,6 +145,9 @@ func copy_initial_db(db_filename: String) -> bool:
 	return false
 
 func _ready() -> void:
+	# Always process so the client API is usable from menus, etc.
+	process_mode = Node.PROCESS_MODE_ALWAYS
+
 	gallery_client = GalleryClient.new()
 	var did_create_initial_db := copy_initial_db(gallery_client.default_db_filename())
 	gallery_client.name = "GalleryClient"

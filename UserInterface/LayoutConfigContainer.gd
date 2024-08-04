@@ -43,16 +43,10 @@ func _on_filter_text_changed(filter: String):
 
 
 func _on_back_button_pressed():
-	get_tree().paused = true
 	exit.emit()
 
 
 func focus():
-	# We need to un-pause the tree so we can poll for the response to our
-	# requests to the Rust worker thread--otherwise any `await`s we do
-	# will never return.
-	get_tree().paused = false
-
 	_on_filter_text_changed(filter_line_edit.text)
 	filter_line_edit.grab_focus()
 
