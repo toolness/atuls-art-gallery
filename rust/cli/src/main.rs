@@ -160,6 +160,10 @@ enum Commands {
     ImportLayout {
         #[arg()]
         input: PathBuf,
+
+        /// Clear non-positive galleries before importing.
+        #[arg(long, default_value_t = false)]
+        clear: bool,
     },
 }
 
@@ -226,7 +230,7 @@ fn run() -> Result<()> {
             limit,
         } => execute_wikidata_query(input, output, limit),
         Commands::ExportLayout { output } => export_layout(db, output),
-        Commands::ImportLayout { input } => import_layout(db, input),
+        Commands::ImportLayout { input, clear } => import_layout(db, input, clear),
     }
 }
 
@@ -238,9 +242,12 @@ fn export_layout(mut db: GalleryDb, output: PathBuf) -> Result<()> {
     Ok(())
 }
 
-fn import_layout(mut db: GalleryDb, input: PathBuf) -> Result<()> {
+fn import_layout(mut db: GalleryDb, input: PathBuf, clear: bool) -> Result<()> {
     let json = fs::read_to_string(input)?;
     let records: Vec<LayoutRecord<String>> = serde_json::from_str(&json)?;
+    if clear {
+        db.clear_layout_records_in_non_positive_galleries()?;
+    }
     db.upsert_layout_records(&records)?;
     println!("Imported layout containing {} art objects.", records.len());
     Ok(())

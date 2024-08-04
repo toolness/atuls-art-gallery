@@ -191,7 +191,13 @@ impl GalleryDb {
         Ok(result)
     }
 
-    /// Clears the layout and fills it with the given records.
+    pub fn clear_layout_records_in_non_positive_galleries(&mut self) -> Result<()> {
+        self.conn
+            .execute("DELETE FROM layout WHERE gallery_id <= 0", ())?;
+        Ok(())
+    }
+
+    /// Clears the layout in positive galleries and fills it with the given records.
     pub fn set_layout_records_in_positive_galleries<T: AsRef<str>>(
         &mut self,
         records: &Vec<LayoutRecord<T>>,
@@ -684,6 +690,51 @@ mod tests {
         assert_eq!(
             db.get_layout_records_in_non_positive_galleries().unwrap(),
             vec![funky_layout_record]
+        );
+    }
+
+    #[test]
+    fn test_clear_layout_records_in_non_positive_galleries_works() {
+        let mut db = create_db();
+        db.add_art_objects(&vec![make_funky_painting(), make_monkey_painting()])
+            .unwrap();
+
+        // Add a painting to a positive gallery.
+        db.set_layout_records_in_positive_galleries(&vec![LayoutRecord {
+            gallery_id: 1,
+            wall_id: "wall_02",
+            art_object_id: FUNKY_PAINTING_ID,
+            x: 1.2,
+            y: 3.4,
+        }])
+        .unwrap();
+
+        // Add a painting to a negative gallery.
+        db.upsert_layout_records(&vec![LayoutRecord {
+            gallery_id: -1,
+            wall_id: "wall_02",
+            art_object_id: MONKEY_PAINTING_ID,
+            x: 1.2,
+            y: 3.4,
+        }])
+        .unwrap();
+
+        db.clear_layout_records_in_non_positive_galleries().unwrap();
+
+        // Make sure the painting in the positive gallery still exists.
+        assert_eq!(
+            db.get_art_objects_for_gallery_wall(1, "wall_02")
+                .unwrap()
+                .len(),
+            1
+        );
+
+        // Make sure the painting in the negative gallery was removed.
+        assert_eq!(
+            db.get_art_objects_for_gallery_wall(-1, "wall_02")
+                .unwrap()
+                .len(),
+            0
         );
     }
 }
