@@ -9,6 +9,11 @@ const POTATO_MODE = "potato_mode"
 const GI_ENABLED = "global_illumination"
 const GALLERY_FILTER = "gallery_filter"
 
+const PLAYER_SECTION = "player"
+const POSITION = "position"
+const ROTATION = "rotation"
+const TELEPORT_POSITION = "teleport_position"
+
 func url() -> String:
 	return ROOT_DIR + "settings.cfg"
 
@@ -21,24 +26,36 @@ func save():
 	if file.save(url()) != OK:
 		push_error("Saving " + url() + " failed.")
 
-func set_bool(cfg_name: String, value: bool):
-	file.set_value(SETTINGS_SECTION, cfg_name, value)
+func set_bool(cfg_name: String, value: bool, section: String = SETTINGS_SECTION):
+	file.set_value(section, cfg_name, value)
 
-func get_bool(cfg_name: String, default: bool) -> bool:
-	var value = file.get_value(SETTINGS_SECTION, cfg_name, default)
+func get_bool(cfg_name: String, default: bool, section: String = SETTINGS_SECTION) -> bool:
+	var value = file.get_value(section, cfg_name, default)
 	if value is bool:
 		return value
 	return default
 
-func set_string(cfg_name: String, value: String):
-	file.set_value(SETTINGS_SECTION, cfg_name, value)
+func set_string(cfg_name: String, value: String, section: String = SETTINGS_SECTION):
+	file.set_value(section, cfg_name, value)
 
-func get_string(cfg_name: String, default: String) -> String:
-	var value = file.get_value(SETTINGS_SECTION, cfg_name, default)
+func get_string(cfg_name: String, default: String, section: String = SETTINGS_SECTION) -> String:
+	var value = file.get_value(section, cfg_name, default)
 	if value is String:
 		return value
 	return default
 
+func set_vec3(cfg_name: String, value: Vector3, section: String = SETTINGS_SECTION):
+	file.set_value(section, cfg_name, value)
+
+func get_vec3(cfg_name: String, default: Vector3, section: String = SETTINGS_SECTION) -> Vector3:
+	var value = file.get_value(section, cfg_name, default)
+	if value is Vector3:
+		return value
+	return default
+
+func delete_section(section: String):
+	if file.has_section(section):
+		file.erase_section(section)
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
