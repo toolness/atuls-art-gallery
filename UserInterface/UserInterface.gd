@@ -310,12 +310,20 @@ func _on_import_dialog_file_selected(path: String):
 	if result != OK:
 		show_fatal_error("Importing the file failed.")
 		return
-	print("TODO RETURN PLAYER TO GAME ETC")
-
+	_on_resume_button_pressed()
+	reload_current_scene(false)
 
 func _on_export_dialog_file_selected(path: String):
 	var json_content := await ArtObjects.export()
 	if not json_content:
 		show_fatal_error("Exporting the file failed.")
 		return
-	print("TODO WRITE CONTENT ", json_content, " TO PATH ", path)
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	if not file:
+		show_fatal_error("Opening the file failed.")
+		return
+	file.store_string(json_content)
+	file.close()
+	# TODO: It'd be nice to show some kind of confirmation.
+	# For now we'll just return the player to the game.
+	_on_resume_button_pressed()
