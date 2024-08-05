@@ -331,22 +331,21 @@ initial_position = 1
 unique_name_in_owner = true
 process_mode = 3
 title = "Open a File"
-size = Vector2i(392, 159)
+size = Vector2i(1024, 768)
 always_on_top = true
 ok_button_text = "Open"
 file_mode = 0
 access = 2
-filters = PackedStringArray("json")
-use_native_dialog = true
+filters = PackedStringArray("*.gallery.json")
 
 [node name="ExportDialog" type="FileDialog" parent="."]
 unique_name_in_owner = true
 process_mode = 3
 title = "Export permanent collection"
+size = Vector2i(1024, 768)
 ok_button_text = "Export"
 access = 2
-filters = PackedStringArray("json")
-use_native_dialog = true
+filters = PackedStringArray("*.gallery.json")
 
 [connection signal="pressed" from="PauseScreen/PauseContainer/VBoxContainer/ResumeButton" to="." method="_on_resume_button_pressed"]
 [connection signal="pressed" from="PauseScreen/PauseContainer/VBoxContainer/SettingsButton" to="." method="_on_settings_button_pressed"]
