@@ -65,6 +65,23 @@ var started_loading_large_image := false
 
 var small_image_texture: ImageTexture
 
+func _get_initial_albedo_color() -> Color:
+	# We try to set this to be the color of the wall behind the painting, so
+	# it blends with the wall while it's still loading.
+
+	# TODO: This coupling to the parent isn't great, ideally it should be
+	# passed down to us from the parent. However, that won't work well in
+	# multiplayer scenarios because we're being spawned via replication
+	# and we don't want to have to add yet another variable to sync as
+	# it will increase network bandwidth, so we'll just use this hack
+	# for now.
+	var parent := get_parent()
+	if parent is Moma:
+		var moma_parent: Moma = parent
+		return moma_parent.get_gallery_wall_color()
+
+	return Color.TRANSPARENT
+
 func _ready():
 	if inner_painting_scale:
 		configure_wall_label()
@@ -75,7 +92,7 @@ func _ready():
 		print("Warning: No art_object_id available for painting!")
 	var material: StandardMaterial3D = painting.mesh.surface_get_material(PAINTING_SURFACE_IDX)
 	painting_surface_material = material.duplicate()
-	painting_surface_material.albedo_color = Color.TRANSPARENT
+	painting_surface_material.albedo_color = _get_initial_albedo_color()
 
 	# It's easier to experiment with these settings via script rather than setting them in Blender
 	# and constantly re-exporting/re-importing.

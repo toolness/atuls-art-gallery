@@ -288,7 +288,7 @@ const WALL_SURFACE_IDX = 0
 ## This is Farrow & Ball's "Manor House Gray".
 const MANOR_HOUSE_GRAY = Color(158.0 / 255.0, 160.0 / 255.0, 157.0 / 255.0)
 
-func _get_gallery_wall_color() -> Color:
+func get_gallery_wall_color() -> Color:
 	if gallery_id < 0:
 		# Private collection.
 		return MANOR_HOUSE_GRAY
@@ -299,7 +299,7 @@ func _paint_gallery_walls():
 	var first_wall := _get_walls()[0]
 	var wall_material: StandardMaterial3D = first_wall.mesh_instance.mesh.surface_get_material(WALL_SURFACE_IDX)
 	var override_material: StandardMaterial3D = wall_material.duplicate()
-	override_material.albedo_color = _get_gallery_wall_color()
+	override_material.albedo_color = get_gallery_wall_color()
 
 	# We need to paint all surfaces that use the same material as the walls.
 	# This includes not _just_ walls--for instance, passageways need to be painted.
