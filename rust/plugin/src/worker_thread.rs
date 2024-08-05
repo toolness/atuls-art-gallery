@@ -20,6 +20,12 @@ use gallery::{
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 
+/// Equivalent to GDScript's `OK` constant.
+const GDSCRIPT_OK: i64 = 0;
+
+/// Equivalent to GDScript's `FAILED` constant.
+const GDSCRIPT_FAILED: i64 = 1;
+
 #[derive(Debug)]
 pub struct Request {
     pub peer_id: Option<i32>,
@@ -55,6 +61,10 @@ pub enum RequestBody {
         filter: Option<String>,
     },
     Migrate,
+    ImportNonPositiveLayout {
+        json_content: String,
+    },
+    ExportNonPositiveLayout,
 }
 
 #[derive(Debug)]
@@ -70,6 +80,7 @@ pub enum ResponseBody {
     Image(Option<PathBuf>),
     Empty,
     Integer(i64),
+    String(String),
 }
 
 pub enum MessageToWorker {
@@ -309,6 +320,14 @@ pub fn work_thread(
                     RequestBody::Migrate => {
                         migrate_gallery_db(&cache)?;
                         send_response(ResponseBody::Empty);
+                    }
+                    RequestBody::ImportNonPositiveLayout { json_content } => {
+                        println!("TODO: IMPORT {json_content}");
+                        send_response(ResponseBody::Integer(GDSCRIPT_OK));
+                    }
+                    RequestBody::ExportNonPositiveLayout => {
+                        println!("TODO: EXPORT");
+                        send_response(ResponseBody::String("TODO EXPORT".into()));
                     }
                     RequestBody::Layout {
                         walls_json,

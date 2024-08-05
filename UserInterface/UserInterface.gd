@@ -301,8 +301,21 @@ func _on_export_button_pressed():
 
 
 func _on_import_dialog_file_selected(path: String):
-	print("TODO IMPORT FILE ", path)
+	var file := FileAccess.open(path, FileAccess.READ)
+	if not file:
+		show_fatal_error("Opening the file failed.")
+		return
+	var json_content := file.get_as_text()
+	var result := await ArtObjects.import(json_content)
+	if result != OK:
+		show_fatal_error("Importing the file failed.")
+		return
+	print("TODO RETURN PLAYER TO GAME ETC")
 
 
 func _on_export_dialog_file_selected(path: String):
-	print("TODO EXPORT FILE ", path)
+	var json_content := await ArtObjects.export()
+	if not json_content:
+		show_fatal_error("Exporting the file failed.")
+		return
+	print("TODO WRITE CONTENT ", json_content, " TO PATH ", path)

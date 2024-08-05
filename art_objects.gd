@@ -28,6 +28,10 @@ class IntRequest:
 	var response: int
 	signal responded
 
+class StringRequest:
+	var response: String
+	signal responded
+
 func _fetch_image(object_id: int, size: String) -> Image:
 	if Lobby.IS_HEADLESS:
 		return Image.create(1, 1, false, Image.FORMAT_L8)
@@ -83,6 +87,30 @@ func migrate() -> void:
 	requests[request_id] = request
 	await request.responded
 	print("Migration complete.")
+
+func import(json_content: String) -> int:
+	var request := IntRequest.new()
+	var request_id := gallery_client.import_non_positive_layout(json_content)
+	if request_id == NULL_REQUEST_ID:
+		push_error("Import failed!")
+		# Oof, something went wrong.
+		return FAILED
+	requests[request_id] = request
+	await request.responded
+	print("Import complete.")
+	return request.response
+
+func export() -> String:
+	var request := StringRequest.new()
+	var request_id := gallery_client.export_non_positive_layout()
+	if request_id == NULL_REQUEST_ID:
+		push_error("Export failed!")
+		# Oof, something went wrong.
+		return ""
+	requests[request_id] = request
+	await request.responded
+	print("Export complete.")
+	return request.response
 
 func get_art_objects_for_gallery_wall(gallery_id: int, wall_id: String) -> Array[ArtObject]:
 	var request := ArtObjectsRequest.new()
@@ -225,6 +253,12 @@ func _handle_gallery_response(obj: GalleryResponse):
 		var r: IntRequest = request
 		var result = obj.take_variant()
 		assert(result is int)
+		r.response = result
+		r.responded.emit()
+	elif request is StringRequest:
+		var r: StringRequest = request
+		var result = obj.take_variant()
+		assert(result is String)
 		r.response = result
 		r.responded.emit()
 	else:
