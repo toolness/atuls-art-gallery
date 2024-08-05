@@ -8,6 +8,8 @@ class_name UI
 @onready var join_game_container: JoinGameContainer = %JoinGameContainer
 @onready var layout_config_container: LayoutConfigContainer = %LayoutConfigContainer
 @onready var layout_config_button: Button = %LayoutConfigButton
+@onready var import_button: Button = %ImportButton
+@onready var export_button: Button = %ExportButton
 @onready var connection_status_label: Label = %ConnectionStatusLabel
 @onready var version_label: Label = %VersionLabel
 @onready var resume_button: Button = %ResumeButton
@@ -18,6 +20,8 @@ class_name UI
 @onready var reticle: Reticle = %Reticle
 
 @onready var error_dialog: AcceptDialog = %ErrorDialog
+@onready var import_dialog: FileDialog = %ImportDialog
+@onready var export_dialog: FileDialog = %ExportDialog
 
 @export var start_level: PackedScene
 
@@ -46,6 +50,9 @@ var paused := false:
 			# offline mode, and when the server is running. We're not going to support
 			# clients doing this yet because they don't have authority over paintings.
 			layout_config_button.visible = not Lobby.IS_CLIENT
+			# Same goes for import/export, it's just confusing for clients.
+			import_button.visible = not Lobby.IS_CLIENT
+			export_button.visible = not Lobby.IS_CLIENT
 
 			# This menu ignores pause mode so it can still be used.
 			get_tree().paused = true
@@ -283,3 +290,40 @@ func _on_layout_config_container_exit():
 func _on_new_layout_complete():
 	_on_layout_config_container_exit()
 	paused = false
+
+
+func _on_import_button_pressed():
+	import_dialog.popup_centered()
+
+
+func _on_export_button_pressed():
+	export_dialog.popup_centered()
+
+
+func _on_import_dialog_file_selected(path: String):
+	var file := FileAccess.open(path, FileAccess.READ)
+	if not file:
+		show_fatal_error("Opening the file failed.")
+		return
+	var json_content := file.get_as_text()
+	var result := await ArtObjects.import(json_content)
+	if result != OK:
+		show_fatal_error("Importing the file failed.")
+		return
+	_on_resume_button_pressed()
+	reload_current_scene(false)
+
+func _on_export_dialog_file_selected(path: String):
+	var json_content := await ArtObjects.export()
+	if not json_content:
+		show_fatal_error("Exporting the file failed.")
+		return
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	if not file:
+		show_fatal_error("Opening the file failed.")
+		return
+	file.store_string(json_content)
+	file.close()
+	# TODO: It'd be nice to show some kind of confirmation.
+	# For now we'll just return the player to the game.
+	_on_resume_button_pressed()

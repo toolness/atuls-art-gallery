@@ -366,6 +366,16 @@ impl GalleryClient {
         self.send_request(RequestBody::Migrate)
     }
 
+    #[func]
+    fn import_non_positive_layout(&mut self, json_content: String) -> u32 {
+        self.send_request(RequestBody::ImportNonPositiveLayout { json_content })
+    }
+
+    #[func]
+    fn export_non_positive_layout(&mut self) -> u32 {
+        self.send_request(RequestBody::ExportNonPositiveLayout)
+    }
+
     fn new_request_id(&mut self) -> u32 {
         let request_id = self.next_request_id;
         self.next_request_id += 1;
@@ -464,6 +474,10 @@ impl GalleryClient {
                         ResponseBody::Integer(int) => Some(Gd::from_object(GalleryResponse {
                             request_id,
                             response: InnerGalleryResponse::Variant(int.to_variant()),
+                        })),
+                        ResponseBody::String(string) => Some(Gd::from_object(GalleryResponse {
+                            request_id,
+                            response: InnerGalleryResponse::Variant(string.to_variant()),
                         })),
                         ResponseBody::ArtObjectsForGalleryWall(objects) => {
                             Some(Gd::from_object(GalleryResponse {

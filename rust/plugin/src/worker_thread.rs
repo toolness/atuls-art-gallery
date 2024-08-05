@@ -20,6 +20,12 @@ use gallery::{
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 
+/// Equivalent to GDScript's `OK` constant.
+const GDSCRIPT_OK: i64 = 0;
+
+/// Equivalent to GDScript's `FAILED` constant.
+const GDSCRIPT_FAILED: i64 = 1;
+
 #[derive(Debug)]
 pub struct Request {
     pub peer_id: Option<i32>,
@@ -55,6 +61,10 @@ pub enum RequestBody {
         filter: Option<String>,
     },
     Migrate,
+    ImportNonPositiveLayout {
+        json_content: String,
+    },
+    ExportNonPositiveLayout,
 }
 
 #[derive(Debug)]
@@ -70,6 +80,7 @@ pub enum ResponseBody {
     Image(Option<PathBuf>),
     Empty,
     Integer(i64),
+    String(String),
 }
 
 pub enum MessageToWorker {
@@ -309,6 +320,26 @@ pub fn work_thread(
                     RequestBody::Migrate => {
                         migrate_gallery_db(&cache)?;
                         send_response(ResponseBody::Empty);
+                    }
+                    RequestBody::ImportNonPositiveLayout { json_content } => {
+                        let records: serde_json::Result<Vec<LayoutRecord<String>>> =
+                            serde_json::from_str(&json_content);
+                        match records {
+                            Ok(records) => {
+                                db.clear_layout_records_in_non_positive_galleries()?;
+                                db.upsert_layout_records(&records)?;
+                                send_response(ResponseBody::Integer(GDSCRIPT_OK));
+                            }
+                            Err(err) => {
+                                println!("Unable to parse JSON into layout records: {:?}", err);
+                                send_response(ResponseBody::Integer(GDSCRIPT_FAILED));
+                            }
+                        }
+                    }
+                    RequestBody::ExportNonPositiveLayout => {
+                        let records = db.get_layout_records_in_non_positive_galleries()?;
+                        let json = serde_json::to_string_pretty(&records)?;
+                        send_response(ResponseBody::String(json));
                     }
                     RequestBody::Layout {
                         walls_json,
