@@ -10,6 +10,12 @@ const TIMEOUT_SECS: u64 = 10;
 
 const MAX_FILE_SIZE: u64 = 10_000_000;
 
+#[derive(Debug, PartialEq)]
+pub enum CacheResult {
+    NewlyCached,
+    AlreadyCached,
+}
+
 pub struct GalleryCache {
     cache_dir: PathBuf,
     agent: Agent,
@@ -41,10 +47,10 @@ impl GalleryCache {
         &self,
         url: T,
         filename: U,
-    ) -> Result<()> {
+    ) -> Result<CacheResult> {
         let cached_path = self.get_cached_path(filename);
         if cached_path.exists() {
-            return Ok(());
+            return Ok(CacheResult::AlreadyCached);
         }
         ensure_parent_dir(&cached_path)?;
         println!("Caching {} -> {}...", url.as_ref(), cached_path.display());
@@ -55,7 +61,7 @@ impl GalleryCache {
         // TODO: Ideally we should prevent the file from growing too large, since the
         // response may not have had a content-length header.
         match std::io::copy(&mut response_body, &mut outfile) {
-            Ok(_) => Ok(()),
+            Ok(_) => Ok(CacheResult::NewlyCached),
             Err(err) => {
                 // Note: I haven't actually tested this manually, hopefully it works!
                 drop(outfile);
@@ -67,10 +73,14 @@ impl GalleryCache {
         }
     }
 
-    pub fn cache_json_url<T: AsRef<str>, U: AsRef<str>>(&self, url: T, filename: U) -> Result<()> {
+    pub fn cache_json_url<T: AsRef<str>, U: AsRef<str>>(
+        &self,
+        url: T,
+        filename: U,
+    ) -> Result<CacheResult> {
         let cached_path = self.get_cached_path(filename);
         if cached_path.exists() {
-            return Ok(());
+            return Ok(CacheResult::AlreadyCached);
         }
         ensure_parent_dir(&cached_path)?;
         println!("Caching {} -> {}...", url.as_ref(), cached_path.display());
@@ -87,7 +97,7 @@ impl GalleryCache {
 
         std::fs::write(cached_path, pretty_printed)?;
 
-        Ok(())
+        Ok(CacheResult::NewlyCached)
     }
 
     pub fn load_cached_string<T: AsRef<str>>(&self, filename: T) -> Result<String> {

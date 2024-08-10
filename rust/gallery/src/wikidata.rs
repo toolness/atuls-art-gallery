@@ -2,7 +2,10 @@ use anyhow::{anyhow, Result};
 use percent_encoding::{utf8_percent_encode, CONTROLS};
 use serde::{de, Deserialize};
 
-use crate::{gallery_cache::GalleryCache, image::ImageSize};
+use crate::{
+    gallery_cache::GalleryCache,
+    image::{cache_image, get_supported_image_ext, ImageSize},
+};
 
 const ROOT_CACHE_SUBDIR: &'static str = "wikidata";
 
@@ -13,11 +16,6 @@ const WIKIDATA_URL_PREFIXES: [&'static str; 3] = [
     // us to use this function to parse raw IDs like "Q1234".
     "Q",
 ];
-
-/// We only care about the ones Godot can import right now:
-///
-/// https://docs.godotengine.org/en/stable/tutorials/assets_pipeline/importing_images.html#supported-image-formats
-const SUPPORTED_LOWERCASE_IMAGE_FORMATS: [&'static str; 4] = [".jpg", ".jpeg", ".webp", ".png"];
 
 const SMALL_IMAGE_WIDTH: usize = 500;
 
@@ -119,7 +117,7 @@ impl WikidataImageInfo {
             ),
             ImageSize::Large => format!("{ROOT_CACHE_SUBDIR}/Q{}{ext}", self.qid),
         };
-        cache.cache_binary_url(&image_url, &image_filename)?;
+        cache_image(cache, &image_url, &image_filename, ext)?;
         Ok(image_filename)
     }
 }
@@ -302,19 +300,6 @@ impl Claims {
             _ => None,
         })
     }
-}
-
-/// Returns the file extension for the given image filename, if it's a supported one.
-///
-/// The extension will be lowercased, and will include the leading period.
-fn get_supported_image_ext(filename: &str) -> Option<&'static str> {
-    let lowercase_filename = filename.to_lowercase();
-    for format in SUPPORTED_LOWERCASE_IMAGE_FORMATS {
-        if lowercase_filename.ends_with(format) {
-            return Some(format);
-        }
-    }
-    None
 }
 
 /// https://www.wikidata.org/wiki/Q174728

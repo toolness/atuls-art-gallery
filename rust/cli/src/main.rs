@@ -15,6 +15,7 @@ use gallery::gallery_db::{
     LayoutRecord,
 };
 use gallery::gallery_wall::GalleryWall;
+use gallery::image::{get_supported_image_ext, maybe_convert_image_for_loading_in_godot};
 use gallery::layout::layout;
 use gallery::random::Rng;
 use indicatif::{ProgressBar, ProgressStyle};
@@ -165,6 +166,10 @@ enum Commands {
         #[arg(long, default_value_t = false)]
         clear: bool,
     },
+    ConvertImage {
+        #[arg()]
+        filename: PathBuf,
+    },
 }
 
 fn run() -> Result<()> {
@@ -179,6 +184,7 @@ fn run() -> Result<()> {
     };
     let db = GalleryDb::new(Connection::open(db_path)?);
     match args.command {
+        Commands::ConvertImage { filename } => convert_image_command(filename),
         Commands::Csv {
             met_objects_path,
             wikidata_objects_path,
@@ -232,6 +238,19 @@ fn run() -> Result<()> {
         Commands::ExportLayout { output } => export_layout(db, output),
         Commands::ImportLayout { input, clear } => import_layout(db, input, clear),
     }
+}
+
+fn convert_image_command(filename: PathBuf) -> Result<()> {
+    let Some(ext) = get_supported_image_ext(&filename.to_string_lossy()) else {
+        println!("Filename is not a supported image format.");
+        return Ok(());
+    };
+    if maybe_convert_image_for_loading_in_godot(&filename, ext)? {
+        println!("Conversion complete.");
+    } else {
+        println!("No conversion necessary.");
+    }
+    Ok(())
 }
 
 fn export_layout(mut db: GalleryDb, output: PathBuf) -> Result<()> {
