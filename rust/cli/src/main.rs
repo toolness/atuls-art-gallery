@@ -17,6 +17,8 @@ use gallery::gallery_db::{
 use gallery::gallery_wall::GalleryWall;
 use gallery::layout::layout;
 use gallery::random::Rng;
+use image::codecs::jpeg::JpegEncoder;
+use image::{ColorType, GenericImageView, ImageReader};
 use indicatif::{ProgressBar, ProgressStyle};
 use met_csv::{iter_public_domain_2d_met_csv_objects, PublicDomain2DMetObjectOptions};
 use rusqlite::Connection;
@@ -165,6 +167,13 @@ enum Commands {
         #[arg(long, default_value_t = false)]
         clear: bool,
     },
+    Jpeg {
+        #[arg()]
+        input: PathBuf,
+
+        #[arg()]
+        output: PathBuf,
+    },
 }
 
 fn run() -> Result<()> {
@@ -179,6 +188,22 @@ fn run() -> Result<()> {
     };
     let db = GalleryDb::new(Connection::open(db_path)?);
     match args.command {
+        Commands::Jpeg { input, output } => {
+            let img = ImageReader::open(input)?.decode()?;
+            println!(
+                "Dimensions: {:?}   Color: {:?}",
+                img.dimensions(),
+                img.color()
+            );
+            if img.color() == ColorType::L8 {
+                println!("Converting to RGB8 and writing to {}.", output.display());
+                let converted = img.into_rgb8();
+                let outfile = std::fs::File::create(output)?;
+                let encoder = JpegEncoder::new_with_quality(outfile, 95);
+                converted.write_with_encoder(encoder)?;
+            }
+            Ok(())
+        }
         Commands::Csv {
             met_objects_path,
             wikidata_objects_path,
