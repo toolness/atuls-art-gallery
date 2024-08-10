@@ -65,6 +65,12 @@ pub fn maybe_convert_image_for_loading_in_godot(
 ) -> Result<bool> {
     if is_jpeg(ext) {
         let img = ImageReader::open(filename)?.decode()?;
+        // Annoyingly, Godot errors when trying to load a JPEG with 8-bit luminance pixel values,
+        // and a lot of images from Wikidata in particular are in this format, e.g.:
+        //
+        //     https://www.wikidata.org/wiki/Q19930505
+        //
+        // So, we'll convert them to RGB8, which Godot supports.
         if img.color() == ColorType::L8 {
             println!("Converting L8 JPEG image {} to RGB8.", filename.display());
             let converted = img.into_rgb8();
