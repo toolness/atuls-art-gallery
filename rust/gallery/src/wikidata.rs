@@ -4,7 +4,7 @@ use serde::{de, Deserialize};
 
 use crate::{
     gallery_cache::GalleryCache,
-    image::{get_supported_image_ext, ImageSize},
+    image::{cache_image, get_supported_image_ext, ImageSize},
 };
 
 const ROOT_CACHE_SUBDIR: &'static str = "wikidata";
@@ -117,7 +117,7 @@ impl WikidataImageInfo {
             ),
             ImageSize::Large => format!("{ROOT_CACHE_SUBDIR}/Q{}{ext}", self.qid),
         };
-        cache.cache_binary_url(&image_url, &image_filename)?;
+        cache_image(cache, &image_url, &image_filename, ext)?;
         Ok(image_filename)
     }
 }

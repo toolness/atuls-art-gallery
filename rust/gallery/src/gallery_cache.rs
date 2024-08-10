@@ -10,6 +10,7 @@ const TIMEOUT_SECS: u64 = 10;
 
 const MAX_FILE_SIZE: u64 = 10_000_000;
 
+#[derive(Debug, PartialEq)]
 pub enum CacheResult {
     NewlyCached,
     AlreadyCached,
