@@ -1,6 +1,9 @@
 use std::fs::create_dir_all;
 
-use crate::{gallery_cache::GalleryCache, image::ImageSize};
+use crate::{
+    gallery_cache::GalleryCache,
+    image::{get_supported_image_ext, ImageSize},
+};
 use anyhow::{anyhow, Result};
 use serde::Deserialize;
 
@@ -111,9 +114,9 @@ impl MetObjectApiRecord {
                 ImageSize::Small => &self.primary_image_small,
                 ImageSize::Large => &self.primary_image,
             };
-            if image_url.ends_with(".jpg") {
+            if let Some(ext) = get_supported_image_ext(image_url) {
                 let image_filename =
-                    format!("{ROOT_CACHE_SUBDIR}/object-{}-{size}.jpg", self.object_id);
+                    format!("{ROOT_CACHE_SUBDIR}/object-{}-{size}{ext}", self.object_id);
                 cache.cache_binary_url(&image_url, &image_filename)?;
                 return Ok(Some((width, height, image_filename)));
             }
