@@ -47,5 +47,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				click.rpc()
 		if event.is_action_pressed("jump"):
 			jump.rpc()
-		if event.is_action_pressed("teleport"):
+		# The fact that we have to test against teleport_dialog is extremely stupid but
+		# right now teleport_dialog is ctrl+T and teleport is T and *both* are triggered
+		# when the user presses the latter.
+		if event.is_action_pressed("teleport") and not event.is_action_pressed("teleport_dialog"):
 			teleport.rpc()

@@ -22,6 +22,8 @@ class_name UI
 @onready var error_dialog: AcceptDialog = %ErrorDialog
 @onready var import_dialog: FileDialog = %ImportDialog
 @onready var export_dialog: FileDialog = %ExportDialog
+@onready var teleport_dialog: Window = %TeleportDialog
+@onready var teleport_dialog_content: TeleportDialog = %TeleportDialogContent
 
 @export var start_level: PackedScene
 
@@ -155,6 +157,16 @@ func _unhandled_input(event: InputEvent) -> void:
 		reload_current_scene(false)
 	elif event.is_action_pressed("toggle_reticle"):
 		toggle_reticle()
+	elif event.is_action_pressed("teleport_dialog"):
+		show_teleport_dialog()
+
+func show_teleport_dialog() -> void:
+	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+	teleport_dialog.show()
+
+func hide_teleport_dialog() -> void:
+	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	teleport_dialog.hide()
 
 func start_game() -> void:
 	get_tree().change_scene_to_packed(start_level)
@@ -327,3 +339,7 @@ func _on_export_dialog_file_selected(path: String):
 	# TODO: It'd be nice to show some kind of confirmation.
 	# For now we'll just return the player to the game.
 	_on_resume_button_pressed()
+
+
+func _on_teleport_dialog_close_requested():
+	hide_teleport_dialog()

@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3 uid="uid://b4mrqfvtlycnc"]
+[gd_scene load_steps=20 format=3 uid="uid://b4mrqfvtlycnc"]
 
 [ext_resource type="Script" path="res://UserInterface/UserInterface.gd" id="1_pjpe8"]
 [ext_resource type="PackedScene" uid="uid://dss65i31egqc3" path="res://Levels/infinite_gallery.tscn" id="2_60fvu"]
@@ -10,6 +10,7 @@
 [ext_resource type="PackedScene" uid="uid://dkh1asxc7gtkx" path="res://UserInterface/MainMenuContainer.tscn" id="6_6k6vc"]
 [ext_resource type="PackedScene" uid="uid://clcrin3hg2tg5" path="res://UserInterface/JoinGameContainer.tscn" id="8_ftfw4"]
 [ext_resource type="PackedScene" uid="uid://cclmpn4711vm7" path="res://UserInterface/LayoutConfigContainer.tscn" id="9_4l50m"]
+[ext_resource type="PackedScene" uid="uid://b0kp3jltdiknx" path="res://UserInterface/TeleportDialog.tscn" id="11_4j15p"]
 
 [sub_resource type="GDScript" id="GDScript_ivi4s"]
 script/source = "extends MarginContainer
@@ -353,6 +354,16 @@ ok_button_text = "Export"
 access = 2
 filters = PackedStringArray("*.gallery.json")
 
+[node name="TeleportDialog" type="Window" parent="."]
+unique_name_in_owner = true
+title = "Teleport"
+initial_position = 1
+size = Vector2i(320, 80)
+visible = false
+
+[node name="TeleportDialogContent" parent="TeleportDialog" instance=ExtResource("11_4j15p")]
+unique_name_in_owner = true
+
 [connection signal="pressed" from="PauseScreen/PauseContainer/VBoxContainer/ResumeButton" to="." method="_on_resume_button_pressed"]
 [connection signal="pressed" from="PauseScreen/PauseContainer/VBoxContainer/SettingsButton" to="." method="_on_settings_button_pressed"]
 [connection signal="pressed" from="PauseScreen/PauseContainer/VBoxContainer/LayoutConfigButton" to="." method="_on_new_gallery_button_pressed"]
@@ -362,3 +373,4 @@ filters = PackedStringArray("*.gallery.json")
 [connection signal="exit" from="PauseScreen/SettingsContainer" to="." method="_on_settings_container_exit"]
 [connection signal="file_selected" from="ImportDialog" to="." method="_on_import_dialog_file_selected"]
 [connection signal="file_selected" from="ExportDialog" to="." method="_on_export_dialog_file_selected"]
+[connection signal="close_requested" from="TeleportDialog" to="." method="_on_teleport_dialog_close_requested"]
