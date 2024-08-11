@@ -21,7 +21,7 @@ func _process(_delta: float) -> void:
 		if get_viewport().gui_get_focus_owner():
 			# Some control has keyboard focus. If the player is inputting via the keyboard, we don't
 			# want their input to _both_ move them around _and_ type stuff into the GUI, so just
-			# return early.l
+			# return early.
 			return
 		input_direction = Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 
