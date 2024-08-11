@@ -178,6 +178,10 @@ func _physics_process(delta: float) -> void:
 		global_transform = teleport_global_transform
 		teleport_global_transform = previous_global_transform
 
+	if player_input.teleported_via_teleport_dialog:
+		player_input.teleported_via_teleport_dialog = false
+		print("TODO: Teleport player to ", player_input.teleported_via_teleport_dialog_id)
+
 	if player_input.clicked:
 		player_input.clicked = false
 		if moving_painting:

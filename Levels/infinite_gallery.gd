@@ -148,14 +148,9 @@ func _ready() -> void:
 	UserInterface.debug_draw_changed.connect(_on_debug_draw_changed)
 	UserInterface.layout_config_container.new_layout_complete.connect(_on_new_layout_complete)
 	UserInterface.global_illumination_changed.connect(reset_lighting)
-	UserInterface.teleport_dialog.teleport_requested.connect(_on_teleport_requested)
 
 	_set_welcome_sign_content()
 	sync_galleries()
-
-func _on_teleport_requested(gallery_id: int):
-	UserInterface.hide_teleport_dialog()
-	print("TODO: Teleport to gallery ", gallery_id)
 
 func _set_welcome_sign_content():
 	var temporary_exhibition_name := PersistedConfig.get_string(
