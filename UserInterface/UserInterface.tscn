@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3 uid="uid://b4mrqfvtlycnc"]
+[gd_scene load_steps=20 format=3 uid="uid://b4mrqfvtlycnc"]
 
 [ext_resource type="Script" path="res://UserInterface/UserInterface.gd" id="1_pjpe8"]
 [ext_resource type="PackedScene" uid="uid://dss65i31egqc3" path="res://Levels/infinite_gallery.tscn" id="2_60fvu"]
@@ -10,6 +10,7 @@
 [ext_resource type="PackedScene" uid="uid://dkh1asxc7gtkx" path="res://UserInterface/MainMenuContainer.tscn" id="6_6k6vc"]
 [ext_resource type="PackedScene" uid="uid://clcrin3hg2tg5" path="res://UserInterface/JoinGameContainer.tscn" id="8_ftfw4"]
 [ext_resource type="PackedScene" uid="uid://cclmpn4711vm7" path="res://UserInterface/LayoutConfigContainer.tscn" id="9_4l50m"]
+[ext_resource type="PackedScene" uid="uid://8neac3ncfh86" path="res://UserInterface/teleport_dialog.tscn" id="11_s0xt5"]
 
 [sub_resource type="GDScript" id="GDScript_ivi4s"]
 script/source = "extends MarginContainer
@@ -353,40 +354,9 @@ ok_button_text = "Export"
 access = 2
 filters = PackedStringArray("*.gallery.json")
 
-[node name="TeleportDialog" type="Window" parent="."]
+[node name="TeleportDialog" parent="." instance=ExtResource("11_s0xt5")]
 unique_name_in_owner = true
-title = "Teleport"
-initial_position = 1
-size = Vector2i(320, 90)
 visible = false
-
-[node name="Control" type="Control" parent="TeleportDialog"]
-custom_minimum_size = Vector2(320, 240)
-layout_mode = 3
-anchors_preset = 0
-offset_right = 40.0
-offset_bottom = 40.0
-
-[node name="VBoxContainer" type="VBoxContainer" parent="TeleportDialog/Control"]
-layout_mode = 1
-anchors_preset = -1
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 10.0
-offset_top = 10.0
-offset_right = -10.0
-offset_bottom = -10.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="GalleryIdField" type="LineEdit" parent="TeleportDialog/Control/VBoxContainer"]
-unique_name_in_owner = true
-layout_mode = 2
-placeholder_text = "Gallery number"
-
-[node name="Button" type="Button" parent="TeleportDialog/Control/VBoxContainer"]
-layout_mode = 2
-text = "Go"
 
 [connection signal="pressed" from="PauseScreen/PauseContainer/VBoxContainer/ResumeButton" to="." method="_on_resume_button_pressed"]
 [connection signal="pressed" from="PauseScreen/PauseContainer/VBoxContainer/SettingsButton" to="." method="_on_settings_button_pressed"]
