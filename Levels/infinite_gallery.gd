@@ -195,11 +195,16 @@ func _spawn_player(id: int) -> Player:
 	player.name = _get_player_name(id)
 	player.peer_id = id
 	player.initial_rotation = player_spawn_point.global_rotation
+	player.teleport_to_gallery_id_requested.connect(_on_player_teleport_to_gallery_id_requested)
 	add_child(player)
 	player.global_position = player_spawn_point.global_position
 	player.teleport_global_transform = player_initial_teleport_point.global_transform
 	print("Spawned ", player.name, ".")
 	return player
+
+
+func _on_player_teleport_to_gallery_id_requested(player: Player, gallery_id: int):
+	print("TODO TELEPORT PLAYER ", player.peer_id, " TO ", gallery_id)
 
 
 func _on_peer_connected(id: int):

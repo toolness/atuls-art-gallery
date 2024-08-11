@@ -42,6 +42,8 @@ class_name Player
 
 @export var teleport_global_transform: Transform3D
 
+signal teleport_to_gallery_id_requested(Player, int)
+
 # Get the gravity from the project settings to be synced with RigidBody nodes.
 var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 # Stores the direction the player is trying to look this frame.
@@ -180,7 +182,7 @@ func _physics_process(delta: float) -> void:
 
 	if player_input.teleported_via_teleport_dialog:
 		player_input.teleported_via_teleport_dialog = false
-		print("TODO: Teleport player to ", player_input.teleported_via_teleport_dialog_id)
+		teleport_to_gallery_id_requested.emit(self, player_input.teleported_via_teleport_dialog_id)
 
 	if player_input.clicked:
 		player_input.clicked = false
