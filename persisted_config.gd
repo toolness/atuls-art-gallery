@@ -14,12 +14,13 @@ class Setting:
 		setting.name = new_name
 		return setting
 
-const SETTINGS_SECTION = "settings"
+const VIDEO_SECTION = "settings"
+const GALLERY_SECTION = "gallery"
 const PLAYER_SECTION = "player"
 
-var POTATO_MODE := Setting.create(SETTINGS_SECTION, "potato_mode")
-var GI_ENABLED := Setting.create(SETTINGS_SECTION, "global_illumination")
-var GALLERY_FILTER := Setting.create(SETTINGS_SECTION, "gallery_filter")
+var POTATO_MODE := Setting.create(VIDEO_SECTION, "potato_mode")
+var GI_ENABLED := Setting.create(VIDEO_SECTION, "global_illumination")
+var GALLERY_FILTER := Setting.create(GALLERY_SECTION, "gallery_filter")
 
 var PLAYER_POSITION := Setting.create(PLAYER_SECTION, "position")
 var PLAYER_ROTATION := Setting.create(PLAYER_SECTION, "rotation")
