@@ -204,7 +204,14 @@ func _spawn_player(id: int) -> Player:
 
 
 func _on_player_teleport_to_gallery_id_requested(player: Player, gallery_id: int):
-	print("TODO TELEPORT PLAYER ", player.peer_id, " TO ", gallery_id)
+	if gallery_id >= 0:
+		player.global_position = player_spawn_point.global_position
+		player.global_position.x += (gallery_id - 1) * GALLERY_CHUNK_WIDTH
+		player.global_rotation = player_spawn_point.global_rotation
+	else:
+		player.global_position = player_initial_teleport_point.global_position
+		player.global_position.x -= (-gallery_id - 1) * GALLERY_CHUNK_WIDTH
+		player.global_rotation = player_initial_teleport_point.global_rotation
 
 
 func _on_peer_connected(id: int):

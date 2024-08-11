@@ -21,6 +21,7 @@ func _unhandled_input(event: InputEvent):
 
 func show_and_focus_ui():
 	show()
+	gallery_id_field.text = ""
 	gallery_id_field.grab_focus()
 
 func _on_gallery_id_field_text_changed(new_text:String):
