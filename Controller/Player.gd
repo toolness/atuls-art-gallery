@@ -182,6 +182,15 @@ func _physics_process(delta: float) -> void:
 
 	if player_input.teleported_via_teleport_dialog:
 		player_input.teleported_via_teleport_dialog = false
+
+		# TODO: Ideally we don't want to drop the painting when the player teleports, but
+		# for now we have to do this, because the painting is parented to the gallery and
+		# will despawn as soon as the gallery despawns (which is likely to happen after we
+		# teleport).
+		if moving_painting:
+			moving_painting.finish_moving()
+			moving_painting = null
+
 		teleport_to_gallery_id_requested.emit(self, player_input.teleported_via_teleport_dialog_id)
 
 	if player_input.clicked:
