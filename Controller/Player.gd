@@ -179,6 +179,7 @@ func _physics_process(delta: float) -> void:
 		var previous_global_transform = global_transform
 		global_transform = teleport_global_transform
 		teleport_global_transform = previous_global_transform
+		camera_target.rotation.x = 0
 
 	if player_input.teleported_via_teleport_dialog:
 		player_input.teleported_via_teleport_dialog = false
