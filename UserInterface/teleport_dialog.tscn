@@ -1,9 +1,12 @@
-[gd_scene format=3 uid="uid://8neac3ncfh86"]
+[gd_scene load_steps=2 format=3 uid="uid://8neac3ncfh86"]
+
+[ext_resource type="Script" path="res://UserInterface/teleport_dialog.gd" id="1_aclkv"]
 
 [node name="TeleportDialog" type="Window"]
 title = "Teleport"
 initial_position = 1
 size = Vector2i(320, 90)
+script = ExtResource("1_aclkv")
 
 [node name="Control" type="Control" parent="."]
 custom_minimum_size = Vector2(320, 240)

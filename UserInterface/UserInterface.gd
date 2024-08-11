@@ -22,7 +22,7 @@ class_name UI
 @onready var error_dialog: AcceptDialog = %ErrorDialog
 @onready var import_dialog: FileDialog = %ImportDialog
 @onready var export_dialog: FileDialog = %ExportDialog
-@onready var teleport_dialog: Window = %TeleportDialog
+@onready var teleport_dialog: TeleportDialog = %TeleportDialog
 
 @export var start_level: PackedScene
 
@@ -161,8 +161,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func show_teleport_dialog() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
-	teleport_dialog.show()
- 
+	teleport_dialog.show_and_focus_ui()
+
 func hide_teleport_dialog() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 	teleport_dialog.hide()
