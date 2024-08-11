@@ -32,6 +32,11 @@ unique_name_in_owner = true
 layout_mode = 2
 placeholder_text = "Gallery number"
 
-[node name="Button" type="Button" parent="Control/VBoxContainer"]
+[node name="SubmitButton" type="Button" parent="Control/VBoxContainer"]
+unique_name_in_owner = true
 layout_mode = 2
 text = "Go"
+
+[connection signal="text_changed" from="Control/VBoxContainer/GalleryIdField" to="." method="_on_gallery_id_field_text_changed"]
+[connection signal="text_submitted" from="Control/VBoxContainer/GalleryIdField" to="." method="_on_gallery_id_field_text_submitted"]
+[connection signal="pressed" from="Control/VBoxContainer/SubmitButton" to="." method="_on_submit_button_pressed"]
