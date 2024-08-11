@@ -34,6 +34,8 @@ func _on_gallery_id_field_text_submitted(new_text:String):
 func _on_submit_button_pressed():
 	_on_gallery_id_field_text_submitted(gallery_id_field.text)
 
+## This class only really exists because it seems impossible to
+## have a nullable int in GDScript.
 class ParsedGalleryId:
 	const MIN_ID = -9999
 	const MAX_ID = 9999
