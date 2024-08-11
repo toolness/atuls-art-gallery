@@ -204,6 +204,7 @@ func _spawn_player(id: int) -> Player:
 
 
 func _on_player_teleport_to_gallery_id_requested(player: Player, gallery_id: int):
+	player.camera_target.rotation.x = 0
 	if gallery_id >= 0:
 		player.global_position = player_spawn_point.global_position
 		player.global_position.x += (gallery_id - 1) * GALLERY_CHUNK_WIDTH
