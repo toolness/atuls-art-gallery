@@ -152,7 +152,6 @@ func _ready() -> void:
 	_set_welcome_sign_content()
 	sync_galleries()
 
-
 func _set_welcome_sign_content():
 	var temporary_exhibition_name := PersistedConfig.get_string(
 		PersistedConfig.GALLERY_FILTER,
@@ -196,11 +195,23 @@ func _spawn_player(id: int) -> Player:
 	player.name = _get_player_name(id)
 	player.peer_id = id
 	player.initial_rotation = player_spawn_point.global_rotation
+	player.teleport_to_gallery_id_requested.connect(_on_player_teleport_to_gallery_id_requested)
 	add_child(player)
 	player.global_position = player_spawn_point.global_position
 	player.teleport_global_transform = player_initial_teleport_point.global_transform
 	print("Spawned ", player.name, ".")
 	return player
+
+
+func _on_player_teleport_to_gallery_id_requested(player: Player, gallery_id: int):
+	if gallery_id >= 0:
+		player.global_position = player_spawn_point.global_position
+		player.global_position.x += (gallery_id - 1) * GALLERY_CHUNK_WIDTH
+		player.global_rotation = player_spawn_point.global_rotation
+	else:
+		player.global_position = player_initial_teleport_point.global_position
+		player.global_position.x -= (-gallery_id - 1) * GALLERY_CHUNK_WIDTH
+		player.global_rotation = player_initial_teleport_point.global_rotation
 
 
 func _on_peer_connected(id: int):

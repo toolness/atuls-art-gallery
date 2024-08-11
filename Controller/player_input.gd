@@ -10,8 +10,18 @@ var jumped := false
 
 var teleported := false
 
+var teleported_via_teleport_dialog := false
+
+var teleported_via_teleport_dialog_id := 0
+
 func _ready():
-	pass
+	if is_authority():
+			UserInterface.teleport_dialog.teleport_requested.connect(_on_teleport_requested)
+
+func _on_teleport_requested(gallery_id: int):
+	UserInterface.hide_teleport_dialog()
+
+	teleport_via_teleport_dialog.rpc(gallery_id)
 
 func is_authority() -> bool:
 	return get_multiplayer_authority() == multiplayer.get_unique_id()
@@ -37,6 +47,11 @@ func jump():
 func teleport():
 	teleported = true
 
+@rpc("call_local")
+func teleport_via_teleport_dialog(gallery_id: int):
+	teleported_via_teleport_dialog = true
+	teleported_via_teleport_dialog_id = gallery_id
+
 func _unhandled_input(event: InputEvent) -> void:
 	if is_authority():
 		if event.is_action_pressed("click"):
@@ -47,5 +62,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				click.rpc()
 		if event.is_action_pressed("jump"):
 			jump.rpc()
-		if event.is_action_pressed("teleport"):
+		# The fact that we have to test against teleport_dialog is extremely stupid but
+		# right now teleport_dialog is ctrl+T and teleport is T and *both* are triggered
+		# when the user presses the latter.
+		if event.is_action_pressed("teleport") and not event.is_action_pressed("teleport_dialog"):
 			teleport.rpc()

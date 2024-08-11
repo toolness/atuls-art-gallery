@@ -42,6 +42,8 @@ class_name Player
 
 @export var teleport_global_transform: Transform3D
 
+signal teleport_to_gallery_id_requested(Player, int)
+
 # Get the gravity from the project settings to be synced with RigidBody nodes.
 var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 # Stores the direction the player is trying to look this frame.
@@ -177,6 +179,19 @@ func _physics_process(delta: float) -> void:
 		var previous_global_transform = global_transform
 		global_transform = teleport_global_transform
 		teleport_global_transform = previous_global_transform
+
+	if player_input.teleported_via_teleport_dialog:
+		player_input.teleported_via_teleport_dialog = false
+
+		# TODO: Ideally we don't want to drop the painting when the player teleports, but
+		# for now we have to do this, because the painting is parented to the gallery and
+		# will despawn as soon as the gallery despawns (which is likely to happen after we
+		# teleport).
+		if moving_painting:
+			moving_painting.finish_moving()
+			moving_painting = null
+
+		teleport_to_gallery_id_requested.emit(self, player_input.teleported_via_teleport_dialog_id)
 
 	if player_input.clicked:
 		player_input.clicked = false

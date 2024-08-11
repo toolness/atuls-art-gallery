@@ -1,0 +1,42 @@
+[gd_scene load_steps=2 format=3 uid="uid://8neac3ncfh86"]
+
+[ext_resource type="Script" path="res://UserInterface/teleport_dialog.gd" id="1_aclkv"]
+
+[node name="TeleportDialog" type="Window"]
+title = "Teleport"
+initial_position = 1
+size = Vector2i(320, 90)
+script = ExtResource("1_aclkv")
+
+[node name="Control" type="Control" parent="."]
+custom_minimum_size = Vector2(320, 240)
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Control"]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="GalleryIdField" type="LineEdit" parent="Control/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+placeholder_text = "Gallery number"
+
+[node name="SubmitButton" type="Button" parent="Control/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Go"
+
+[connection signal="text_changed" from="Control/VBoxContainer/GalleryIdField" to="." method="_on_gallery_id_field_text_changed"]
+[connection signal="text_submitted" from="Control/VBoxContainer/GalleryIdField" to="." method="_on_gallery_id_field_text_submitted"]
+[connection signal="pressed" from="Control/VBoxContainer/SubmitButton" to="." method="_on_submit_button_pressed"]
