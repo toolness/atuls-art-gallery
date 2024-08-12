@@ -20,11 +20,19 @@ use gallery::{
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 
-/// Equivalent to GDScript's `OK` constant.
-const GDSCRIPT_OK: i64 = 0;
+pub enum GdScriptResultCode {
+    /// Equivalent to GDScript's `OK` constant.
+    Ok = 0,
 
-/// Equivalent to GDScript's `FAILED` constant.
-const GDSCRIPT_FAILED: i64 = 1;
+    /// Equivalent to GDScript's `FAILED` constant.
+    Failed = 1,
+}
+
+impl Into<ResponseBody> for GdScriptResultCode {
+    fn into(self) -> ResponseBody {
+        ResponseBody::Integer(self as i64)
+    }
+}
 
 const AUTOSYNC_GALLERY_PATH: &'static str = "autosync/user.gallery.json";
 
@@ -329,10 +337,7 @@ pub fn work_thread(
                         send_response(ResponseBody::Empty);
                     }
                     RequestBody::ImportNonPositiveLayout { json_content } => {
-                        send_response(ResponseBody::Integer(import_non_positive_layout(
-                            &mut db,
-                            json_content,
-                        )?));
+                        send_response(import_non_positive_layout(&mut db, json_content)?.into());
                     }
                     RequestBody::ExportNonPositiveLayout => {
                         send_response(ResponseBody::String(export_non_positive_layout(&mut db)?));
@@ -432,18 +437,21 @@ pub fn work_thread(
     Ok(())
 }
 
-fn import_non_positive_layout(db: &mut GalleryDb, json_content: String) -> Result<i64> {
+fn import_non_positive_layout(
+    db: &mut GalleryDb,
+    json_content: String,
+) -> Result<GdScriptResultCode> {
     let records: serde_json::Result<Vec<LayoutRecord<String>>> =
         serde_json::from_str(&json_content);
     match records {
         Ok(records) => {
             db.clear_layout_records_in_non_positive_galleries()?;
             db.upsert_layout_records(&records)?;
-            Ok(GDSCRIPT_OK)
+            Ok(GdScriptResultCode::Ok)
         }
         Err(err) => {
             println!("Unable to parse JSON into layout records: {:?}", err);
-            Ok(GDSCRIPT_FAILED)
+            Ok(GdScriptResultCode::Failed)
         }
     }
 }
