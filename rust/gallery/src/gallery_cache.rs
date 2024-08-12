@@ -122,7 +122,7 @@ fn validate_response(response: &Response) -> Result<()> {
     Ok(())
 }
 
-fn ensure_parent_dir(cached_path: &PathBuf) -> Result<()> {
+pub fn ensure_parent_dir(cached_path: &PathBuf) -> Result<()> {
     if let Some(parent_dir) = cached_path.parent() {
         create_dir_all(parent_dir)?;
     }

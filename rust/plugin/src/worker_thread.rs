@@ -8,7 +8,7 @@ use anyhow::anyhow;
 use anyhow::Result;
 use gallery::{
     art_object::ArtObjectId,
-    gallery_cache::GalleryCache,
+    gallery_cache::{ensure_parent_dir, GalleryCache},
     gallery_db::{get_default_gallery_db_filename, ArtObjectQueryOptions, GalleryDb, LayoutRecord},
     gallery_db_migration::migrate_gallery_db,
     gallery_wall::GalleryWall,
@@ -25,6 +25,8 @@ const GDSCRIPT_OK: i64 = 0;
 
 /// Equivalent to GDScript's `FAILED` constant.
 const GDSCRIPT_FAILED: i64 = 1;
+
+const AUTOSYNC_GALLERY_PATH: &'static str = "autosync/user.gallery.json";
 
 #[derive(Debug)]
 pub struct Request {
@@ -279,6 +281,7 @@ fn fill_queue(
 
 pub fn work_thread(
     root_dir: PathBuf,
+    enable_autosync: bool,
     to_worker_rx: Receiver<MessageToWorker>,
     from_worker_tx: Sender<MessageFromWorker>,
 ) -> Result<()> {
@@ -297,6 +300,10 @@ pub fn work_thread(
             println!("work_thread unable to send response, other end hung up.");
         };
     };
+    let autosync_path = cache.get_cached_path(AUTOSYNC_GALLERY_PATH);
+    if enable_autosync {
+        import_autosync(&mut db, &autosync_path)?;
+    }
     println!("work_thread waiting for message.");
     loop {
         fill_queue(&mut queue, &to_worker_rx);
@@ -322,24 +329,13 @@ pub fn work_thread(
                         send_response(ResponseBody::Empty);
                     }
                     RequestBody::ImportNonPositiveLayout { json_content } => {
-                        let records: serde_json::Result<Vec<LayoutRecord<String>>> =
-                            serde_json::from_str(&json_content);
-                        match records {
-                            Ok(records) => {
-                                db.clear_layout_records_in_non_positive_galleries()?;
-                                db.upsert_layout_records(&records)?;
-                                send_response(ResponseBody::Integer(GDSCRIPT_OK));
-                            }
-                            Err(err) => {
-                                println!("Unable to parse JSON into layout records: {:?}", err);
-                                send_response(ResponseBody::Integer(GDSCRIPT_FAILED));
-                            }
-                        }
+                        send_response(ResponseBody::Integer(import_non_positive_layout(
+                            &mut db,
+                            json_content,
+                        )?));
                     }
                     RequestBody::ExportNonPositiveLayout => {
-                        let records = db.get_layout_records_in_non_positive_galleries()?;
-                        let json = serde_json::to_string_pretty(&records)?;
-                        send_response(ResponseBody::String(json));
+                        send_response(ResponseBody::String(export_non_positive_layout(&mut db)?));
                     }
                     RequestBody::Layout {
                         walls_json,
@@ -426,8 +422,57 @@ pub fn work_thread(
         }
     }
 
+    if enable_autosync {
+        export_autosync(&mut db, &autosync_path)?;
+    }
+
     // Ignoring result, there's not much we can do if this send fails.
     let _ = from_worker_tx.send(MessageFromWorker::Done);
 
+    Ok(())
+}
+
+fn import_non_positive_layout(db: &mut GalleryDb, json_content: String) -> Result<i64> {
+    let records: serde_json::Result<Vec<LayoutRecord<String>>> =
+        serde_json::from_str(&json_content);
+    match records {
+        Ok(records) => {
+            db.clear_layout_records_in_non_positive_galleries()?;
+            db.upsert_layout_records(&records)?;
+            Ok(GDSCRIPT_OK)
+        }
+        Err(err) => {
+            println!("Unable to parse JSON into layout records: {:?}", err);
+            Ok(GDSCRIPT_FAILED)
+        }
+    }
+}
+
+fn export_non_positive_layout(db: &mut GalleryDb) -> Result<String> {
+    let records = db.get_layout_records_in_non_positive_galleries()?;
+    let json = serde_json::to_string_pretty(&records)?;
+    Ok(json)
+}
+
+fn import_autosync(db: &mut GalleryDb, autosync_path: &PathBuf) -> Result<()> {
+    if autosync_path.exists() {
+        println!("autosync: importing {}.", autosync_path.display());
+        match std::fs::read_to_string(&autosync_path) {
+            Ok(json_contents) => {
+                import_non_positive_layout(db, json_contents)?;
+            }
+            Err(err) => {
+                println!("Failed to read from file: {err:?}");
+            }
+        }
+    }
+    Ok(())
+}
+
+fn export_autosync(db: &mut GalleryDb, autosync_path: &PathBuf) -> Result<()> {
+    println!("autosync: exporting {}.", autosync_path.display());
+    ensure_parent_dir(&autosync_path)?;
+    let contents = export_non_positive_layout(db)?;
+    std::fs::write(autosync_path, contents)?;
     Ok(())
 }
