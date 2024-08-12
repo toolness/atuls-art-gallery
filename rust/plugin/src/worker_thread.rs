@@ -471,8 +471,17 @@ fn import_autosync(db: &mut GalleryDb, autosync_path: &PathBuf) -> Result<()> {
 
 fn export_autosync(db: &mut GalleryDb, autosync_path: &PathBuf) -> Result<()> {
     println!("autosync: exporting {}.", autosync_path.display());
-    ensure_parent_dir(&autosync_path)?;
     let contents = export_non_positive_layout(db)?;
-    std::fs::write(autosync_path, contents)?;
+
+    let write = || -> Result<()> {
+        ensure_parent_dir(&autosync_path)?;
+        std::fs::write(autosync_path, contents)?;
+        Ok(())
+    };
+
+    if let Err(err) = write() {
+        println!("Failed to write file: {err:?}")
+    }
+
     Ok(())
 }
