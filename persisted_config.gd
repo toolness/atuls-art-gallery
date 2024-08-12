@@ -21,6 +21,7 @@ const PLAYER_SECTION = "player"
 var POTATO_MODE := Setting.create(VIDEO_SECTION, "potato_mode")
 var GI_ENABLED := Setting.create(VIDEO_SECTION, "global_illumination")
 var GALLERY_FILTER := Setting.create(GALLERY_SECTION, "gallery_filter")
+var AUTOSYNC_ENABLED := Setting.create(GALLERY_SECTION, "autosync")
 
 var PLAYER_POSITION := Setting.create(PLAYER_SECTION, "position")
 var PLAYER_ROTATION := Setting.create(PLAYER_SECTION, "rotation")
