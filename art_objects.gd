@@ -180,7 +180,8 @@ func _ready() -> void:
 	var did_create_initial_db := copy_initial_db(gallery_client.default_db_filename())
 	gallery_client.name = "GalleryClient"
 	add_child(gallery_client)
-	gallery_client.connect(PersistedConfig.ROOT_DIR)
+	var autosync_enabled := PersistedConfig.get_bool(PersistedConfig.AUTOSYNC_ENABLED, false)
+	gallery_client.connect(PersistedConfig.ROOT_DIR, autosync_enabled)
 	if did_create_initial_db:
 		# Note that we're not waiting for the result of the layout.
 		# I'm too lazy to deal with showing the user an initialization screen

@@ -35,13 +35,18 @@ struct Connection {
 }
 
 impl Connection {
-    fn connect(root_dir: PathBuf) -> Self {
+    fn connect(root_dir: PathBuf, enable_autosync: bool) -> Self {
         godot_print!("Root dir is {}.", root_dir.display());
         let (to_worker_tx, to_worker_rx) = channel::<MessageToWorker>();
         let (from_worker_tx, from_worker_rx) = channel::<MessageFromWorker>();
         godot_print!("Spawning gallery worker thread.");
         let handler = thread::spawn(move || {
-            if let Err(err) = work_thread(root_dir.clone(), to_worker_rx, from_worker_tx.clone()) {
+            if let Err(err) = work_thread(
+                root_dir.clone(),
+                enable_autosync,
+                to_worker_rx,
+                from_worker_tx.clone(),
+            ) {
                 eprintln!("Gallery worker thread errored: {err:?}");
                 let _ = from_worker_tx.send(MessageFromWorker::FatalError(format!("{err:?}")));
             }
@@ -145,9 +150,9 @@ impl GalleryClient {
     }
 
     #[func]
-    fn connect(&mut self, root_dir: GString) {
+    fn connect(&mut self, root_dir: GString, enable_autosync: bool) {
         let globalized_root_dir = globalize_path(root_dir);
-        self.connection = Some(Connection::connect(globalized_root_dir));
+        self.connection = Some(Connection::connect(globalized_root_dir, enable_autosync));
     }
 
     fn handle_send_error(&mut self, err: SendError<MessageToWorker>) {
