@@ -84,15 +84,13 @@ impl MetObjectApiRecord {
             return None;
         };
         for measurement in measurements {
-            if &measurement.element_name == "Overall" {
-                if let (Some(width), Some(height), None) = (
-                    measurement.element_measurements.width,
-                    measurement.element_measurements.height,
-                    measurement.element_measurements.depth,
-                ) {
-                    // Convert centimeters to meters.
-                    return Some((width / 100.0, height / 100.0));
-                }
+            if let (Some(width), Some(height), None) = (
+                measurement.element_measurements.width,
+                measurement.element_measurements.height,
+                measurement.element_measurements.depth,
+            ) {
+                // Convert centimeters to meters.
+                return Some((width / 100.0, height / 100.0));
             }
         }
         None
@@ -127,9 +125,10 @@ impl MetObjectApiRecord {
 
 #[derive(Debug, Deserialize)]
 pub struct MetObjectApiMeasurements {
-    #[serde(rename = "elementName")]
-    element_name: String,
-
+    // We used to check this to see if it was "Overall", but there were a bunch of other
+    // reasonable values like "Sheet", so now we just don't check this at all.
+    //#[serde(rename = "elementName")]
+    //element_name: String,
     #[serde(rename = "elementMeasurements")]
     element_measurements: MetObjectApiElementMeasurements,
 }
