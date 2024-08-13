@@ -7,19 +7,13 @@ From the project root, run:
 git submodule init
 git submodule update
 
-cd rust
-
 # Download the Metropolitan Museum of Art open access CSV
-curl https://media.githubusercontent.com/media/metmuseum/openaccess/master/MetObjects.csv --output cache/MetObjects.csv
+curl https://media.githubusercontent.com/media/metmuseum/openaccess/master/MetObjects.csv --output rust/cache/MetObjects.csv
 
-# Import the CSV into sqlite (--release makes it very fast)
-cargo run --release csv
+# TODO: Download Wikidata CSV - I need to put this somewhere publicly accessible!
 
-# Lay out the art gallery
-cargo run layout
-
-# Build the Godot extension
-cargo build
+sh build-initial-db.sh
+sh build-plugin.sh
 ```
 
 Now you can open the Godot project and open it in the editor:
