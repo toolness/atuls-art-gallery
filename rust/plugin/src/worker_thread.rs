@@ -159,7 +159,7 @@ fn fetch_met_api_image(
 ) -> Option<PathBuf> {
     match load_met_api_record(&cache, met_object_id) {
         Ok(obj_record) => match obj_record.try_to_download_image(&cache, size) {
-            Ok(Some((_width, _height, image))) => Some(cache.cache_dir().join(image)),
+            Ok(Some(image)) => Some(cache.cache_dir().join(image)),
             Ok(None) => None,
             Err(err) => {
                 eprintln!(

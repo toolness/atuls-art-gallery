@@ -58,10 +58,12 @@ pub fn load_met_api_record(cache: &GalleryCache, object_id: i64) -> Result<MetOb
     }
 }
 
+/// Historical note: I used to extract measurements out of this and use them, but
+/// then I realized that the measurements could be parsed from the original
+/// Met CSV. Furthermore, not all met objects (e.g. 389607) even _have_ measurements
+/// specified as structured data, rendering them even less useful.
 #[derive(Debug, Deserialize)]
 pub struct MetObjectApiRecord {
-    pub measurements: Option<Vec<MetObjectApiMeasurements>>,
-
     #[serde(rename = "primaryImageSmall")]
     pub primary_image_small: String,
 
@@ -78,69 +80,27 @@ pub struct MetObjectApiRecord {
 }
 
 impl MetObjectApiRecord {
-    /// Returns physical dimensions in meters, *not* pixels.
-    pub fn overall_width_and_height(&self) -> Option<(f64, f64)> {
-        let Some(measurements) = &self.measurements else {
-            return None;
-        };
-        for measurement in measurements {
-            if let (Some(width), Some(height), None) = (
-                measurement.element_measurements.width,
-                measurement.element_measurements.height,
-                measurement.element_measurements.depth,
-            ) {
-                // Convert centimeters to meters.
-                return Some((width / 100.0, height / 100.0));
-            }
-        }
-        None
-    }
-
     /// Try to download & cache the an image of the object if it's 2D artwork.
     ///
     /// If it's in the cache, returns the cached version. Otherwise, downloads and adds
     /// to cache.
     ///
-    /// Returns (width, height, filename) on success. Dimensions are in physical meters, *not* pixels.
+    /// Returns filename on success.
     pub fn try_to_download_image(
         &self,
         cache: &GalleryCache,
         size: ImageSize,
-    ) -> Result<Option<(f64, f64, String)>> {
-        if let Some((width, height)) = self.overall_width_and_height() {
-            let image_url = match size {
-                ImageSize::Small => &self.primary_image_small,
-                ImageSize::Large => &self.primary_image,
-            };
-            if let Some(ext) = get_supported_image_ext(image_url) {
-                let image_filename =
-                    format!("{ROOT_CACHE_SUBDIR}/object-{}-{size}{ext}", self.object_id);
-                cache_image(cache, image_url, &image_filename, ext)?;
-                return Ok(Some((width, height, image_filename)));
-            }
+    ) -> Result<Option<String>> {
+        let image_url = match size {
+            ImageSize::Small => &self.primary_image_small,
+            ImageSize::Large => &self.primary_image,
+        };
+        if let Some(ext) = get_supported_image_ext(image_url) {
+            let image_filename =
+                format!("{ROOT_CACHE_SUBDIR}/object-{}-{size}{ext}", self.object_id);
+            cache_image(cache, image_url, &image_filename, ext)?;
+            return Ok(Some(image_filename));
         }
         Ok(None)
     }
-}
-
-#[derive(Debug, Deserialize)]
-pub struct MetObjectApiMeasurements {
-    // We used to check this to see if it was "Overall", but there were a bunch of other
-    // reasonable values like "Sheet", so now we just don't check this at all.
-    //#[serde(rename = "elementName")]
-    //element_name: String,
-    #[serde(rename = "elementMeasurements")]
-    element_measurements: MetObjectApiElementMeasurements,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct MetObjectApiElementMeasurements {
-    #[serde(rename = "Width")]
-    width: Option<f64>,
-
-    #[serde(rename = "Height")]
-    height: Option<f64>,
-
-    #[serde(rename = "Depth")]
-    depth: Option<f64>,
 }
