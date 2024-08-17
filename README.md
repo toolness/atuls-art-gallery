@@ -5,10 +5,6 @@ You will need to install [Git LFS](https://git-lfs.com/).
 From the project root, run:
 
 ```
-# Fetch git submodules
-git submodule init
-git submodule update
-
 # This is only really needed if you installed Git LFS *after* cloning the repo.
 git lfs fetch
 git lfs checkout
