@@ -6,6 +6,8 @@ extends Node3D
 
 @onready var gallery_label: Label3D = $GalleryLabel
 
+@onready var lights: Node3D = %Lights
+
 @export var painting_scene: PackedScene
 
 const MIN_WALL_MOUNT_SIZE = 2
@@ -281,6 +283,7 @@ func init(new_gallery_id: int):
 func _ready():
 	gallery_label.text = str(gallery_id + GALLERY_LABEL_ID_OFFSET)
 	_paint_gallery_walls()
+	_light_gallery()
 
 
 const WALL_SURFACE_IDX = 0
@@ -294,6 +297,25 @@ func get_gallery_wall_color() -> Color:
 		return MANOR_HOUSE_GRAY
 	# Temporary exhibition.
 	return Color.WHITE
+
+
+func setup_gallery_light(light: GalleryLight):
+	if gallery_id < 0:
+		# Private collection.
+
+		# Because the walls are gray, the art isn't going to be
+		# as well-illuminated as the white walls of the permanent gallery.
+		# Let's bump up the indirect light energy to compensate a bit (although
+		# it's still not enough).
+		light.light.light_indirect_energy = 3.0
+	# Temporary exhibition.
+
+
+func _light_gallery():
+	for child in lights.get_children():
+		if child is GalleryLight:
+			setup_gallery_light(child as GalleryLight)
+
 
 func _paint_gallery_walls():
 	var first_wall := _get_walls()[0]

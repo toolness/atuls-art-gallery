@@ -36,6 +36,7 @@ _spawnable_scenes = PackedStringArray("res://Levels/painting.tscn")
 spawn_path = NodePath("..")
 
 [node name="Lights" type="Node3D" parent="."]
+unique_name_in_owner = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.216965, 0)
 
 [node name="Room01-Light01" parent="Lights" instance=ExtResource("3_tems5")]

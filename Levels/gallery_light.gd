@@ -1,4 +1,5 @@
 extends Node3D
+class_name GalleryLight
 
 @onready var light: OmniLight3D = %OmniLight3D
 
