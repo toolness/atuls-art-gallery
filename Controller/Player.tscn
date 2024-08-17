@@ -346,4 +346,8 @@ replication_config = SubResource("SceneReplicationConfig_24cgl")
 replication_config = SubResource("SceneReplicationConfig_ic4ee")
 script = ExtResource("5_6643d")
 
+[node name="TorchLight" type="OmniLight3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+
 [connection signal="timeout" from="Audio/FootstepTimer" to="." method="_on_footstep_timer_timeout"]

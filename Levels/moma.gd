@@ -308,6 +308,7 @@ func setup_gallery_light(light: GalleryLight):
 		# Let's bump up the indirect light energy to compensate a bit (although
 		# it's still not enough).
 		light.light.light_indirect_energy = 3.0
+		return
 	# Temporary exhibition.
 
 

@@ -40,6 +40,8 @@ class_name Player
 
 @onready var player_input: PlayerInput = $PlayerInput
 
+@onready var torch_light: Light3D = %TorchLight
+
 @export var teleport_global_transform: Transform3D
 
 signal teleport_to_gallery_id_requested(Player, int)
@@ -211,6 +213,14 @@ func _physics_process(delta: float) -> void:
 			UserInterface.reticle.is_highlighted = painting != null
 		if painting_look_debouncer.has_been_stable(delta, painting):
 			painting.handle_player_looking_at(camera)
+
+		if InfiniteGallery.get_gallery_id(global_position.x) < 0:
+			# The player is in their private collection. The walls are darker here,
+			# which results in poorer lighting on the paintings, so let's subtlely
+			# activate a "torch" to illuminate them better.
+			torch_light.visible = true
+		else:
+			torch_light.visible = false
 
 
 class NodeDebouncer:

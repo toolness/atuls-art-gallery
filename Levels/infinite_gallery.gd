@@ -35,7 +35,7 @@ const GALLERY_CHUNK_WIDTH = 28
 const GALLERY_SPAWN_RADIUS = 1
 
 
-func get_gallery_id(x: float) -> int:
+static func get_gallery_id(x: float) -> int:
 	return floori(x / float(GALLERY_CHUNK_WIDTH))
 
 
@@ -82,7 +82,7 @@ func get_players() -> Array[Player]:
 
 
 func _add_galleries_around_point(point: Vector3, galleries: Dictionary):
-	var middle_gallery_id := get_gallery_id(point.x)
+	var middle_gallery_id := InfiniteGallery.get_gallery_id(point.x)
 	var min_gallery_id := middle_gallery_id - GALLERY_SPAWN_RADIUS
 	var max_gallery_id := middle_gallery_id + GALLERY_SPAWN_RADIUS
 	for i in range(min_gallery_id, max_gallery_id + 1):
