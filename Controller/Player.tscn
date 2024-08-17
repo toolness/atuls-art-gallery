@@ -212,14 +212,12 @@ blend_point_4/pos = Vector2(0, -1)
 [sub_resource type="AudioStreamRandomizer" id="AudioStreamRandomizer_8skvo"]
 streams_count = 1
 stream_0/stream = ExtResource("3_wfp7i")
-stream_0/weight = 1.0
 
 [sub_resource type="AudioStreamRandomizer" id="AudioStreamRandomizer_l80nr"]
 random_pitch = 1.1
 random_volume_offset_db = 0.5
 streams_count = 1
 stream_0/stream = ExtResource("4_0mhnh")
-stream_0/weight = 1.0
 
 [sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_24cgl"]
 properties/0/path = NodePath(".:position")
