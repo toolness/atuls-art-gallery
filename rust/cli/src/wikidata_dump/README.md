@@ -26,11 +26,11 @@ I didn't want to use Wikidata's API to retrieve the additional data, because the
 
     Each entry contains:
 
-        1. The byte offset of the start of the gzip member that includes the entry.
+      1. The byte offset of the start of the gzip member that includes the entry.
 
-           For context: when decompressed, the Wikidata dump file is just one massive JSON array. But when compressed, it's actually a series of "chunks" of gzipped members. This means that if we only want a particular entity, we only need to decompress the chunk it's in, rather than needing to decompress the entire file.
+         For context: when decompressed, the Wikidata dump file is just one massive JSON array. But when compressed, it's actually a series of "chunks" of gzipped members. This means that if we only want a particular entity, we only need to decompress the chunk it's in, rather than needing to decompress the entire file.
 
-        2. The offset into the decompressed gzip member where the entry begins.
+      2. The offset into the decompressed gzip member where the entry begins.
 
     This process is heavily reliant on the particular encoding of the dump file; as such, it's a bit fragile. For example, it assumes that every decompressed JSON entity is on its own line, and that the beginning of each serialized entity is formatted in the exact same way (this allows us to extract the entity's ID via a simple string match, rather than by parsing JSON).
 
