@@ -236,6 +236,11 @@ func ensure_in_temporary_exhibition():
 		teleport_to_other_collection()
 
 
+func ensure_in_private_collection():
+	if not is_in_private_collection():
+		teleport_to_other_collection()
+
+
 class NodeDebouncer:
 	var prev_node: Node
 	var stable_time: float
