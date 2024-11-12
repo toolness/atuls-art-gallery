@@ -178,10 +178,7 @@ func _physics_process(delta: float) -> void:
 
 	if player_input.teleported:
 		player_input.teleported = false
-		var previous_global_transform = global_transform
-		global_transform = teleport_global_transform
-		teleport_global_transform = previous_global_transform
-		camera_target.rotation.x = 0
+		teleport_to_other_collection()
 
 	if player_input.teleported_via_teleport_dialog:
 		player_input.teleported_via_teleport_dialog = false
@@ -225,6 +222,13 @@ func _physics_process(delta: float) -> void:
 
 func is_in_private_collection() -> bool:
 	return InfiniteGallery.get_gallery_id(global_position.x) < 0
+
+
+func teleport_to_other_collection():
+	var previous_global_transform = global_transform
+	global_transform = teleport_global_transform
+	teleport_global_transform = previous_global_transform
+	camera_target.rotation.x = 0
 
 
 class NodeDebouncer:
