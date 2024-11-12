@@ -231,6 +231,11 @@ func teleport_to_other_collection():
 	camera_target.rotation.x = 0
 
 
+func ensure_in_temporary_exhibition():
+	if is_in_private_collection():
+		teleport_to_other_collection()
+
+
 class NodeDebouncer:
 	var prev_node: Node
 	var stable_time: float

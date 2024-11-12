@@ -173,12 +173,16 @@ func _on_new_layout_complete():
 	if len(players) == 1:
 		var player := players[0]
 
+		# We're only going to reset the player's teleport position in the temporary
+		# exhibition; wherever they are in the private collection will remain the same.
+
+		player.ensure_in_temporary_exhibition()
+
 		# TODO: This might not work well in multiplayer, as the server doesn't have
 		# authority on player rotation.
 		player.global_rotation = player_spawn_point.global_rotation
 
 		player.global_position = player_spawn_point.global_position
-		player.teleport_global_transform = player_initial_teleport_point.global_transform
 	_respawn_galleries()
 
 
