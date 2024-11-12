@@ -12,22 +12,22 @@
   {
     "height": 3.99999952316284,
     "name": "Wall-04-south",
-    "width": 10.0000095367432
+    "width": 10
   },
   {
     "height": 3.99999976158142,
     "name": "Wall-04-north-2",
-    "width": 4.00001001358032
+    "width": 4
   },
   {
     "height": 3.99999976158142,
     "name": "Wall-04-north-1",
-    "width": 4.00001001358032
+    "width": 4
   },
   {
     "height": 3.99999952316284,
     "name": "Wall-04-east",
-    "width": 8.00000953674316
+    "width": 8
   },
   {
     "height": 3.99999952316284,
@@ -52,12 +52,12 @@
   {
     "height": 4,
     "name": "Wall-03-east-2",
-    "width": 3.00001001358032
+    "width": 3
   },
   {
     "height": 4,
     "name": "Wall-03-east-1",
-    "width": 3.00001001358032
+    "width": 3
   },
   {
     "height": 4,
@@ -72,22 +72,22 @@
   {
     "height": 3.99999976158142,
     "name": "Wall-02-south-2",
-    "width": 4.00001001358032
+    "width": 4
   },
   {
     "height": 3.99999976158142,
     "name": "Wall-02-south-1",
-    "width": 4.00001001358032
+    "width": 4
   },
   {
     "height": 3.99999952316284,
     "name": "Wall-02-north",
-    "width": 10.0000095367432
+    "width": 10
   },
   {
     "height": 3.99999952316284,
     "name": "Wall-02-east",
-    "width": 8.00000953674316
+    "width": 8
   },
   {
     "height": 3.99999952316284,
@@ -102,21 +102,21 @@
   {
     "height": 3.99999976158142,
     "name": "Wall-01-north-2",
-    "width": 4.00001001358032
+    "width": 4
   },
   {
     "height": 3.99999976158142,
     "name": "Wall-01-north-1",
-    "width": 10.0000095367432
+    "width": 10
   },
   {
     "height": 4,
     "name": "Wall-01-east-2",
-    "width": 3.00001001358032
+    "width": 3
   },
   {
     "height": 4,
     "name": "Wall-01-east-1",
-    "width": 3.00001001358032
+    "width": 3
   }
 ]
