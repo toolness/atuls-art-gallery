@@ -214,13 +214,17 @@ func _physics_process(delta: float) -> void:
 		if painting_look_debouncer.has_been_stable(delta, painting):
 			painting.handle_player_looking_at(camera)
 
-		if InfiniteGallery.get_gallery_id(global_position.x) < 0:
+		if is_in_private_collection():
 			# The player is in their private collection. The walls are darker here,
 			# which results in poorer lighting on the paintings, so let's subtlely
 			# activate a "torch" to illuminate them better.
 			torch_light.visible = true
 		else:
 			torch_light.visible = false
+
+
+func is_in_private_collection() -> bool:
+	return InfiniteGallery.get_gallery_id(global_position.x) < 0
 
 
 class NodeDebouncer:
