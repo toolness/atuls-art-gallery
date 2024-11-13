@@ -30,6 +30,8 @@ var started_loading_small_image := false
 
 var started_loading_large_image := false
 
+var is_duplicate := false
+
 @onready var painting: MeshInstance3D = %painting/Painting
 
 @onready var collision_shape: CollisionShape3D = $painting/Painting/StaticBody3D/CollisionShape3D
@@ -109,6 +111,25 @@ func _ready():
 	# when it first enters the scene tree.
 
 
+## This should only ever be used to fix a bug with lighting whereby moving a painting
+## to somewhere with different illumination preserves the illumination of its original
+## location, making it look horribly over/under-exposed.
+static func respawn_to_fix_stupid_lighting_bugs(old_painting: Painting):
+	var parent = old_painting.get_parent()
+	if not parent:
+		push_error("Unable to respawn painting, it has no parent.")
+		return
+	var new_painting: Painting = old_painting.duplicate()
+	new_painting.is_duplicate = true
+	parent.remove_child(old_painting)
+	old_painting.free()
+	parent.add_child(new_painting)
+	print(
+		"Respawned painting with name=", new_painting.name, " object_id=", new_painting.art_object_id,
+		" to work around stupid lighting bugs."
+	)
+
+
 func _maybe_load_small_image():
 	if started_loading_small_image:
 		return
@@ -161,6 +182,9 @@ func _wait_for_bounding_box_recomputes():
 
 
 func configure_wall_label() -> void:
+	if is_duplicate:
+		# This is a duplicate, the wall label has already been configured.
+		return
 	var aabb_size := painting.get_aabb().size
 	var x := wall_label_primary.position.x
 	var wall_label_x_offset := absf(x) - aabb_size.x / 2
