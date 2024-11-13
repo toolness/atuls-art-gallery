@@ -92,7 +92,21 @@ func _ready():
 		print("Warning: No inner_painting_scale available for painting!")
 	if not art_object_id:
 		print("Warning: No art_object_id available for painting!")
+
+	_init_or_refresh_material()
+
+	# Note that we don't want to see if the player is close enough to load the small
+	# image yet, because our painting may not yet have been moved to its final position
+	# when it first enters the scene tree.
+
+
+func _init_or_refresh_material():
 	var material: StandardMaterial3D = painting.mesh.surface_get_material(PAINTING_SURFACE_IDX)
+
+	var previous_albedo_texture: Texture2D
+	if painting_surface_material:
+		previous_albedo_texture = painting_surface_material.albedo_texture
+
 	painting_surface_material = material.duplicate()
 	painting_surface_material.albedo_color = _get_initial_albedo_color()
 
@@ -104,30 +118,16 @@ func _ready():
 	if not UserInterface.potato_mode:
 		painting_surface_material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 
+	painting_surface_material.albedo_texture = previous_albedo_texture
 	painting.set_surface_override_material(PAINTING_SURFACE_IDX, painting_surface_material)
 
-	# Note that we don't want to see if the player is close enough to load the small
-	# image yet, because our painting may not yet have been moved to its final position
-	# when it first enters the scene tree.
 
-
-## This should only ever be used to fix a bug with lighting whereby moving a painting
-## to somewhere with different illumination preserves the illumination of its original
+## This fixes a bug with lighting whereby moving a painting to somewhere with
+## different illumination preserves the illumination of its original
 ## location, making it look horribly over/under-exposed.
-static func respawn_to_fix_stupid_lighting_bugs(old_painting: Painting):
-	var parent = old_painting.get_parent()
-	if not parent:
-		push_error("Unable to respawn painting, it has no parent.")
-		return
-	var new_painting: Painting = old_painting.duplicate()
-	new_painting.is_duplicate = true
-	parent.remove_child(old_painting)
-	old_painting.free()
-	parent.add_child(new_painting)
-	print(
-		"Respawned painting with name=", new_painting.name, " object_id=", new_painting.art_object_id,
-		" to work around stupid lighting bugs."
-	)
+func fix_stupid_lighting_bug():
+	# It seems like regenerating our override material fixes the stupid lighting bug.
+	_init_or_refresh_material()
 
 
 func _maybe_load_small_image():

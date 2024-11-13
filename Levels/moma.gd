@@ -86,7 +86,7 @@ class MovingPainting:
 			print("New painting position is object_id=", painting.art_object_id, " gallery_id=", gallery_id, " wall_id=", wall_id, " x=", wall_x, " y=", wall_y)
 			ArtObjects.gallery_client.move_art_object(painting.art_object_id, gallery_id, wall_id, wall_x, wall_y)
 			if not Lobby.IS_HEADLESS:
-				Painting.respawn_to_fix_stupid_lighting_bugs(painting)
+				painting.fix_stupid_lighting_bug()
 
 	func _populate_wall_info(wall: Wall):
 		var relative_position = painting.global_position - wall.get_global_base_position()
