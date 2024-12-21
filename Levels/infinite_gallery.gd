@@ -148,6 +148,7 @@ func _ready() -> void:
 	UserInterface.debug_draw_changed.connect(_on_debug_draw_changed)
 	UserInterface.layout_config_container.new_layout_complete.connect(_on_new_layout_complete)
 	UserInterface.global_illumination_changed.connect(reset_lighting)
+	UserInterface.gallery_name_changed.connect(_set_welcome_sign_content)
 
 	_set_welcome_sign_content()
 	sync_galleries()
@@ -159,13 +160,15 @@ func _set_welcome_sign_content():
 	)
 	if not temporary_exhibition_name:
 		temporary_exhibition_name = "The Sum of All Artwork"
+	var gallery_name: String = UserInterface.gallery_name
 	if Lobby.IS_CLIENT:
-		# TODO: We should sync the name of the exhibtion from the server.
+		# TODO: We should sync the name of the exhibition and gallery from the server.
 		temporary_exhibition_name = Lobby.HOST
+		gallery_name = Lobby.HOST + "'s gallery"
 	welcome_sign_content.text = welcome_sign_content_template.replace(
 		"TEMPORARY_EXHIBITION_NAME",
 		temporary_exhibition_name
-	)
+	).replace("GALLERY_NAME", gallery_name)
 
 
 func _on_new_layout_complete():

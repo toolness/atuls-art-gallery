@@ -36,6 +36,8 @@ signal potato_mode_changed
 
 signal global_illumination_changed
 
+signal gallery_name_changed
+
 signal debug_draw_changed(value: Viewport.DebugDraw)
 
 var paused := false:
@@ -77,7 +79,20 @@ var global_illumination := true:
 		global_illumination = value
 		global_illumination_changed.emit()
 
+func _get_default_gallery_name() -> String:
+	var username = OS.get_environment("USERNAME")
+	if not username:
+		return "A Gallery of Your Own"
+	return username.capitalize() + "'s Gallery"
+
+var gallery_name := _get_default_gallery_name():
+	set(value):
+		gallery_name = value
+		DisplayServer.window_set_title(value)
+		gallery_name_changed.emit()
+
 func _ready() -> void:
+	DisplayServer.window_set_title(gallery_name)
 	fade_in(create_tween())
 	pause_screen.visible = false
 	pause_container.visible = true

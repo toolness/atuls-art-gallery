@@ -14,11 +14,12 @@ script = ExtResource("1_wgv4b")
 custom_minimum_size = Vector2(512, 0)
 layout_mode = 2
 
-[node name="Label" type="Label" parent="VBoxContainer"]
+[node name="TitleLabel" type="Label" parent="VBoxContainer"]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(800, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 96
-text = "A Gallery of Your Own"
+text = "GALLERY_NAME"
 horizontal_alignment = 1
 autowrap_mode = 2
 
