@@ -83,7 +83,7 @@ func get_default_gallery_name() -> String:
 	var username = OS.get_environment("USERNAME")
 	if not username:
 		return "A Gallery of Your Own"
-	return username.capitalize() + "'s Gallery"
+	return username.capitalize() + "'s Art Gallery"
 
 var gallery_name := "":
 	set(value):
