@@ -1,6 +1,6 @@
 ## Introduction
 
-_Atul's Art Gallery_ is a virtual art gallery that you can curate with your
+_A Gallery of Your Own_ is a virtual art gallery that you can curate with your
 friends. It offers access to the following public domain art collections:
 
 * The [Open Access collection of the Metropolitan Museum of Art](https://www.metmuseum.org/about-the-met/policies-and-documents/open-access)

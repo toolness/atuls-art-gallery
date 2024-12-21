@@ -57,7 +57,7 @@ alpha_antialiasing_mode = 1
 texture_filter = 5
 modulate = Color(0, 0, 0, 1)
 outline_modulate = Color(0, 0, 0, 0)
-text = "Welcome to Atul's Art Gallery.
+text = "Welcome to A Gallery of Your Own.
 
 The current temporary exhibition, \"TEMPORARY_EXHIBITION_NAME\", begins here.
 
