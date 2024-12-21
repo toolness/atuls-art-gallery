@@ -31,6 +31,7 @@ var _player: Player
 @onready var potato_mode_check_button: CheckButton = %PotatoModeCheckButton
 @onready var gi_panel: Control = %GIPanel
 @onready var gi_mode_check_button: CheckButton = %GIModeCheckButton
+@onready var gallery_name_line_edit: LineEdit = %GalleryNameLineEdit
 
 @onready var master_slider: HSlider = %MasterSlider
 @onready var music_slider: HSlider = %MusicSlider
@@ -44,8 +45,14 @@ func focus() -> void:
 	button.grab_focus()
 
 func _ready() -> void:
+	# These seem to trigger associated change events, but only if the setting is changed from its default...
 	potato_mode_check_button.set_pressed(PersistedConfig.get_bool(PersistedConfig.POTATO_MODE, false))
 	gi_mode_check_button.set_pressed(PersistedConfig.get_bool(PersistedConfig.GI_ENABLED, true))
+
+	# Setting the text of a LineEdit doesn't trigger any events, so we'll have to call our event handler manually.
+	var gallery_name := PersistedConfig.get_string(PersistedConfig.GALLERY_NAME, UserInterface.get_default_gallery_name())
+	gallery_name_line_edit.text = gallery_name
+	_on_gallery_name_line_edit_text_changed(gallery_name)
 
 	fov_slider.min_value = min_fov
 	fov_slider.max_value = max_fov
@@ -207,3 +214,8 @@ func update_main_player(player_in: Player) -> void:
 func _on_visibility_changed():
 	if is_visible_in_tree():
 		fullscreen_check_button.set_pressed_no_signal(is_fullscreen)
+
+
+func _on_gallery_name_line_edit_text_changed(new_text:String) -> void:
+	PersistedConfig.set_string(PersistedConfig.GALLERY_NAME, new_text)
+	UserInterface.gallery_name = new_text

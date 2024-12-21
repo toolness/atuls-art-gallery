@@ -79,13 +79,13 @@ var global_illumination := true:
 		global_illumination = value
 		global_illumination_changed.emit()
 
-func _get_default_gallery_name() -> String:
+func get_default_gallery_name() -> String:
 	var username = OS.get_environment("USERNAME")
 	if not username:
 		return "A Gallery of Your Own"
 	return username.capitalize() + "'s Gallery"
 
-var gallery_name := _get_default_gallery_name():
+var gallery_name := "":
 	set(value):
 		gallery_name = value
 		DisplayServer.window_set_title(value)
